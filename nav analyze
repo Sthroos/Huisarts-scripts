@@ -1,0 +1,771 @@
+// ==UserScript==
+// @name         Promedico ASP Navigator - Complete with Sidebar and Top Bar
+// @namespace    http://tampermonkey.net/
+// @version      7.0
+// @description  Navigate all Promedico ASP menu items + analyze sidebar + top bar
+// @match        https://www.promedico-asp.nl/promedico/index.html
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    console.log('Promedico ASP Navigator v7.0 - With Sidebar and Top Bar Analysis');
+
+    // Get the main content iframe
+    function getContentIframe() {
+        return document.getElementById('panelBackCompatibility-frame');
+    }
+
+    // Get iframe document
+    function getIframeDocument() {
+        const iframe = getContentIframe();
+        if (!iframe) {
+            console.error('Content iframe not found');
+            return null;
+        }
+        return iframe.contentDocument || iframe.contentWindow.document;
+    }
+
+    // Get the left sidebar container (it's in the same iframe as content!)
+    function getLeftSidebar() {
+        const iframe = getContentIframe();
+        if (!iframe || !iframe.contentDocument) {
+            return null;
+        }
+        const doc = iframe.contentDocument;
+        return doc.getElementById('leftcontainer') ||
+               doc.getElementById('actionbuttons') ||
+               doc.getElementById('episode');
+    }
+
+    // Get the top bar container (in the main document, NOT an iframe)
+    function getTopBar() {
+        return document.getElementById('displayPanelTopBar') ||
+               document.querySelector('[class*="displayPanelTopBar"]') ||
+               document.querySelector('.topbar') ||
+               document.getElementById('ViewPort')?.querySelector('[class*="TopBar"]');
+    }
+
+    // Navigate to menu item
+    function navigateTo(menuId) {
+        const menuItem = document.getElementById(menuId);
+        if (!menuItem) {
+            console.error('Menu item not found:', menuId);
+            return false;
+        }
+        console.log('Navigating to:', menuId);
+        menuItem.click();
+        return true;
+    }
+
+    // Wait for iframe content to load
+    function waitForLoad(callback, timeoutMs = 10000) {
+        let attempts = 0;
+        const maxAttempts = 100;
+
+        const checkLoaded = setInterval(() => {
+            const iframe = getContentIframe();
+
+            if (iframe && iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+                clearInterval(checkLoaded);
+                console.log('✓ Page loaded');
+                setTimeout(() => callback(), 500);
+            } else if (++attempts >= maxAttempts) {
+                clearInterval(checkLoaded);
+                console.warn('Timeout waiting for page load');
+                callback();
+            }
+        }, 100);
+    }
+
+    // Analyze the top bar (in main document)
+    function analyzeTopBar() {
+        console.log('\n╔══════════════════════════════════════════╗');
+        console.log('║           TOP BAR ANALYSIS               ║');
+        console.log('╚══════════════════════════════════════════╝');
+
+        // Get top bar using various methods
+        const topBar = getTopBar();
+        
+        if (!topBar) {
+            console.log('⚠️ Top bar container not found by ID, searching by class...');
+            
+            // Try to find it by common patterns
+            const possibleTopBars = [
+                document.querySelector('[class*="TopBar"]'),
+                document.querySelector('[class*="topbar"]'),
+                document.querySelector('[id*="TopBar"]'),
+                document.querySelector('[id*="topbar"]'),
+                document.getElementById('ViewPort')?.querySelector('div:first-child'),
+                // Search for the main menu button and go up to find its container
+                document.getElementById('MainMenu-btnStart')?.closest('[class*="Panel"]')
+            ];
+
+            for (let possible of possibleTopBars) {
+                if (possible) {
+                    console.log('✓ Found potential top bar:', {
+                        id: possible.id,
+                        className: possible.className,
+                        tagName: possible.tagName
+                    });
+                    analyzeTopBarContent(possible);
+                    return possible;
+                }
+            }
+
+            console.log('⚠️ Top bar not found, analyzing entire main document instead...');
+            analyzeMainDocument();
+            return null;
+        }
+
+        analyzeTopBarContent(topBar);
+        return topBar;
+    }
+
+    // Analyze content of top bar
+    function analyzeTopBarContent(container) {
+        console.log('\nContainer ID:', container.id);
+        console.log('Container Class:', container.className);
+
+        // Find all interactive elements
+        const buttons = container.querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]');
+        const links = container.querySelectorAll('a');
+        const inputs = container.querySelectorAll('input, select, textarea');
+        const clickable = container.querySelectorAll('[onclick], [href], button, input[type="button"]');
+        const spans = container.querySelectorAll('span[id], span[class]');
+        const divs = container.querySelectorAll('div[id]');
+
+        console.log('\n📊 ELEMENT COUNTS:');
+        console.log('  Buttons:', buttons.length);
+        console.log('  Links:', links.length);
+        console.log('  Input fields:', inputs.length);
+        console.log('  Clickable elements:', clickable.length);
+        console.log('  Named spans:', spans.length);
+        console.log('  Divs with IDs:', divs.length);
+
+        console.log('\n🔘 BUTTONS:');
+        buttons.forEach((btn, i) => {
+            console.log(`[${i}]`, {
+                id: btn.id,
+                className: btn.className,
+                type: btn.type,
+                value: btn.value,
+                text: btn.textContent?.trim().substring(0, 50),
+                onclick: btn.onclick ? 'has onclick' : null
+            });
+        });
+
+        console.log('\n🔗 LINKS:');
+        links.forEach((link, i) => {
+            console.log(`[${i}]`, {
+                id: link.id,
+                className: link.className,
+                href: link.href,
+                text: link.textContent?.trim().substring(0, 50),
+                onclick: link.onclick ? 'has onclick' : null
+            });
+        });
+
+        console.log('\n📝 INPUT FIELDS:');
+        inputs.forEach((input, i) => {
+            console.log(`[${i}]`, {
+                id: input.id,
+                name: input.name,
+                type: input.type,
+                className: input.className,
+                value: input.value?.substring(0, 30),
+                placeholder: input.placeholder
+            });
+        });
+
+        console.log('\n🏷️ NAMED SPANS (often contain patient/practice info):');
+        spans.forEach((span, i) => {
+            if (i < 30) {
+                console.log(`[${i}]`, {
+                    id: span.id,
+                    className: span.className,
+                    text: span.textContent?.trim().substring(0, 50)
+                });
+            }
+        });
+
+        console.log('\n📦 DIVS WITH IDs:');
+        divs.forEach((div, i) => {
+            if (i < 20) {
+                console.log(`[${i}]`, {
+                    id: div.id,
+                    className: div.className,
+                    text: div.textContent?.trim().substring(0, 50)
+                });
+            }
+        });
+
+        // Look for specific known elements
+        console.log('\n🔍 SEARCHING FOR KNOWN ELEMENTS:');
+        const knownIds = [
+            'MainMenu-btnStart',
+            'patientBar',
+            'practiceSelector',
+            'userInfo',
+            'logoutButton',
+            'displayPanelTopBar',
+            'topBar'
+        ];
+
+        knownIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                console.log(`✓ Found ${id}:`, {
+                    tag: element.tagName,
+                    className: element.className,
+                    text: element.textContent?.trim().substring(0, 50)
+                });
+            }
+        });
+    }
+
+    // Analyze main document (fallback if top bar not found)
+    function analyzeMainDocument() {
+        console.log('\n📄 MAIN DOCUMENT ANALYSIS (searching for top bar elements):');
+        
+        const allButtons = document.querySelectorAll('button, input[type="button"], input[type="submit"]');
+        const allInputs = document.querySelectorAll('input, select, textarea');
+        const allDivsWithId = document.querySelectorAll('div[id]');
+
+        console.log('\nTotal buttons in document:', allButtons.length);
+        console.log('Total inputs in document:', allInputs.length);
+        console.log('Total divs with IDs:', allDivsWithId.length);
+
+        console.log('\n🔘 FIRST 20 BUTTONS:');
+        Array.from(allButtons).slice(0, 20).forEach((btn, i) => {
+            console.log(`[${i}]`, {
+                id: btn.id,
+                className: btn.className,
+                text: btn.textContent?.trim().substring(0, 50)
+            });
+        });
+
+        console.log('\n📦 FIRST 30 DIVS WITH IDs:');
+        Array.from(allDivsWithId).slice(0, 30).forEach((div, i) => {
+            console.log(`[${i}]`, {
+                id: div.id,
+                className: div.className
+            });
+        });
+    }
+
+    // Analyze left sidebar (inside the content iframe!)
+    function analyzeSidebar() {
+        const iframe = getContentIframe();
+        if (!iframe || !iframe.contentDocument) {
+            console.log('⚠️ Content iframe not accessible');
+            return null;
+        }
+
+        const doc = iframe.contentDocument;
+        const leftcontainer = doc.getElementById('leftcontainer');
+        const actionbuttons = doc.getElementById('actionbuttons');
+        const episode = doc.getElementById('episode');
+
+        if (!leftcontainer && !actionbuttons && !episode) {
+            console.log('⚠️ Sidebar elements not found');
+            return null;
+        }
+
+        // Combine all sidebar containers
+        const sidebarElements = [leftcontainer, actionbuttons, episode].filter(el => el);
+
+        console.log('\n╔══════════════════════════════════════════╗');
+        console.log('║          LEFT SIDEBAR ANALYSIS           ║');
+        console.log('╚══════════════════════════════════════════╝');
+        console.log('Found sidebar containers:', sidebarElements.length);
+
+        const allButtons = [];
+        const allLinks = [];
+        const allClickable = [];
+
+        sidebarElements.forEach(container => {
+            console.log('\n--- Container:', container.id, '---');
+            const buttons = container.querySelectorAll('button, input[type="button"], input[type="submit"], a.button, .btn');
+            const links = container.querySelectorAll('a');
+            const clickable = container.querySelectorAll('[onclick], [href], button, input[type="button"]');
+
+            allButtons.push(...buttons);
+            allLinks.push(...links);
+            allClickable.push(...clickable);
+
+            console.log('  Buttons:', buttons.length);
+            console.log('  Links:', links.length);
+            console.log('  Clickable elements:', clickable.length);
+        });
+
+        console.log('\n=== ALL SIDEBAR BUTTONS ===');
+        allButtons.forEach((btn, i) => {
+            console.log(`[${i}]`, {
+                tag: btn.tagName,
+                id: btn.id,
+                name: btn.name,
+                className: btn.className,
+                value: btn.value,
+                text: btn.textContent?.trim().substring(0, 50),
+                onclick: btn.onclick ? 'has onclick' : null
+            });
+        });
+
+        console.log('\n=== ALL SIDEBAR LINKS ===');
+        allLinks.forEach((link, i) => {
+            if (i < 20) {
+                console.log(`[${i}]`, {
+                    id: link.id,
+                    href: link.href,
+                    className: link.className,
+                    text: link.textContent?.trim().substring(0, 50),
+                    onclick: link.onclick ? 'has onclick' : null
+                });
+            }
+        });
+
+        return {
+            buttons: allButtons,
+            links: allLinks,
+            allClickable: allClickable,
+            containers: sidebarElements
+        };
+    }
+
+    // Analyze main content page
+    function analyzeContent() {
+        const doc = getIframeDocument();
+        if (!doc) {
+            console.log('⚠️ Content iframe not accessible');
+            return null;
+        }
+
+        const info = {
+            url: doc.location.href,
+            title: doc.title,
+            inputs: doc.querySelectorAll('input'),
+            buttons: doc.querySelectorAll('button, input[type="button"], input[type="submit"]'),
+            forms: doc.querySelectorAll('form'),
+            tables: doc.querySelectorAll('table'),
+            selects: doc.querySelectorAll('select'),
+            textareas: doc.querySelectorAll('textarea')
+        };
+
+        console.log('\n╔══════════════════════════════════════════╗');
+        console.log('║        MAIN CONTENT ANALYSIS             ║');
+        console.log('╚══════════════════════════════════════════╝');
+        console.log('URL:', info.url);
+        console.log('Title:', info.title);
+        console.log('Inputs:', info.inputs.length);
+        console.log('Buttons:', info.buttons.length);
+        console.log('Forms:', info.forms.length);
+        console.log('Tables:', info.tables.length);
+        console.log('Selects:', info.selects.length);
+        console.log('Textareas:', info.textareas.length);
+
+        console.log('\n=== INPUT FIELDS ===');
+        info.inputs.forEach((el, i) => {
+            if (i < 30) {
+                console.log(`[${i}]`, {
+                    type: el.type,
+                    name: el.name,
+                    id: el.id,
+                    value: el.value?.substring(0, 30),
+                    placeholder: el.placeholder
+                });
+            }
+        });
+
+        console.log('\n=== BUTTONS ===');
+        info.buttons.forEach((el, i) => {
+            console.log(`[${i}]`, {
+                tag: el.tagName,
+                id: el.id,
+                name: el.name,
+                value: el.value,
+                text: el.textContent?.trim().substring(0, 50)
+            });
+        });
+
+        console.log('\n=== SELECT DROPDOWNS ===');
+        info.selects.forEach((el, i) => {
+            console.log(`[${i}]`, {
+                name: el.name,
+                id: el.id,
+                options: el.options.length
+            });
+        });
+
+        return info;
+    }
+
+    // Analyze EVERYTHING: top bar, sidebar, and content
+    function analyzeFull() {
+        console.log('\n╔══════════════════════════════════════════╗');
+        console.log('║         FULL PAGE ANALYSIS               ║');
+        console.log('╚══════════════════════════════════════════╝');
+
+        const topBarInfo = analyzeTopBar();
+        const sidebarInfo = analyzeSidebar();
+        const contentInfo = analyzeContent();
+
+        return {
+            topBar: topBarInfo,
+            sidebar: sidebarInfo,
+            content: contentInfo
+        };
+    }
+
+    // Click element in top bar (main document)
+    function clickTopBar(identifier) {
+        const topBar = getTopBar() || document.body;
+
+        // Try by ID
+        let element = document.getElementById(identifier);
+
+        // Try by selector in top bar
+        if (!element) {
+            element = topBar.querySelector(`[name="${identifier}"]`) ||
+                     topBar.querySelector(`[value="${identifier}"]`);
+        }
+
+        // Try by text content in buttons
+        if (!element) {
+            const allButtons = topBar.querySelectorAll('button, input[type="button"], a');
+            for (let btn of allButtons) {
+                if (btn.textContent?.trim().toLowerCase().includes(identifier.toLowerCase())) {
+                    element = btn;
+                    break;
+                }
+            }
+        }
+
+        if (element) {
+            console.log('✓ Clicking top bar element:', identifier);
+            element.click();
+            return true;
+        }
+
+        console.error('✗ Top bar element not found:', identifier);
+        return false;
+    }
+
+    // Click sidebar button (in the content iframe)
+    function clickSidebarButton(identifier) {
+        const iframe = getContentIframe();
+        if (!iframe || !iframe.contentDocument) {
+            console.error('✗ Content iframe not accessible');
+            return false;
+        }
+
+        const doc = iframe.contentDocument;
+        const containers = [
+            doc.getElementById('leftcontainer'),
+            doc.getElementById('actionbuttons'),
+            doc.getElementById('episode')
+        ].filter(el => el);
+
+        if (containers.length === 0) {
+            console.error('✗ Sidebar containers not found');
+            return false;
+        }
+
+        // Search in all sidebar containers
+        for (let container of containers) {
+            // Try by ID
+            let button = container.querySelector(`#${identifier}`);
+
+            // Try by name
+            if (!button) {
+                button = container.querySelector(`[name="${identifier}"]`);
+            }
+
+            // Try by value
+            if (!button) {
+                button = container.querySelector(`[value="${identifier}"]`);
+            }
+
+            // Try by text content
+            if (!button) {
+                const allButtons = container.querySelectorAll('button, input[type="button"], input[type="submit"], a');
+                for (let btn of allButtons) {
+                    if (btn.textContent?.trim().toLowerCase().includes(identifier.toLowerCase())) {
+                        button = btn;
+                        break;
+                    }
+                }
+            }
+
+            if (button) {
+                console.log('✓ Clicking sidebar element:', identifier, 'in', container.id);
+                button.click();
+                return true;
+            }
+        }
+
+        console.error('✗ Sidebar element not found:', identifier);
+        return false;
+    }
+
+    // Fill a field (searches top bar first, then main content)
+    function fill(fieldIdentifier, value) {
+        // Try top bar first
+        let field = document.getElementById(fieldIdentifier) ||
+                   document.querySelector(`[name="${fieldIdentifier}"]`);
+
+        if (field) {
+            field.value = value;
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log('✓ Filled (top bar):', fieldIdentifier, '=', value);
+            return true;
+        }
+
+        // Try main content iframe
+        const doc = getIframeDocument();
+        if (doc) {
+            field = doc.getElementById(fieldIdentifier) ||
+                   doc.querySelector(`[name="${fieldIdentifier}"]`);
+
+            if (field) {
+                field.value = value;
+                field.dispatchEvent(new Event('change', { bubbles: true }));
+                field.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('✓ Filled (content):', fieldIdentifier, '=', value);
+                return true;
+            }
+        }
+
+        console.error('✗ Field not found:', fieldIdentifier);
+        return false;
+    }
+
+    // Click button (searches top bar first, then main content)
+    function click(buttonIdentifier) {
+        // Try top bar first
+        let button = document.getElementById(buttonIdentifier) ||
+                    document.querySelector(`[name="${buttonIdentifier}"]`) ||
+                    document.querySelector(`[value="${buttonIdentifier}"]`);
+
+        if (button) {
+            console.log('✓ Clicking (top bar):', buttonIdentifier);
+            button.click();
+            return true;
+        }
+
+        // Try main content iframe
+        const doc = getIframeDocument();
+        if (doc) {
+            button = doc.getElementById(buttonIdentifier) ||
+                    doc.querySelector(`[name="${buttonIdentifier}"]`) ||
+                    doc.querySelector(`[value="${buttonIdentifier}"]`);
+
+            if (button) {
+                console.log('✓ Clicking (content):', buttonIdentifier);
+                button.click();
+                return true;
+            }
+        }
+
+        console.error('✗ Button not found:', buttonIdentifier);
+        return false;
+    }
+
+    // Navigate and analyze everything
+    function gotoAndAnalyze(menuId) {
+        navigateTo(menuId);
+        waitForLoad(analyzeFull);
+    }
+
+    // Expose globally with ALL menu shortcuts
+    window.Nav = {
+        // Core functions
+        goto: navigateTo,
+        wait: waitForLoad,
+        analyze: analyzeFull,              // Analyzes top bar, sidebar, AND content
+        analyzeContent: analyzeContent,    // Analyzes only main content
+        analyzeSidebar: analyzeSidebar,    // Analyzes only sidebar
+        analyzeTopBar: analyzeTopBar,      // Analyzes only top bar
+        fill: fill,                        // Fill field (top bar or content)
+        click: click,                      // Click button (top bar or content)
+        clickTopBar: clickTopBar,          // Click button in top bar specifically
+        clickSidebar: clickSidebarButton,  // Click button in sidebar
+        gotoAndAnalyze: gotoAndAnalyze,
+        getDoc: getIframeDocument,
+        getSidebar: getLeftSidebar,
+        getTopBar: getTopBar,
+
+        // Assistenten
+        assistenten: {
+            triage: () => gotoAndAnalyze('MainMenu-Assistenten-Triage'),
+            werklijst: () => gotoAndAnalyze('MainMenu-Assistenten-Werklijst')
+        },
+
+        // Agenda
+        agenda: {
+            kalender: () => gotoAndAnalyze('MainMenu-Agenda-Kalender'),
+            berichten: () => gotoAndAnalyze('MainMenu-Agenda-Berichten'),
+            spreekuur: () => gotoAndAnalyze('MainMenu-Agenda-Spreekuur'),
+            sjablonen: () => gotoAndAnalyze('MainMenu-Agenda-Sjablonen')
+        },
+
+        // Medisch Dossier
+        medischDossier: {
+            zoeken: () => gotoAndAnalyze('MainMenu-MedischDossier-Zoeken'),
+            overzicht: () => gotoAndAnalyze('MainMenu-MedischDossier-Overzicht'),
+            episoden: () => gotoAndAnalyze('MainMenu-MedischDossier-Episoden'),
+            actueleMedicatie: () => gotoAndAnalyze('MainMenu-MedischDossier-ActueleMedicatie'),
+            meetwaarden: () => gotoAndAnalyze('MainMenu-MedischDossier-MeetwaardenUitslagen'),
+            correspondentie: () => gotoAndAnalyze('MainMenu-MedischDossier-Correspondentie'),
+            afspraken: () => gotoAndAnalyze('MainMenu-MedischDossier-Afspraken'),
+            memo: () => gotoAndAnalyze('MainMenu-MedischDossier-Memo'),
+            additioneel: () => gotoAndAnalyze('MainMenu-MedischDossier-Additioneel'),
+            taken: () => gotoAndAnalyze('MainMenu-MedischDossier-Taken'),
+            controles: () => gotoAndAnalyze('MainMenu-MedischDossier-Controles'),
+            vaccinaties: () => gotoAndAnalyze('MainMenu-MedischDossier-Vaccinaties'),
+            nhgdoc: () => gotoAndAnalyze('MainMenu-MedischDossier-NHGDoc'),
+            wisseldossier: () => gotoAndAnalyze('MainMenu-MedischDossier-Wisseldossier'),
+            vragenlijst: () => gotoAndAnalyze('MainMenu-MedischDossier-Vragenlijst'),
+            bericht: () => gotoAndAnalyze('MainMenu-MedischDossier-Bericht'),
+            zorgprogramma: () => gotoAndAnalyze('MainMenu-MedischDossier-Zorgprogramma')
+        },
+
+        // Berichten
+        berichten: {
+            ontvangen: () => gotoAndAnalyze('MainMenu-Berichten-Ontvangen'),
+            uitgaand: () => gotoAndAnalyze('MainMenu-Berichten-Uitgaand'),
+            dwh: () => gotoAndAnalyze('MainMenu-Berichten-DWH'),
+            ozisKetenzorg: () => gotoAndAnalyze('MainMenu-Berichten-OzisKetenzorg')
+        },
+
+        // Patiënt
+        patient: {
+            zoeken: () => gotoAndAnalyze('MainMenu-Patiënt-Zoeken'),
+            patientgegevens: () => gotoAndAnalyze('MainMenu-Patiënt-Patiëntgegevens'),
+            toegangslog: () => gotoAndAnalyze('MainMenu-Patiënt-Toegangslog'),
+            inschrijfgeld: () => gotoAndAnalyze('MainMenu-Patiënt-Inschrijfgeld'),
+            patientportaal: () => gotoAndAnalyze('MainMenu-Patiënt-Patiëntportaal'),
+            verrichtingen: () => gotoAndAnalyze('MainMenu-Patiënt-Verrichtingen'),
+            cov: () => gotoAndAnalyze('MainMenu-Patiënt-COV'),
+            ion: () => gotoAndAnalyze('MainMenu-Patiënt-ION'),
+            lsp: () => gotoAndAnalyze('MainMenu-Patiënt-LSP'),
+            opschonen: () => gotoAndAnalyze('MainMenu-Patiënt-Opschonen')
+        },
+
+        // Rapportage
+        rapportage: {
+            dagrapporten: () => gotoAndAnalyze('MainMenu-Rapportage-Dagrapporten'),
+            statistieken: () => gotoAndAnalyze('MainMenu-Rapportage-Statistieken'),
+            overzichten: () => gotoAndAnalyze('MainMenu-Rapportage-Overzichten'),
+            jaarverslag: () => gotoAndAnalyze('MainMenu-Rapportage-Jaarverslag'),
+            bsn: () => gotoAndAnalyze('MainMenu-Rapportage-BSN'),
+            logging: () => gotoAndAnalyze('MainMenu-Rapportage-Logging'),
+            toegangslog: () => gotoAndAnalyze('MainMenu-Rapportage-Toegangslog'),
+            open: () => gotoAndAnalyze('MainMenu-Rapportage-OPEN'),
+            medicatieaanvraaglog: () => gotoAndAnalyze('MainMenu-Rapportage-Medicatieaanvraaglog'),
+            projecten: () => gotoAndAnalyze('MainMenu-Rapportage-Projecten'),
+            ipci: () => gotoAndAnalyze('MainMenu-Rapportage-IPCI'),
+            optIn: () => gotoAndAnalyze('MainMenu-Rapportage-OPT-IN')
+        },
+
+        // Projecten
+        projecten: {
+            gegevenssets: () => gotoAndAnalyze('MainMenu-Projecten-Gegevenssets'),
+            exportResultaten: () => gotoAndAnalyze('MainMenu-Projecten-ExportResultaten'),
+            griep: () => gotoAndAnalyze('MainMenu-Projecten-Griep'),
+            pneumokokken: () => gotoAndAnalyze('MainMenu-Projecten-Pneumokokken'),
+            covid19: () => gotoAndAnalyze('MainMenu-Projecten-COVID-19')
+        },
+
+        // Facturatie
+        facturatie: {
+            verrichtingen: () => gotoAndAnalyze('MainMenu-Facturatie-Verrichtingen'),
+            inschrijfgeld: () => gotoAndAnalyze('MainMenu-Facturatie-Inschrijfgeld'),
+            vrijefactuur: () => gotoAndAnalyze('MainMenu-Facturatie-Vrijefactuur'),
+            facturen: () => gotoAndAnalyze('MainMenu-Facturatie-Facturen'),
+            twinfield: () => gotoAndAnalyze('MainMenu-Facturatie-Twinfield')
+        },
+
+        // Onderhoud
+        onderhoud: {
+            praktijk: () => gotoAndAnalyze('MainMenu-Onderhoud-Praktijk'),
+            medewerkers: () => gotoAndAnalyze('MainMenu-Onderhoud-Medewerkers'),
+            kisOptOutLog: () => gotoAndAnalyze('MainMenu-Onderhoud-KISOpt-outlog'),
+            waarnemers: () => gotoAndAnalyze('MainMenu-Onderhoud-Waarnemers'),
+            rollen: () => gotoAndAnalyze('MainMenu-Onderhoud-Rollen'),
+            agenda: () => gotoAndAnalyze('MainMenu-Onderhoud-Agenda'),
+            portaal: () => gotoAndAnalyze('MainMenu-Onderhoud-Portaal'),
+            relaties: () => gotoAndAnalyze('MainMenu-Onderhoud-Relaties'),
+            tarieven: () => gotoAndAnalyze('MainMenu-Onderhoud-Tarieven'),
+            facturatie: () => gotoAndAnalyze('MainMenu-Onderhoud-Facturatie'),
+            meetwaarden: () => gotoAndAnalyze('MainMenu-Onderhoud-Meetwaarden'),
+            magistralen: () => gotoAndAnalyze('MainMenu-Onderhoud-Magistralen'),
+            medicatie: () => gotoAndAnalyze('MainMenu-Onderhoud-Medicatie'),
+            brief: () => gotoAndAnalyze('MainMenu-Onderhoud-Brief'),
+            beheer: () => gotoAndAnalyze('MainMenu-Onderhoud-Beheer'),
+            printers: () => gotoAndAnalyze('MainMenu-Onderhoud-Printers'),
+            lsp: () => gotoAndAnalyze('MainMenu-Onderhoud-LSP')
+        },
+
+        // Informatie
+        informatie: () => gotoAndAnalyze('MainMenu-Informatie'),
+
+        // Helper function to list all available commands
+        help: function() {
+            console.log('╔══════════════════════════════════════════╗');
+            console.log('║       NAVIGATION COMMANDS v7.0           ║');
+            console.log('╚══════════════════════════════════════════╝\n');
+
+            console.log('🔧 CORE FUNCTIONS:');
+            console.log('  Nav.analyze()                    - Analyze top bar, sidebar, AND content');
+            console.log('  Nav.analyzeTopBar()              - Analyze only top bar');
+            console.log('  Nav.analyzeSidebar()             - Analyze only left sidebar');
+            console.log('  Nav.analyzeContent()             - Analyze only main content');
+            console.log('  Nav.fill("fieldName", "value")   - Fill field (top bar or content)');
+            console.log('  Nav.click("buttonName")          - Click button (top bar or content)');
+            console.log('  Nav.clickTopBar("buttonName")    - Click button in TOP BAR specifically');
+            console.log('  Nav.clickSidebar("buttonName")   - Click button in SIDEBAR specifically');
+            console.log('  Nav.goto("MenuID")               - Navigate to menu by ID');
+            console.log('  Nav.wait(callback)               - Wait for page load');
+            console.log('  Nav.getDoc()                     - Get main content iframe document');
+            console.log('  Nav.getSidebar()                 - Get sidebar container element');
+            console.log('  Nav.getTopBar()                  - Get top bar container element');
+
+            console.log('\n📋 QUICK NAVIGATION (auto-analyzes everything):');
+            console.log('  Nav.facturatie.verrichtingen()');
+            console.log('  Nav.medischDossier.zoeken()');
+            console.log('  Nav.patient.patientgegevens()');
+            console.log('  Nav.agenda.kalender()');
+            console.log('  ...and many more!');
+
+            console.log('\n💡 EXAMPLES:');
+            console.log('  // Analyze everything (top bar, sidebar, content):');
+            console.log('  Nav.analyze()');
+            console.log('');
+            console.log('  // Analyze only the top bar:');
+            console.log('  Nav.analyzeTopBar()');
+            console.log('');
+            console.log('  // Navigate and auto-analyze:');
+            console.log('  Nav.facturatie.verrichtingen()');
+            console.log('');
+            console.log('  // Click a button in top bar:');
+            console.log('  Nav.clickTopBar("MainMenu-btnStart")');
+            console.log('');
+            console.log('  // Click a sidebar button:');
+            console.log('  Nav.clickSidebar("Verder")');
+            console.log('');
+            console.log('  // Fill a form field:');
+            console.log('  Nav.fill("patientName", "John Doe")');
+            console.log('');
+            console.log('  // Click content button:');
+            console.log('  Nav.click("Zoeken")');
+        }
+    };
+
+    console.log('✓ Ready! Type Nav.help() to see all commands');
+    console.log('✓ Nav.analyze() now analyzes top bar, sidebar, AND main content!');
+    console.log('✓ Use Nav.analyzeTopBar() to analyze just the top bar');
+
+})();
