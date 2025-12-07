@@ -15,7 +15,7 @@
     function addExportButton() {
         // Find the toolbar area
         const toolbar = document.querySelector('.panel-heading .pull-right');
-        
+
         if (!toolbar) {
             console.log('Toolbar not found, adding floating button');
             addFloatingButton();
@@ -24,13 +24,13 @@
 
         const btn = document.createElement('a');
         btn.href = '#';
-        btn.innerHTML = '<img src="/SELECT/img/icon/calendar.png" alt="Export" title="Export naar agenda (ICS)" />';
+        btn.innerHTML = 'Exporteer calender naar ICS<img src="/SELECT/img/icon/calendar.png" alt="Export naar ICS file" title="Export naar agenda (ICS)" />';
         btn.style.marginLeft = '10px';
         btn.onclick = function(e) {
             e.preventDefault();
             extractAndExport();
         };
-        
+
         toolbar.appendChild(btn);
         console.log('Export button added to toolbar');
     }
@@ -62,7 +62,7 @@
     // Extract shifts from table
     function extractShifts() {
         const table = document.querySelector('#listDiensten');
-        
+
         if (!table) {
             console.error('Table not found');
             return [];
@@ -73,34 +73,34 @@
 
         rows.forEach((row) => {
             const cells = row.querySelectorAll('td');
-            
+
             if (cells.length < 4) return;
-            
+
             const dateText = cells[1].textContent.trim();
             const timeText = cells[2].textContent.trim();
             const dienstText = cells[3].textContent.trim();
             const uren = cells[4].textContent.trim();
-            
+
             // Parse date
             const dateParts = dateText.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
             if (!dateParts) return;
-            
+
             const date = new Date(
                 parseInt(dateParts[3]),
                 parseInt(dateParts[2]) - 1,
                 parseInt(dateParts[1])
             );
-            
+
             // Parse times
             const timeMatch = timeText.match(/(\d{1,2})[:.](\d{2})\s*[-–]\s*(\d{1,2})[:.](\d{2})/);
-            
+
             if (!timeMatch) return;
-            
+
             const startTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
             const endTime = `${timeMatch[3].padStart(2, '0')}:${timeMatch[4]}`;
-            
+
             const shiftCode = dienstText.split(' ')[0];
-            
+
             shifts.push({
                 date: date,
                 dateStr: dateText,
@@ -141,15 +141,15 @@
         ics += 'METHOD:PUBLISH\r\n';
         ics += 'X-WR-CALNAME:HAP Diensten\r\n';
         ics += 'X-WR-TIMEZONE:Europe/Amsterdam\r\n';
-        
+
         shifts.forEach((shift, index) => {
             const startDate = parseTime(shift.date, shift.startTime);
             let endDate = parseTime(shift.date, shift.endTime);
-            
+
             if (shift.endTime === '00:00' || shift.endTime === '24:00' || endDate <= startDate) {
                 endDate.setDate(endDate.getDate() + 1);
             }
-            
+
             ics += 'BEGIN:VEVENT\r\n';
             ics += `UID:hap-${shift.date.getTime()}-${shift.code}-${index}@harderwijk\r\n`;
             ics += `DTSTAMP:${formatICalDate(new Date())}\r\n`;
@@ -167,7 +167,7 @@
             ics += 'END:VALARM\r\n';
             ics += 'END:VEVENT\r\n';
         });
-        
+
         ics += 'END:VCALENDAR\r\n';
         return ics;
     }
@@ -189,22 +189,22 @@
     // Main export function
     function extractAndExport() {
         const shifts = extractShifts();
-        
+
         if (shifts.length === 0) {
             alert('❌ Geen diensten gevonden.\n\nControleer of je op de "Mijn rooster" pagina bent en er diensten zichtbaar zijn.');
             return;
         }
 
         shifts.sort((a, b) => a.date - b.date);
-        
+
         const icsContent = generateICS(shifts);
-        
+
         const firstDate = shifts[0].date;
         const lastDate = shifts[shifts.length - 1].date;
         const filename = `HAP-diensten-${firstDate.getFullYear()}-${String(firstDate.getMonth()+1).padStart(2,'0')}-tot-${lastDate.getFullYear()}-${String(lastDate.getMonth()+1).padStart(2,'0')}.ics`;
-        
+
         downloadICS(icsContent, filename);
-        
+
         alert(`✅ ${shifts.length} HAP diensten geëxporteerd!\n\n📥 ${filename}\n\n📅 Importeer dit bestand in je agenda app.\n\nℹ️ Diensten bevatten herinneringen 1 dag van tevoren.`);
     }
 
