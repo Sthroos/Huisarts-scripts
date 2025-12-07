@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Export HAP schedule from "Mijn rooster" to Excel/LibreOffice/Google Sheets
-// @match        https://*/app/MijnInterShift_MijnRooster.asp*
+// @match        https://medicamus.intershift.nl/SELECT/app/MijnInterShift_MijnRooster.asp*
 // @match        https://*/app/MijnIntershift_MijnRooster.asp*
 // @require      https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js
 // @grant        none
