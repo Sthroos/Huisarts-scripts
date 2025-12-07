@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Export your HAP schedule from "Mijn rooster" page to ICS calendar file
-// @match        https://medicamus.intershift.nl/SELECT/app/MijnIntershift_beschikbaarheid.asp*
+// @match        https://medicamus.intershift.nl/SELECT/app/MijnInterShift_MijnRooster.asp*
 // @match        https://*/app/MijnIntershift_beschikbaarheid.asp*
 // @grant        none
 // ==/UserScript==
