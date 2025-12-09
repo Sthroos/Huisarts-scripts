@@ -379,7 +379,7 @@ if (data['Naam volgorde']) {
     const huisartsField = targetDoc.getElementById('praktijkMedewerker');
     if (huisartsField) {
         for (let option of huisartsField.options) {
-            if (option.text.includes('E.A.') && option.text.includes('Westerbeek van Eerten')) {
+            if (option.text.includes('X.X.') && option.text.includes('xx van xxx')) {
                 huisartsField.value = option.value;
                 huisartsField.dispatchEvent(new Event('change', { bubbles: true }));
                 if (huisartsField.onchange) huisartsField.onchange();
