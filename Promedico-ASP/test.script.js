@@ -1,534 +1,982 @@
 // ==UserScript==
-// @name         Promedico ASP - Zorgdomein Quick Menu
+// @name         Promedico ASP - Complete Automation Suite + Document Upload
 // @namespace    http://tampermonkey.net/
-// @version      2.1
-// @description  Add Zorgdomein menu with Lab/Röntgen/Echo options
+// @version      2.0
+// @description  Auto-fill patient forms + MEDOVD EDI/ZIP import + Document upload drag & drop + Custom menu items
 // @match        https://www.promedico-asp.nl/promedico/*
-// @grant        none
+// @run-at       document-idle
+// @grant        GM_setValue
+// @grant        GM_getValue
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    // ============================================================================
+    // SHARED VARIABLES
+    // ============================================================================
+    
+    // Document upload variables
+    let overlayCreated = false;
+    let uploadedFileName = '';
+    let globalDragDropAttached = false;
+    
+    // MEDOVD import variables
+    let pendingMEDOVDFiles = { edi: null, zip: null };
+    let isNavigatingToMEDOVD = false;
+
+    // ============================================================================
+    // SHARED UTILITIES
+    // ============================================================================
+
+    function debug(message, data = null) {
+        console.log(`[PROMEDICO] ${message}`, data || '');
+    }
+
+    function showNotification(message, type = 'success') {
+        const colors = {
+            success: '#4CAF50',
+            error: '#f44336',
+            info: '#0275d8'
+        };
+
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: ${colors[type]};
+            color: white;
+            border-radius: 4px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 100000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease-out;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        if (!document.head.querySelector('style[data-notification="true"]')) {
+            style.setAttribute('data-notification', 'true');
+            document.head.appendChild(style);
+        }
+
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(400px)';
+            notification.style.transition = 'all 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 
     // Get the content iframe
     function getContentIframe() {
         return document.getElementById('panelBackCompatibility-frame');
     }
 
-    // Check if we're on the contact processing page
-    function isOnContactPage() {
+    // Get the correct document (iframe or main)
+    function getTargetDocument() {
+        if (window.location.href.includes('admin.onderhoud.patienten')) {
+            return document;
+        }
+        const iframe = getContentIframe();
+        if (iframe) {
+            try {
+                return iframe.contentDocument || iframe.contentWindow.document;
+            } catch (e) {
+                console.error('Cannot access iframe:', e);
+            }
+        }
+        return document;
+    }
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // ============================================================================
+    // DRAG & DROP OVERLAY (for document uploads)
+    // ============================================================================
+
+    function createDragDropOverlay() {
+        if (overlayCreated) return;
+
+        debug('Creating drag & drop overlay');
+
+        const overlay = document.createElement('div');
+        overlay.id = 'dragDropOverlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 117, 216, 0.9);
+            display: none;
+            z-index: 99999;
+            pointer-events: none;
+        `;
+        overlay.innerHTML = `
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                 color: white; font-size: 32px; font-weight: bold; text-align: center; font-family: Arial, sans-serif;">
+                <div style="font-size: 64px; margin-bottom: 20px;">📁</div>
+                Drop bestanden hier om te uploaden
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlayCreated = true;
+        debug('✓ Overlay created');
+    }
+
+    // ============================================================================
+    // CUSTOM MENU ITEMS
+    // ============================================================================
+
+    function clickSidebarButton(buttonId) {
+        const script = document.createElement('script');
+        script.textContent = `
+            (function() {
+                try {
+                    const patientZoeken = document.getElementById('MainMenu-Patiënt-Zoeken');
+                    if (patientZoeken) {
+                        patientZoeken.click();
+                        setTimeout(() => {
+                            const iframe = document.getElementById('panelBackCompatibility-frame');
+                            if (iframe && iframe.contentDocument) {
+                                const button = iframe.contentDocument.getElementById('${buttonId}');
+                                if (button) button.click();
+                            }
+                        }, 1000);
+                    }
+                } catch (e) {
+                    console.error('Navigation error:', e);
+                }
+            })();
+        `;
+        document.head.appendChild(script);
+        script.remove();
+    }
+
+    function addCustomMenuItem(afterElementId, newItemId, newItemText, sidebarButtonId) {
+        const afterElement = document.getElementById(afterElementId);
+        if (!afterElement) return false;
+        if (document.getElementById(newItemId)) return true;
+
+        const newMenuItem = afterElement.cloneNode(true);
+        newMenuItem.id = newItemId;
+        newMenuItem.textContent = newItemText;
+        const cleanMenuItem = newMenuItem.cloneNode(true);
+
+        cleanMenuItem.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            clickSidebarButton(sidebarButtonId);
+        });
+
+        afterElement.parentNode.insertBefore(cleanMenuItem, afterElement.nextSibling);
+        return true;
+    }
+
+    function tryAddMenuItems() {
+        const patientZoeken = document.getElementById('MainMenu-Patiënt-Zoeken');
+        if (!patientZoeken) return false;
+        if (document.getElementById('MainMenu-Patiënt-MedovdImport')) return true;
+
+        const added1 = addCustomMenuItem(
+            'MainMenu-Patiënt-Zoeken',
+            'MainMenu-Patiënt-MedovdImport',
+            'MEDOVD import',
+            'action_medOvdImporteren'
+        );
+
+        const afterElement = added1 ? 'MainMenu-Patiënt-MedovdImport' : 'MainMenu-Patiënt-Zoeken';
+        addCustomMenuItem(
+            afterElement,
+            'MainMenu-Patiënt-NieuwePatiënt',
+            'Nieuwe patiënt',
+            'action_Nieuwe patient inschrijven'
+        );
+
+        return added1;
+    }
+
+    function initCustomMenus() {
+        // Only run on main index.html page
+        if (!window.location.href.includes('index.html')) return;
+
+        setTimeout(() => {
+            tryAddMenuItems();
+        }, 2000);
+
+        const observer = new MutationObserver(() => {
+            const patientZoeken = document.getElementById('MainMenu-Patiënt-Zoeken');
+            const medovdImport = document.getElementById('MainMenu-Patiënt-MedovdImport');
+            if (patientZoeken && !medovdImport) {
+                tryAddMenuItems();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // ============================================================================
+    // MEDOVD IMPORT (EDI + ZIP) - Existing functionality
+    // ============================================================================
+
+    function isOnMedovdImportPage() {
         const iframe = getContentIframe();
         if (!iframe || !iframe.contentDocument) return false;
+        const doc = iframe.contentDocument;
+        return !!doc.getElementById('ediFile') && !!doc.getElementById('correspondentieFile');
+    }
+
+    function fillMedovdFormWithFiles(ediFile, zipFile) {
+        const iframe = getContentIframe();
+        if (!iframe || !iframe.contentDocument) return;
+
+        const doc = iframe.contentDocument;
+        const ediInput = doc.getElementById('ediFile');
+        const zipInput = doc.getElementById('correspondentieFile');
+        const submitButton = doc.getElementById('Script_Bestand inlezen');
+
+        if (!ediInput || !zipInput || !submitButton) return;
+
+        const ediDataTransfer = new DataTransfer();
+        ediDataTransfer.items.add(ediFile);
+        ediInput.files = ediDataTransfer.files;
+
+        const zipDataTransfer = new DataTransfer();
+        zipDataTransfer.items.add(zipFile);
+        zipInput.files = zipDataTransfer.files;
+
+        ediInput.dispatchEvent(new Event('change', { bubbles: true }));
+        zipInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        showNotification('✓ MEDOVD bestanden toegevoegd', 'success');
+
+        setTimeout(() => {
+            submitButton.click();
+            showNotification('🔄 Bestand wordt ingelezen...', 'success');
+        }, 500);
+    }
+
+    function processMedovdDroppedFiles(files) {
+        if (files.length !== 2) return false;
+        if (!isOnMedovdImportPage()) return false;
+
+        let ediFile = null;
+        let zipFile = null;
+
+        for (let file of files) {
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.edi')) {
+                ediFile = file;
+            } else if (fileName.endsWith('.zip')) {
+                zipFile = file;
+            }
+        }
+
+        if (!ediFile || !zipFile) return false;
         
+        fillMedovdFormWithFiles(ediFile, zipFile);
+        return true;
+    }
+
+    function setupMedovdIframeListeners() {
+        const iframe = getContentIframe();
+        if (!iframe || !iframe.contentDocument) return;
+
+        const doc = iframe.contentDocument;
+        if (doc.hasMedovdDropListener) return;
+
+        doc.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, true);
+
+        doc.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            processMedovdDroppedFiles(Array.from(e.dataTransfer.files));
+        }, true);
+
+        doc.hasMedovdDropListener = true;
+    }
+
+    function initMedovdImport() {
+        setInterval(setupMedovdIframeListeners, 2000);
+    }
+
+    // ============================================================================
+    // DOCUMENT UPLOAD WORKFLOW (Correspondentie)
+    // ============================================================================
+
+    function isOnDocumentUploadPage() {
+        const mainText = document.body.textContent || '';
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        let iframeText = '';
+        let iframeSrc = '';
+
+        if (iframe) {
+            iframeSrc = iframe.src || '';
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeText = iframeDoc.body.textContent || '';
+            } catch (error) {}
+        }
+
+        const combinedText = mainText + ' ' + iframeText;
+
+        // Check if we're on contact page (initial choice screen OR upload screens)
+        return iframeSrc.includes('journaal.contact.m') ||
+               combinedText.includes('Document uploaden') ||
+               combinedText.includes('Document scannen') ||
+               combinedText.includes('Brief samenstellen') ||
+               combinedText.includes('Correspondentie toevoegen') ||
+               (combinedText.includes('Omschrijving') && combinedText.includes('Bestand'));
+    }
+
+    function isOnInitialChoiceScreen() {
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        if (!iframe) return false;
+
         try {
-            const url = iframe.contentDocument.location.href;
-            // Check for any medischdossier.journaal page
-            return url.includes('medischdossier.journaal');
-        } catch(e) {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const text = iframeDoc.body.textContent || '';
+            const hasAllOptions = text.includes('Brief samenstellen') &&
+                                 text.includes('Document scannen') &&
+                                 text.includes('Document uploaden');
+            const hasFileInput = iframeDoc.querySelector('input[type="file"]') !== null;
+
+            // Initial screen has all three options but NO file input
+            return hasAllOptions && !hasFileInput;
+        } catch (error) {
             return false;
         }
     }
 
-    // Navigate to Verwijzen and start the ZorgDomein flow
-    function navigateToZorgDomein(specialisme, targetUrl, callback) {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
+    function isOnFileUploadScreen() {
+        // Check main document first
+        const mainFileInput = document.querySelector('input[type="file"]');
+        if (mainFileInput) {
+            return true;
+        }
 
-        const doc = iframe.contentDocument;
-        const actionButtons = doc.getElementById('actionbuttons');
-        if (!actionButtons) return;
+        // Check iframe
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        if (!iframe) return false;
 
-        const allClickable = actionButtons.querySelectorAll('td.actie');
-        let verwijzenButton = null;
-        for (let td of allClickable) {
-            if (td.textContent.trim().includes('Verwijzen')) {
-                verwijzenButton = td;
-                break;
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            return iframeDoc.querySelector('input[type="file"]') !== null;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function isOnDescriptionScreen() {
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        if (!iframe) return false;
+
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            return iframeDoc.querySelector('input[name*="omschrijving" i], textarea[name*="omschrijving" i]') !== null;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function handleDocumentUpload(file) {
+        debug('Document upload - File dropped:', file.name);
+        uploadedFileName = file.name.replace(/\.[^/.]+$/, '');
+
+        if (!isOnDocumentUploadPage()) {
+            debug('Not on document upload page');
+            showNotification('⚠️ Niet op document upload pagina', 'error');
+            return;
+        }
+
+        if (isOnInitialChoiceScreen()) {
+            debug('On initial choice screen, clicking Document uploaden');
+            clickDocumentUploaden(file);
+            return;
+        }
+
+        if (isOnFileUploadScreen()) {
+            debug('On file upload screen, performing upload');
+            performDocumentUpload(file);
+            return;
+        }
+
+        debug('Unknown state, showing info message');
+        showNotification('Upload het bestand direct op de upload pagina', 'info');
+    }
+
+    function clickDocumentUploaden(file) {
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        if (!iframe) {
+            debug('Iframe not found');
+            return;
+        }
+
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const buttons = Array.from(iframeDoc.querySelectorAll('button, a, input[type="button"], span[onclick], div[onclick], td[onclick]'));
+
+            debug('Searching for Document uploaden button in', buttons.length, 'elements');
+
+            const uploadButton = buttons.find(el => {
+                const text = (el.textContent || el.value || '').toLowerCase();
+                return text.includes('document uploaden');
+            });
+
+            if (uploadButton) {
+                debug('Found Document uploaden button, clicking');
+                uploadButton.click();
+                showNotification('→ Navigeren naar Document uploaden...', 'info');
+
+                // Wait for navigation
+                setTimeout(() => {
+                    if (isOnFileUploadScreen()) {
+                        performDocumentUpload(file);
+                    } else {
+                        debug('Not on file upload screen yet, waiting more...');
+                        setTimeout(() => performDocumentUpload(file), 1500);
+                    }
+                }, 1500);
+            } else {
+                debug('Document uploaden button not found');
+                showNotification('Klik handmatig op Document uploaden', 'info');
+            }
+        } catch (error) {
+            debug('Error in clickDocumentUploaden', error);
+            showNotification('Fout bij navigatie', 'error');
+        }
+    }
+
+    function performDocumentUpload(file) {
+        // Try main document first
+        let fileInput = document.querySelector('input[type="file"]');
+        let targetDoc = document;
+
+        if (!fileInput) {
+            const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+            if (iframe) {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    fileInput = iframeDoc.querySelector('input[type="file"]');
+                    targetDoc = iframeDoc;
+                } catch (error) {}
             }
         }
 
-        if (!verwijzenButton) return;
+        if (fileInput) {
+            debug('Found file input, uploading file');
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            showNotification('✓ Bestand toegevoegd: ' + file.name, 'success');
 
-        verwijzenButton.click();
-
-        setTimeout(() => {
-            fillSpecialismeAndClickZorgDomein(specialisme, targetUrl, callback);
-        }, 1000);
-    }
-
-    // Fill the specialisme field and click Via ZorgDomein
-    function fillSpecialismeAndClickZorgDomein(specialisme, targetUrl, callback) {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
-
-        const doc = iframe.contentDocument;
-
-        const specMnemField = doc.getElementById('specMnem');
-        if (specMnemField) {
-            specMnemField.value = specialisme;
-            specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
-            specMnemField.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        const script = doc.createElement('script');
-        script.textContent = `
-            (function() {
-                if (typeof disableScreen !== 'function') {
-                    window.disableScreen = function() { return true; };
-                }
-
-                var button = document.getElementById('action_via zorgDomein');
-                if (button) {
-                    button.click();
-                    setTimeout(function() {
-                        button.click();
-                    }, 200);
-                }
-            })();
-        `;
-        doc.head.appendChild(script);
-        script.remove();
-
-        setTimeout(() => {
-            clickScriptZorgDomein(targetUrl, callback);
-        }, 1500);
-    }
-
-    // Click the Script_ZorgDomein button OR open target URL directly
-    function clickScriptZorgDomein(targetUrl, callback) {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
-
-        const doc = iframe.contentDocument;
-
-        // Just open the target URL directly in a new window
-        if (targetUrl) {
-            window.open(targetUrl, '_blank');
-            if (callback) callback();
+            setTimeout(() => autoClickVerderButton(targetDoc), 500);
         } else {
-            // Fallback: click the button normally
-            const zorgDomeinButton = doc.getElementById('Script_ZorgDomein');
-            if (zorgDomeinButton) {
-                zorgDomeinButton.click();
-                if (callback) callback();
-            }
+            debug('File input not found');
+            showNotification('Upload veld niet gevonden', 'error');
         }
     }
 
-    // Create the Zorgdomein button
-    function createZorgdomeinButton() {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
-
-        const doc = iframe.contentDocument;
-
-        // Check if already added
-        if (doc.getElementById('zorgdomein-button')) return;
-
-        // Find the actionbuttons container
-        const actionButtons = doc.getElementById('actionbuttons');
-        if (!actionButtons) return;
-
-        // Find all clickable elements
-        const allClickable = actionButtons.querySelectorAll('td.actie');
-
-        // Find "Verwijzen" button
-        let verwijzenButton = null;
-        for (let td of allClickable) {
-            if (td.textContent.trim().includes('Verwijzen')) {
-                verwijzenButton = td;
-                break;
+    function autoClickVerderButton(targetDoc = null) {
+        if (!targetDoc) {
+            const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+            if (iframe) {
+                try {
+                    targetDoc = iframe.contentDocument || iframe.contentWindow.document;
+                } catch (error) {
+                    targetDoc = document;
+                }
+            } else {
+                targetDoc = document;
             }
         }
 
-        if (!verwijzenButton) return;
+        try {
+            const buttons = Array.from(targetDoc.querySelectorAll('button, input[type="submit"], input[type="button"]'));
+            const verderButton = buttons.find(el => {
+                const text = (el.textContent || el.value || '').toLowerCase();
+                return text.includes('verder') || text.includes('upload') || text.includes('volgende');
+            });
 
-        // Clone the Verwijzen button structure
-        const zorgdomeinButton = verwijzenButton.cloneNode(true);
-        zorgdomeinButton.id = 'zorgdomein-button';
+            if (verderButton) {
+                debug('Found Verder button, clicking');
+                verderButton.click();
+                showNotification('→ Verder...', 'success');
+                setTimeout(() => checkAndAutoClickSecondVerder(), 2000);
+            } else {
+                debug('Verder button not found');
+            }
+        } catch (error) {
+            debug('Error in autoClickVerderButton', error);
+        }
+    }
 
-        // Update the text
-        const innerText = zorgdomeinButton.querySelector('td[id$="_inner"]');
-        if (innerText) {
-            innerText.textContent = 'Zorgdomein';
-            innerText.id = 'zorgdomein_inner';
+    function checkAndAutoClickSecondVerder() {
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        if (!iframe) return;
+
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const text = iframeDoc.body.textContent || '';
+
+            // Check if we're on Step 2
+            if (text.includes('Stap 2 van 3') || text.includes('Inzien document voor controle')) {
+                debug('On Step 2, looking for Verder button with verder2');
+                const buttons = Array.from(iframeDoc.querySelectorAll('input[type="button"], button'));
+                const verderButton = buttons.find(el => {
+                    const onclick = el.getAttribute('onclick') || '';
+                    return onclick.includes('verder2');
+                });
+
+                if (verderButton) {
+                    debug('Found Verder button (verder2), clicking');
+                    verderButton.click();
+                    showNotification('→ Naar stap 3...', 'success');
+                    setTimeout(() => autoFillDescription(), 1500);
+                } else {
+                    debug('Verder button (verder2) not found, checking again in 1 second');
+                    setTimeout(() => checkAndAutoClickSecondVerder(), 1000);
+                }
+            } else if (isOnDescriptionScreen()) {
+                debug('Already on description screen');
+                autoFillDescription();
+            } else {
+                debug('Not on Step 2 yet, checking again in 1 second');
+                setTimeout(() => checkAndAutoClickSecondVerder(), 1000);
+            }
+        } catch (error) {
+            debug('Error in checkAndAutoClickSecondVerder', error);
+        }
+    }
+
+    function autoFillDescription() {
+        if (!uploadedFileName || !isOnDocumentUploadPage()) return;
+
+        const iframe = document.querySelector('iframe#panelBackCompatibility-frame');
+        if (!iframe) return;
+
+        try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const omschrijvingField =
+                iframeDoc.querySelector('input[name*="omschrijving" i]') ||
+                iframeDoc.querySelector('textarea[name*="omschrijving" i]') ||
+                iframeDoc.querySelector('textarea');
+
+            if (omschrijvingField && !omschrijvingField.value) {
+                debug('Found description field, filling with:', uploadedFileName);
+                omschrijvingField.value = uploadedFileName;
+                omschrijvingField.dispatchEvent(new Event('input', { bubbles: true }));
+                showNotification('✓ Omschrijving ingevuld: ' + uploadedFileName, 'success');
+            } else {
+                debug('Description field not found or already filled');
+            }
+        } catch (error) {
+            debug('Error in autoFillDescription', error);
+        }
+    }
+
+    // ============================================================================
+    // GLOBAL DROP HANDLER - ROUTER
+    // ============================================================================
+
+    function handleGlobalDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const files = e.dataTransfer.files;
+        if (files.length === 0) return;
+
+        let ediFile = null, zipFile = null, otherFiles = [];
+
+        Array.from(files).forEach(file => {
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.edi')) {
+                ediFile = file;
+            } else if (fileName.endsWith('.zip')) {
+                zipFile = file;
+            } else {
+                otherFiles.push(file);
+            }
+        });
+
+        // MEDOVD workflow - both files dropped together
+        if (ediFile && zipFile) {
+            debug('MEDOVD files detected (.edi + .zip)');
+            
+            // If already on MEDOVD page, fill form directly
+            if (isOnMedovdImportPage()) {
+                fillMedovdFormWithFiles(ediFile, zipFile);
+            } else {
+                showNotification('⚠️ Ga naar MEDOVD import pagina en drop bestanden daar', 'info');
+            }
+            return;
+        }
+
+        // Document upload workflow
+        if (otherFiles.length > 0) {
+            handleDocumentUpload(otherFiles[0]);
+            return;
+        }
+
+        // Error: only one MEDOVD file
+        if (ediFile || zipFile) {
+            showNotification('⚠️ Upload beide MEDOVD bestanden (.EDI en .ZIP) tegelijk', 'error');
+            return;
+        }
+    }
+
+    function attachGlobalDragDropHandlers() {
+        if (globalDragDropAttached) return;
+
+        createDragDropOverlay();
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.addEventListener(eventName, preventDefaults, false);
+        });
+
+        let dragCounter = 0;
+        document.addEventListener('dragenter', () => {
+            dragCounter++;
+            if (dragCounter === 1) {
+                document.getElementById('dragDropOverlay').style.display = 'block';
+            }
+        });
+
+        document.addEventListener('dragleave', () => {
+            dragCounter--;
+            if (dragCounter === 0) {
+                document.getElementById('dragDropOverlay').style.display = 'none';
+            }
+        });
+
+        document.addEventListener('drop', () => {
+            dragCounter = 0;
+            document.getElementById('dragDropOverlay').style.display = 'none';
+        });
+
+        document.addEventListener('drop', handleGlobalDrop, false);
+
+        globalDragDropAttached = true;
+        debug('✓ Global drag & drop handlers attached');
+    }
+
+    // ============================================================================
+    // PATIENT FORM AUTO-FILL
+    // ============================================================================
+
+    function parseData(text) {
+        const data = {};
+        let lines = text.split(/\r?\n/);
+
+        if (lines.length === 1 && text.length > 100) {
+            const fieldPattern = /(Van|Berichtinhoud|Voorletters|Voornamen|Tussenvoegsel|Achternaam|Meisjesnaam|Naam volgorde|BSN|Type ID bewijs|ID bewijs nummer|Geboorteplaats|Geboortedatum|Geslacht|Gender|Beroep|Adresgegevens|Telefoonnummer|Zorgverzekeraar|Polisnummer|Polisdatum|Apotheek|LSP toestemming|Vorige huisarts|Adres huisarts|Telefoonnummer huisarts|Toestemming opvragen dossier|Opmerkingen patient):/g;
+            let matches = [];
+            let match;
+            while ((match = fieldPattern.exec(text)) !== null) {
+                matches.push({ name: match[1], index: match.index });
+            }
+            lines = [];
+            for (let i = 0; i < matches.length; i++) {
+                const start = matches[i].index;
+                const end = i < matches.length - 1 ? matches[i + 1].index : text.length;
+                const line = text.substring(start, end).trim();
+                lines.push(line);
+            }
+        }
+
+        for (let line of lines) {
+            if (line.includes(':')) {
+                const colonIndex = line.indexOf(':');
+                const key = line.substring(0, colonIndex).trim();
+                const value = line.substring(colonIndex + 1).trim();
+                if (key && value) {
+                    data[key] = value;
+                }
+            }
+        }
+
+        if (data['Van'] && !data['E-mail']) {
+            const emailMatch = data['Van'].match(/[\w.-]+@[\w.-]+\.\w+/);
+            if (emailMatch) {
+                data['E-mail'] = emailMatch[0];
+            }
+        }
+
+        return data;
+    }
+
+    function fillField(fieldId, value) {
+        const targetDoc = getTargetDocument();
+        const field = targetDoc.getElementById(fieldId);
+
+        if (!field) return false;
+
+        if (field.tagName === 'SELECT') {
+            let found = false;
+            for (let option of field.options) {
+                if (option.text.toLowerCase().includes(value.toLowerCase()) ||
+                    option.value.toLowerCase() === value.toLowerCase()) {
+                    field.value = option.value;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
+        } else if (field.type === 'radio') {
+            field.checked = true;
         } else {
-            const textTd = zorgdomeinButton.querySelector('td[style*="cursor"]');
-            if (textTd) {
-                textTd.textContent = 'Zorgdomein';
+            field.value = value;
+        }
+
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        field.dispatchEvent(new Event('blur', { bubbles: true }));
+
+        if (field.onchange) {
+            try {
+                field.onchange();
+            } catch(e) {}
+        }
+
+        return true;
+    }
+
+    function fillForm(data) {
+        let filled = 0;
+
+        // Meisjesnaam (maiden name) goes to Achternaam
+        if (data['Meisjesnaam']) {
+            if (fillField('patientPersoonWrapper.persoon.achternaam', data['Meisjesnaam'])) filled++;
+        }
+
+        // Achternaam (from data) goes to Partner achternaam
+        if (data['Achternaam']) {
+            if (fillField('patientPersoonWrapper.persoon.partnerachternaam', data['Achternaam'])) filled++;
+        }
+
+        // Tussenvoegsel (prefix like "van", "de", etc.)
+        if (data['Tussenvoegsel']) {
+            if (fillField('patientPersoonWrapper.persoon.tussenvoegsel', data['Tussenvoegsel'])) filled++;
+        }
+
+        if (data['Naam volgorde']) {
+            // Map the input format to the field format
+            let naamgebruik = data['Naam volgorde'].toLowerCase().trim();
+
+            // Remove dashes and extra spaces
+            naamgebruik = naamgebruik.replace(/\s*[-–]\s*/g, ' ').trim();
+
+            // Only replace space with underscore if there are multiple words
+            if (naamgebruik.includes(' ')) {
+                naamgebruik = naamgebruik.replace(/\s+/g, '_');
+            }
+
+            if (fillField('patientPersoonWrapper.persoon.naamgebruik', naamgebruik)) filled++;
+        }
+
+        if (data['Voorletters']) {
+            const voorletters = data['Voorletters'].replace(/\./g, '');
+            if (fillField('patientPersoonWrapper.persoon.voorletters', voorletters)) filled++;
+        }
+
+        if (data['Voornamen']) {
+            if (fillField('patientPersoonWrapper.persoon.roepnaam', data['Voornamen'])) filled++;
+        }
+
+        if (data['Geboortedatum']) {
+            let geboortedatum = data['Geboortedatum'];
+            const monthMap = {
+                'jan': '01', 'feb': '02', 'mrt': '03', 'apr': '04',
+                'mei': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                'sep': '09', 'okt': '10', 'nov': '11', 'dec': '12'
+            };
+            const match = geboortedatum.match(/(\d+)\s+(\w+)\s+(\d{4})/);
+            if (match) {
+                const day = match[1].padStart(2, '0');
+                const month = monthMap[match[2].toLowerCase()] || match[2];
+                const year = match[3];
+                geboortedatum = `${day}-${month}-${year}`;
+            }
+            if (fillField('patientPersoonWrapper.persoon.geboortedatum', geboortedatum)) filled++;
+        }
+
+        if (data['Geboorteplaats']) {
+            if (fillField('patientPersoonWrapper.persoon.geboorteplaats', data['Geboorteplaats'])) filled++;
+        }
+
+        if (data['Geslacht']) {
+            const geslacht = data['Geslacht'].toLowerCase().includes('man') ? 'M' : 'V';
+            if (fillField('patientPersoonWrapper.persoon.geslachtString', geslacht)) filled++;
+        }
+
+        if (data['Beroep']) {
+            if (fillField('patientPersoonWrapper.persoon.beroep', data['Beroep'])) filled++;
+        }
+
+        if (data['Telefoonnummer']) {
+            if (fillField('patientPersoonWrapper.persoon.telefoonnummer1', data['Telefoonnummer'])) filled++;
+        }
+
+        if (data['E-mail']) {
+            if (fillField('patientPersoonWrapper.persoon.email', data['E-mail'])) filled++;
+        }
+
+        const targetDoc = getTargetDocument();
+        const huisartsField = targetDoc.getElementById('praktijkMedewerker');
+        if (huisartsField) {
+            for (let option of huisartsField.options) {
+                if (option.text.includes('E.A.') && option.text.includes('Westerbeek van Eerten')) {
+                    huisartsField.value = option.value;
+                    huisartsField.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (huisartsField.onchange) huisartsField.onchange();
+                    filled++;
+                    break;
+                }
             }
         }
 
-        // Clear onclick
-        zorgdomeinButton.onclick = null;
-        zorgdomeinButton.removeAttribute('onclick');
+        if (data['BSN']) {
+            if (fillField('bsn', data['BSN'])) filled++;
+        }
 
-        // Add click handler to show submenu
-        zorgdomeinButton.addEventListener('click', function(e) {
+        if (data['ID bewijs nummer']) {
+            if (fillField('patientPersoonWrapper.persoon.identificatieDocNumber', data['ID bewijs nummer'])) filled++;
+        }
+
+        if (data['Type ID bewijs']) {
+            const typeMap = {
+                'Paspoort': 'P',
+                'Rijbewijs': 'R',
+                'Identiteitskaart': 'I'
+            };
+            const typeValue = typeMap[data['Type ID bewijs']] || data['Type ID bewijs'];
+            if (fillField('patientPersoonWrapper.persoon.widDocSoort', typeValue)) filled++;
+        }
+
+        const identiteitJa = targetDoc.getElementById('identiteitVergewistJa');
+        if (identiteitJa) {
+            identiteitJa.checked = true;
+            identiteitJa.dispatchEvent(new Event('change', { bubbles: true }));
+            filled++;
+        }
+
+        return filled;
+    }
+
+    function isPatientFormPage() {
+        return window.location.href.includes('admin.onderhoud.patienten');
+    }
+
+    function createUI() {
+        if (!isPatientFormPage()) return;
+
+        const targetDoc = getTargetDocument();
+
+        // Check if button already exists
+        if (targetDoc.getElementById('promedico-autofill-btn')) return;
+
+        // Find the "Terug" button
+        const terugButton = targetDoc.getElementById('Button_<< Terug');
+        if (!terugButton) return;
+
+        // Create new button styled like existing buttons
+        const button = targetDoc.createElement('input');
+        button.id = 'promedico-autofill-btn';
+        button.type = 'BUTTON';
+        button.value = 'Informatie vullen';
+        button.tabIndex = 101;
+        button.style.cssText = 'cursor: pointer; margin-right: 5px;';
+
+        button.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
-            showZorgdomeinMenu();
-        });
 
-        // Insert after Verwijzen button's parent row
-        const parentRow = verwijzenButton.parentElement;
-
-        if (parentRow.tagName === 'TR') {
-            const newRow = doc.createElement('tr');
-            newRow.appendChild(zorgdomeinButton);
-
-            if (parentRow.nextSibling) {
-                parentRow.parentNode.insertBefore(newRow, parentRow.nextSibling);
-            } else {
-                parentRow.parentNode.appendChild(newRow);
+            const text = prompt('Plak de patiëntgegevens hier:');
+            if (text) {
+                const data = parseData(text);
+                const filled = fillForm(data);
+                alert(`✓ ${filled} velden ingevuld!`);
             }
+            return false;
+        };
+
+        // Insert before "Terug" button
+        terugButton.parentNode.insertBefore(button, terugButton);
+    }
+
+    function initPatientForm() {
+        // Initial attempt
+        if (document.body) {
+            createUI();
         } else {
-            if (verwijzenButton.nextSibling) {
-                verwijzenButton.parentNode.insertBefore(zorgdomeinButton, verwijzenButton.nextSibling);
-            } else {
-                verwijzenButton.parentNode.appendChild(zorgdomeinButton);
-            }
-        }
-    }
-
-    // Show the Zorgdomein submenu
-    function showZorgdomeinMenu() {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
-
-        const doc = iframe.contentDocument;
-
-        // Remove existing menu if present
-        const existingMenu = doc.getElementById('zorgdomein-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-            return; // Toggle off
+            setTimeout(initPatientForm, 500);
         }
 
-        // Get the Zorgdomein button position
-        const zorgdomeinButton = doc.getElementById('zorgdomein-button');
-        if (!zorgdomeinButton) return;
-
-        const buttonRect = zorgdomeinButton.getBoundingClientRect();
-
-        // Create menu container
-        const menu = doc.createElement('table');
-        menu.id = 'zorgdomein-menu';
-        menu.cellPadding = '0';
-        menu.cellSpacing = '0';
-        menu.style.cssText = `
-            position: fixed;
-            left: ${buttonRect.right + 5}px;
-            top: ${buttonRect.top}px;
-            width: 200px;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            z-index: 10000;
-        `;
-
-        const tbody = doc.createElement('tbody');
-
-        // Menu items with specialisme codes and ZorgDomein URLs
-        const items = [
-            {
-                text: 'Lab',
-                submenu: null,
-                code: 'LAB',
-                url: 'https://www.zorgdomein.nl/zd/referral/choose-product/51d786ec-f6e1-4a9e-ae56-b485c498866f'
-            },
-            {
-                text: 'Röntgen',
-                code: 'RON',
-                url: 'https://www.zorgdomein.nl/zd/referral/choose-product/YOUR_RONTGEN_ID',
-                submenu: [
-                    { text: 'Bovenste extremiteiten', code: 'RON', url: 'https://www.zorgdomein.nl/zd/referral/choose-product/90118f1c-9172-4cf7-bd1b-e8d3f327018d' },
-                    { text: 'Onderste extremiteiten', code: 'RON', url: 'https://www.zorgdomein.nl/zd/referral/choose-product/00e30944-e4ce-44ba-9fc9-b892774908ed' },
-                    { text: 'Thorax', code: 'RON', url: 'https://www.zorgdomein.nl/zd/referral/choose-product/130dbc65-3198-41c9-a7c8-280e432806fe' }
-                ]
-            },
-            {
-                text: 'Echo',
-                code: 'ECH',
-                url: 'https://www.zorgdomein.nl/zd/referral/choose-product/YOUR_ECHO_ID',
-                submenu: [
-                    { text: 'Mammografie', code: 'ECH', url: 'https://www.zorgdomein.nl/zd/referral/choose-product/e2dfb2ec-7151-42ac-90fa-0168e3cad179/1ELBEC' },
-                    { text: 'Abdomen', code: 'ECH', url: 'https://www.zorgdomein.nl/zd/referral/choose-product/10d7de37-09a8-454c-96b6-af52f2b7c352/1ELBEC' },
-                    { text: 'Hoofd/hals', code: 'ECH', url: 'https://www.zorgdomein.nl/zd/referral/choose-product/1b86df11-ec4f-47ad-926d-0b71b80b7c9d/1ELBEC' },
-                    { text: 'Vaginaal', code: 'ECH', url: 'https://www.zorgdomein.nl/zd/protocol/6c2767e0-de23-4afb-99cd-81d2acbf4727/1ELBEC' }
-                ]
-            }
-        ];
-
-        items.forEach(item => {
-            const tr = doc.createElement('tr');
-            const menuItem = createMenuItem(doc, item.text, item.submenu, item.code, item.url);
-            tr.appendChild(menuItem);
-            tbody.appendChild(tr);
-        });
-
-        menu.appendChild(tbody);
-        doc.body.appendChild(menu);
-
-        // Close menu when clicking outside
-        doc.addEventListener('click', function closeMenu(e) {
-            if (!menu.contains(e.target) && !zorgdomeinButton.contains(e.target)) {
-                menu.remove();
-                doc.removeEventListener('click', closeMenu);
-            }
-        });
-    }
-
-    // Create a menu item
-    function createMenuItem(doc, text, submenu, code, url) {
-        const item = doc.createElement('td');
-        item.className = 'actie';
-        item.style.cssText = `
-            height: 30px;
-            width: 200px;
-            cursor: pointer;
-        `;
-
-        // Create inner table structure like original buttons
-        const innerTable = doc.createElement('table');
-        innerTable.cellPadding = '0';
-        innerTable.cellSpacing = '0';
-        innerTable.border = '0';
-        innerTable.style.width = '200px';
-
-        const innerTbody = doc.createElement('tbody');
-        const innerTr = doc.createElement('tr');
-
-        // Spacer
-        const spacerTd1 = doc.createElement('td');
-        spacerTd1.style.width = '15px';
-        spacerTd1.innerHTML = '&nbsp;';
-
-        // Icon
-        const iconTd = doc.createElement('td');
-        iconTd.align = 'left';
-        iconTd.style.width = '24px';
-        const icon = doc.createElement('img');
-        icon.border = '0';
-        icon.src = '/promedico/images/action.gif';
-        icon.width = '24';
-        icon.height = '14';
-        iconTd.appendChild(icon);
-
-        // Spacer
-        const spacerTd2 = doc.createElement('td');
-        spacerTd2.style.width = '5px';
-        spacerTd2.innerHTML = '&nbsp;';
-
-        // Text
-        const textTd = doc.createElement('td');
-        textTd.align = 'left';
-        textTd.style.width = '140px';
-        textTd.style.cursor = 'pointer';
-        textTd.textContent = text;
-
-        // Spacer
-        const spacerTd3 = doc.createElement('td');
-        spacerTd3.style.width = '15px';
-        spacerTd3.innerHTML = '&nbsp;';
-
-        innerTr.appendChild(spacerTd1);
-        innerTr.appendChild(iconTd);
-        innerTr.appendChild(spacerTd2);
-        innerTr.appendChild(textTd);
-        innerTr.appendChild(spacerTd3);
-        innerTbody.appendChild(innerTr);
-        innerTable.appendChild(innerTbody);
-        item.appendChild(innerTable);
-
-        // Hover effects
-        item.addEventListener('mouseenter', function() {
-            item.className = 'actieOver';
-
-            // Show submenu if exists
-            if (submenu) {
-                showSubmenu(doc, item, submenu);
-            }
-        });
-
-        item.addEventListener('mouseleave', function() {
-            item.className = 'actie';
-        });
-
-        // Click handler
-        item.addEventListener('click', function(e) {
-            e.stopPropagation();
-
-            // Close menu
-            const mainMenu = doc.getElementById('zorgdomein-menu');
-            if (mainMenu) mainMenu.remove();
-
-            // Navigate to ZorgDomein with this specialisme code and URL
-            navigateToZorgDomein(code, url, () => {
-                // Callback after navigation completes
-            });
-        });
-
-        return item;
-    }
-
-    // Show submenu
-    function showSubmenu(doc, parentItem, items) {
-        // Remove existing submenus
-        const existingSubmenu = doc.getElementById('zorgdomein-submenu');
-        if (existingSubmenu) {
-            existingSubmenu.remove();
-        }
-
-        const submenu = doc.createElement('table');
-        submenu.id = 'zorgdomein-submenu';
-        submenu.cellPadding = '0';
-        submenu.cellSpacing = '0';
-
-        const parentRect = parentItem.getBoundingClientRect();
-
-        // Calculate submenu height (approximate)
-        const itemHeight = 31; // 30px height + 1px border
-        const submenuHeight = items.length * itemHeight;
-
-        // Check if submenu would go off bottom of screen
-        const viewportHeight = doc.defaultView.innerHeight;
-        const spaceBelow = viewportHeight - parentRect.top;
-        const spaceAbove = parentRect.bottom;
-
-        let topPosition;
-        if (spaceBelow < submenuHeight && spaceAbove > submenuHeight) {
-            // Not enough space below but enough above - align bottom of submenu with bottom of parent
-            topPosition = parentRect.bottom - submenuHeight;
-        } else if (spaceBelow < submenuHeight) {
-            // Not enough space below or above - align with bottom of viewport
-            topPosition = viewportHeight - submenuHeight - 10;
-        } else {
-            // Enough space below - normal positioning
-            topPosition = parentRect.top;
-        }
-
-        submenu.style.cssText = `
-            position: fixed;
-            left: ${parentRect.right + 5}px;
-            top: ${topPosition}px;
-            width: 200px;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            z-index: 10001;
-        `;
-
-        const tbody = doc.createElement('tbody');
-
-        items.forEach(item => {
-            const tr = doc.createElement('tr');
-            const subItem = doc.createElement('td');
-            subItem.className = 'actie';
-            subItem.style.cssText = `
-                height: 30px;
-                width: 200px;
-                cursor: pointer;
-            `;
-
-            // Create inner table structure
-            const innerTable = doc.createElement('table');
-            innerTable.cellPadding = '0';
-            innerTable.cellSpacing = '0';
-            innerTable.border = '0';
-            innerTable.style.width = '200px';
-
-            const innerTbody = doc.createElement('tbody');
-            const innerTr = doc.createElement('tr');
-
-            const spacerTd1 = doc.createElement('td');
-            spacerTd1.style.width = '15px';
-            spacerTd1.innerHTML = '&nbsp;';
-
-            const iconTd = doc.createElement('td');
-            iconTd.align = 'left';
-            iconTd.style.width = '24px';
-            const icon = doc.createElement('img');
-            icon.border = '0';
-            icon.src = '/promedico/images/action.gif';
-            icon.width = '24';
-            icon.height = '14';
-            iconTd.appendChild(icon);
-
-            const spacerTd2 = doc.createElement('td');
-            spacerTd2.style.width = '5px';
-            spacerTd2.innerHTML = '&nbsp;';
-
-            const textTd = doc.createElement('td');
-            textTd.align = 'left';
-            textTd.style.width = '140px';
-            textTd.style.cursor = 'pointer';
-            textTd.textContent = item.text;
-
-            const spacerTd3 = doc.createElement('td');
-            spacerTd3.style.width = '15px';
-            spacerTd3.innerHTML = '&nbsp;';
-
-            innerTr.appendChild(spacerTd1);
-            innerTr.appendChild(iconTd);
-            innerTr.appendChild(spacerTd2);
-            innerTr.appendChild(textTd);
-            innerTr.appendChild(spacerTd3);
-            innerTbody.appendChild(innerTr);
-            innerTable.appendChild(innerTbody);
-            subItem.appendChild(innerTable);
-
-            subItem.addEventListener('mouseenter', function() {
-                subItem.className = 'actieOver';
-            });
-
-            subItem.addEventListener('mouseleave', function() {
-                subItem.className = 'actie';
-            });
-
-            subItem.addEventListener('click', function(e) {
-                e.stopPropagation();
-
-                // Close all menus
-                submenu.remove();
-                const mainMenu = doc.getElementById('zorgdomein-menu');
-                if (mainMenu) mainMenu.remove();
-
-                // Navigate to ZorgDomein with this specialisme code and URL
-                navigateToZorgDomein(item.code, item.url, () => {
-                    // Callback after navigation completes
-                });
-            });
-
-            tr.appendChild(subItem);
-            tbody.appendChild(tr);
-        });
-
-        submenu.appendChild(tbody);
-        doc.body.appendChild(submenu);
-
-        // Remove submenu when mouse leaves parent item
-        parentItem.addEventListener('mouseleave', function removeSubmenu() {
-            setTimeout(() => {
-                if (!submenu.matches(':hover')) {
-                    submenu.remove();
-                }
-            }, 200);
-            parentItem.removeEventListener('mouseleave', removeSubmenu);
-        });
-    }
-
-    // Initialize
-    function init() {
-        // Monitor continuously - check every 2 seconds
+        // Monitor for page changes (iframe navigation)
         setInterval(() => {
-            if (isOnContactPage()) {
-                createZorgdomeinButton();
-            }
+            createUI();
         }, 2000);
     }
 
-    // Run on page load
+    // ============================================================================
+    // PAGE MONITORING
+    // ============================================================================
+
+    function monitorPageContent() {
+        setInterval(() => {
+            // Document upload description auto-fill monitoring
+            if (uploadedFileName && isOnDescriptionScreen()) {
+                autoFillDescription();
+            }
+        }, 500);
+    }
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    function init() {
+        debug('Initializing Complete Automation Suite v2.0');
+
+        // Custom menu items (only on main page)
+        initCustomMenus();
+
+        // MEDOVD import drag & drop (iframe-specific)
+        initMedovdImport();
+
+        // Global drag & drop for document uploads
+        attachGlobalDragDropHandlers();
+
+        // Patient form auto-fill button
+        initPatientForm();
+
+        // Page monitoring for auto-fill features
+        monitorPageContent();
+
+        debug('✓ All features initialized');
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
