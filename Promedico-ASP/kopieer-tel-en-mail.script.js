@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Promedico - Copy Phone Number and Email Buttons
+// @name         Promedico - Copy Phone Number, Email, BSN and Address Buttons
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Add buttons to copy patient phone number and email from top bar
+// @version      1.4
+// @description  Add buttons to copy patient phone number, email, BSN and address from top bar
 // @author       You
 // @match        https://www.promedico-asp.nl/*
 // @grant        none
@@ -45,7 +45,14 @@
         const copyBtn = document.createElement('button');
         copyBtn.className = `copy-${type}-btn`;
         copyBtn.innerHTML = '📋';
-        copyBtn.title = `Kopieer ${type === 'phone' ? 'telefoonnummer' : 'e-mailadres'}: ${value}`;
+
+        let label = 'nummer';
+        if (type === 'phone') label = 'telefoonnummer';
+        else if (type === 'email') label = 'e-mailadres';
+        else if (type === 'bsn') label = 'BSN';
+        else if (type === 'address') label = 'adres';
+
+        copyBtn.title = `Kopieer ${label}: ${value}`;
         copyBtn.style.cssText = `
             margin-left: 5px;
             padding: 2px 6px;
@@ -74,7 +81,7 @@
                 }, 1000);
             }).catch(err => {
                 console.error(`Failed to copy ${type}:`, err);
-                alert(`Kon ${type === 'phone' ? 'telefoonnummer' : 'e-mailadres'} niet kopiëren`);
+                alert(`Kon ${label} niet kopiëren`);
             });
         });
 
@@ -125,9 +132,54 @@
         });
     }
 
+    function addCopyBSNButton() {
+        // Find all BSN spans with class GEM3CPJDOIC
+        const bsnSpans = document.querySelectorAll('span.GEM3CPJDOIC');
+
+        bsnSpans.forEach(span => {
+            // Check if button already exists
+            if (span.parentElement.querySelector('.copy-bsn-btn')) {
+                return;
+            }
+
+            // Get the BSN number from the span text
+            const bsn = span.textContent.trim();
+
+            // Basic validation: BSN should be numeric and typically 8-9 digits
+            if (bsn && /^\d{8,9}$/.test(bsn)) {
+                const copyBtn = createCopyButton(bsn, 'bsn');
+                span.after(copyBtn);
+                console.log('Copy BSN button added for:', bsn);
+            }
+        });
+    }
+
+    function addCopyAddressButton() {
+        // Find the address div by ID
+        const addressDiv = document.getElementById('PanelPatientDossierBarCore-lblPersoonAddressInfo');
+
+        if (addressDiv) {
+            // Check if button already exists
+            if (addressDiv.querySelector('.copy-address-btn')) {
+                return;
+            }
+
+            // Get the address from the div text
+            const address = addressDiv.textContent.trim();
+
+            if (address) {
+                const copyBtn = createCopyButton(address, 'address');
+                addressDiv.appendChild(copyBtn);
+                console.log('Copy address button added for:', address);
+            }
+        }
+    }
+
     function addAllCopyButtons() {
         addCopyPhoneButton();
         addCopyEmailButton();
+        addCopyBSNButton();
+        addCopyAddressButton();
     }
 
     // Run on page load
