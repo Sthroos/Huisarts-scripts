@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Promedico ASP - Complete Automation Suite
+// @name         Promedico ASP - Inschrijven en MEDOVD import
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Auto-fill patient forms + MEDOVD EDI/ZIP import + Custom menu items
 // @match        https://www.promedico-asp.nl/promedico/*
 // @run-at       document-idle
@@ -298,20 +298,26 @@ function parseData(text) {
 function fillForm(data) {
     let filled = 0;
 
-    // Meisjesnaam (maiden name) goes to Achternaam
+    // Handle Achternaam and Meisjesnaam logic
     if (data['Meisjesnaam']) {
+        // If maiden name exists, it goes to Achternaam
         if (fillField('patientPersoonWrapper.persoon.achternaam', data['Meisjesnaam'])) filled++;
-    }
 
-    // Achternaam (from data) goes to Partner achternaam
-    if (data['Achternaam']) {
-        if (fillField('patientPersoonWrapper.persoon.partnerachternaam', data['Achternaam'])) filled++;
+        // And current last name goes to Partner achternaam
+        if (data['Achternaam']) {
+            if (fillField('patientPersoonWrapper.persoon.partnerachternaam', data['Achternaam'])) filled++;
+        }
+    } else if (data['Achternaam']) {
+        // If only Achternaam exists (no maiden name), it goes to Achternaam field
+        if (fillField('patientPersoonWrapper.persoon.achternaam', data['Achternaam'])) filled++;
     }
 
     // Tussenvoegsel (prefix like "van", "de", etc.)
     if (data['Tussenvoegsel']) {
         if (fillField('patientPersoonWrapper.persoon.tussenvoegsel', data['Tussenvoegsel'])) filled++;
     }
+
+    // ... rest of your code stays the same
 
 if (data['Naam volgorde']) {
     // Map the input format to the field format
@@ -379,7 +385,7 @@ if (data['Naam volgorde']) {
     const huisartsField = targetDoc.getElementById('praktijkMedewerker');
     if (huisartsField) {
         for (let option of huisartsField.options) {
-            if (option.text.includes('X.X.') && option.text.includes('xx van xxx')) {
+            if (option.text.includes('X.X.') && option.text.includes('xxxx')) {
                 huisartsField.value = option.value;
                 huisartsField.dispatchEvent(new Event('change', { bubbles: true }));
                 if (huisartsField.onchange) huisartsField.onchange();
