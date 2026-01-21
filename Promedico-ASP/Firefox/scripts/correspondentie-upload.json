@@ -1,0 +1,6 @@
+{
+  "id": "correspondentieUpload",
+  "name": "Correspondentie Upload",
+  "description": "Drag & drop file upload for correspondence",
+  "enabled": true
+}
