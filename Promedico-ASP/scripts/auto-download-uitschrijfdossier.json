@@ -1,6 +1,0 @@
-{
-  "id": "autoCheckMedovd",
-  "name": "Auto-check MEDOVD & Auto-download",
-  "description": "Automatically check MEDOVD and download files",
-  "enabled": true
-}
