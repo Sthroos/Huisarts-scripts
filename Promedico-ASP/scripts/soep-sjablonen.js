@@ -1,14 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - SOEP Sjablonen
-// @namespace    http://tampermonkey.net/
-// @version      1.9
-// @description  Add template menu for O, E, and P fields with CRP, BVO, UWI, and more
-// @author       You
-// @match        https://www.promedico-asp.nl/promedico/*
-// @grant        GM_setClipboard
-// @grant        window.close
-// ==/UserScript==
-
 (function() {
     'use strict';
 

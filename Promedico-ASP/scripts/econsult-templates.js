@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico E-consult Template Responses
-// @namespace    http://tampermonkey.net/
-// @version      1.1
-// @description  Add template response buttons for E-consult with customizable messages
-// @author       Your Name
-// @match        https://www.promedico-asp.nl/promedico/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

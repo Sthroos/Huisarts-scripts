@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico Contactsoort Quick Buttons
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Add quick access buttons (E/C/T/V) between Contactsoort dropdown and Contactdatum
-// @author       Your Name
-// @match        https://www.promedico-asp.nl/promedico/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

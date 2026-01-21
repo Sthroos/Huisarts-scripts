@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - Correspondentie Upload
-// @namespace    http://tampermonkey.net/
-// @version      2.0
-// @description  Drag & drop correspondence document upload with auto-workflow
-// @match        https://www.promedico-asp.nl/promedico/*
-// @run-at       document-idle
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

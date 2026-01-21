@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico Meetwaarden Highlights
-// @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Markeert meetwaarden incl. leeftijdscheck en splitst lange tekst
-// @author       JouwNaam
-// @match        *://*/promedico/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

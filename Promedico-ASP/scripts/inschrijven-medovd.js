@@ -1,14 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - Inschrijven en MEDOVD import
-// @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Auto-fill patient forms + MEDOVD EDI/ZIP import + Custom menu items
-// @match        https://www.promedico-asp.nl/promedico/*
-// @run-at       document-idle
-// @grant        GM_setValue
-// @grant        GM_getValue
-// ==/UserScript==
-
 (function() {
     'use strict';
 

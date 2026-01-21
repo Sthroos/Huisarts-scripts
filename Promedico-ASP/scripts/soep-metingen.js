@@ -1,14 +1,3 @@
-// ==UserScript==
-// @name         Promedico SOEP Measurements
-// @namespace    http://tampermonkey.net/
-// @version      3.0.2
-// @description  Intercepts form submit on all journal pages - Fixes Loops & Button Detection
-// @author       Moi
-// @match        https://www.promedico-asp.nl/promedico/*
-// @grant        none
-// @run-at       document-start
-// ==/UserScript==
-
 (function() {
     'use strict';
 

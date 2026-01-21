@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - Auto-delete Berichten
-// @namespace    http://tampermonkey.net/
-// @version      1.6
-// @description  Auto-delete ZorgMail FileTransfer and Mutatiebericht messages
-// @match        https://www.promedico-asp.nl/promedico/*
-// @run-at       document-idle
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

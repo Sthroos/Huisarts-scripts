@@ -1,17 +1,3 @@
-// ==UserScript==
-// @name         Promedico - Auto-check MEDOVD & Auto-download Files
-// @namespace    http://tampermonkey.net/
-// @version      3.1
-// @description  Auto-check MEDOVD checkbox on uitschrijven form and auto-download files on results page
-// @author       Moi
-// @match        https://*/promedico/admin.onderhoud.patienten.uitschrijven.m*
-// @match        http://*/promedico/admin.onderhoud.patienten.uitschrijven.m*
-// @match        https://*/promedico/admin.onderhoud.patienten.uitschrijving.m*
-// @match        http://*/promedico/admin.onderhoud.patienten.uitschrijving.m*
-// @grant        none
-// @run-at       document-end
-// ==/UserScript==
-
 (function() {
     'use strict';
 

@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico - Copy Phone Number, Email, BSN and Address Buttons
-// @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Add buttons to copy patient phone number, email, BSN and address from top bar
-// @author       You
-// @match        https://www.promedico-asp.nl/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

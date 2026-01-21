@@ -1,15 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - Zorgdomein Quick Menu
-// @namespace    http://tampermonkey.net/
-// @version      5.1
-// @description  Quick access menu for Lab/Röntgen/Echo with direct ZorgDomein navigation (3-level support)
-// @match        https://www.promedico-asp.nl/promedico/*
-// @match        https://www.zorgdomein.nl/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_deleteValue
-// ==/UserScript==
-
 (function() {
     'use strict';
 

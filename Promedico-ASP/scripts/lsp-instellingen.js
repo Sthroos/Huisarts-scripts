@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - LSP-instellingen
-// @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Automate LSP registration for grey opt-in buttons
-// @author       You
-// @match        https://www.promedico-asp.nl/promedico/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 

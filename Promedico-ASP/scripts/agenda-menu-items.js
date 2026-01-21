@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - Agenda Menu Items
-// @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Add Berichten, E-consult, and Recept buttons to Agenda menu
-// @match        https://www.promedico-asp.nl/promedico/*
-// @run-at       document-idle
-// @grant        none
-// ==/UserScript==
-
 (function() {
     'use strict';
 
