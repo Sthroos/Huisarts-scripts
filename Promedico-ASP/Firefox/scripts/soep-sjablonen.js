@@ -186,7 +186,7 @@
 
         // Copy BSN to clipboard
         try {
-            GM_setClipboard(bsn);
+            navigator.clipboard.writeText(bsn);
 
             // Show confirmation
             const notification = document.createElement('div');

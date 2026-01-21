@@ -27,7 +27,7 @@
 
     // Handle ZorgDomein pages - redirect after login
     function handleZorgDomeinPage() {
-        const targetUrl = GM_getValue('zorgdomein_target_url_global') ||
+        const targetUrl = chrome.storage.local.get('zorgdomein_target_url_global') ||
                          sessionStorage.getItem('zd_target_url') ||
                          localStorage.getItem('zd_target_url');
 
@@ -50,7 +50,7 @@
             document.body.appendChild(indicator);
 
             setTimeout(() => {
-                GM_deleteValue('zorgdomein_target_url_global');
+                chrome.storage.local.remove('zorgdomein_target_url_global');
                 try {
                     sessionStorage.removeItem('zd_target_url');
                     localStorage.removeItem('zd_target_url');
@@ -84,7 +84,7 @@
         }
 
         if (targetUrl) {
-            GM_setValue('zorgdomein_target_url_global', targetUrl);
+            chrome.storage.local.set('zorgdomein_target_url_global', targetUrl);
 
             try {
                 localStorage.setItem('zd_target_url', targetUrl);
