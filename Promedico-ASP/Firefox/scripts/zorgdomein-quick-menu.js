@@ -61,8 +61,6 @@
                 window.location.href = targetUrl;
             }, 500);
         }
-    }
-
     // Navigate to Verwijzen and start the ZorgDomein flow
     function navigateToZorgDomein(specialisme, targetUrl, callback) {
         const iframe = getContentIframe();
@@ -98,6 +96,8 @@
         setTimeout(() => {
             fillSpecialismeAndClickZorgDomein(specialisme, callback);
         }, 500);
+    }
+});
     }
 
     // Fill the specialisme field and click Via ZorgDomein
