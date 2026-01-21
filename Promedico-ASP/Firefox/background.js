@@ -1,7 +1,5 @@
-// Background script with GitHub auto-update support
-
-// Import config
-importScripts('config.js');
+// Background script for Firefox Manifest V2
+// config.js is already loaded via manifest.json
 
 // Initialize default settings
 browser.runtime.onInstalled.addListener(() => {
@@ -9,7 +7,7 @@ browser.runtime.onInstalled.addListener(() => {
   const defaults = {
     scriptsEnabled: true,
     lastUpdateCheck: 0,
-    githubScripts: {} // Store downloaded scripts from GitHub
+    githubScripts: {}
   };
   
   SCRIPT_CONFIG.forEach(script => {
@@ -17,7 +15,7 @@ browser.runtime.onInstalled.addListener(() => {
   });
   
   browser.storage.local.set(defaults);
-  console.log('Promedico ASP Helper installed');
+  console.log('[Promedico Helper] Installed - version', browser.runtime.getManifest().version);
   
   // Check for updates immediately
   if (GITHUB_CONFIG.enabled) {
@@ -58,7 +56,7 @@ async function checkForUpdates() {
   }
   
   const now = Date.now();
-  const settings = await browser.storage.local.get(['lastUpdateCheck']);
+  const settings = await browser.storage.local.get(['lastUpdateCheck', 'githubScripts']);
   
   // Don't check too frequently
   if (now - settings.lastUpdateCheck < GITHUB_CONFIG.checkInterval) {
@@ -78,8 +76,10 @@ async function checkForUpdates() {
     }
     
     const files = await response.json();
-    const newScripts = {};
+    const newScripts = { ...(settings.githubScripts || {}) };
     const scriptConfigs = [];
+    let updatedCount = 0;
+    let unchangedCount = 0;
     
     // Look for .js files and their corresponding .json config files
     for (const file of files) {
@@ -96,10 +96,22 @@ async function checkForUpdates() {
           const scriptResponse = await fetch(file.download_url);
           const scriptContent = await scriptResponse.text();
           
+          // Check if content actually changed
+          const oldScript = settings.githubScripts?.[config.id];
+          if (oldScript && oldScript === scriptContent) {
+            console.log(`[GitHub] ${config.name} - unchanged`);
+            unchangedCount++;
+          } else {
+            if (oldScript) {
+              console.log(`[GitHub] ${config.name} - UPDATED ✓`);
+            } else {
+              console.log(`[GitHub] ${config.name} - NEW ✓`);
+            }
+            updatedCount++;
+          }
+          
           newScripts[config.id] = scriptContent;
           scriptConfigs.push(config);
-          
-          console.log('[GitHub] Found script:', config.name);
         }
       }
     }
@@ -110,11 +122,13 @@ async function checkForUpdates() {
       lastUpdateCheck: now
     });
     
-    console.log(`[GitHub] Updated ${Object.keys(newScripts).length} scripts from GitHub`);
+    console.log(`[GitHub] Summary: ${updatedCount} updated, ${unchangedCount} unchanged, ${Object.keys(newScripts).length} total`);
     
     return {
       success: true,
       scriptsFound: Object.keys(newScripts).length,
+      updatedCount: updatedCount,
+      unchangedCount: unchangedCount,
       configs: scriptConfigs
     };
     
