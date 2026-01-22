@@ -1,14 +1,3 @@
-// ==UserScript==
-// @name         Promedico ASP - Complete Automation Suite
-// @namespace    http://tampermonkey.net/
-// @version      1.1
-// @description  Auto-fill patient forms + MEDOVD EDI/ZIP import + Custom menu items
-// @match        https://www.promedico-asp.nl/promedico/*
-// @run-at       document-idle
-// @grant        GM_setValue
-// @grant        GM_getValue
-// ==/UserScript==
-
 (function() {
     'use strict';
 
@@ -135,84 +124,217 @@
     // AUTO MEDOVD IMPORT (EDI + ZIP)
     // ============================================================================
 
-    function isOnMedovdImportPage() {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return false;
-        const doc = iframe.contentDocument;
-        return !!doc.getElementById('ediFile') && !!doc.getElementById('correspondentieFile');
+function isOnMedovdImportPage() {
+    const iframe = getContentIframe();
+    if (!iframe || !iframe.contentDocument) return false;
+    const doc = iframe.contentDocument;
+
+    // Check if we're on the MEDOVD import page by looking for the specific form elements
+    const ediInput = doc.getElementById('ediFile');
+    const zipInput = doc.getElementById('correspondentieFile');
+
+    return !!(ediInput && zipInput);
+}
+
+function fillFormWithFiles(ediFile, zipFile) {
+    const iframe = getContentIframe();
+    if (!iframe || !iframe.contentDocument) return;
+
+    const doc = iframe.contentDocument;
+    const ediInput = doc.getElementById('ediFile');
+    const zipInput = doc.getElementById('correspondentieFile');
+    const submitButton = doc.getElementById('Script_Bestand inlezen');
+
+    if (!ediInput || !zipInput || !submitButton) {
+        console.log('Form fields not found');
+        return;
     }
 
-    function fillFormWithFiles(ediFile, zipFile) {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
+    console.log('Filling form with files:', ediFile.name, zipFile.name);
 
-        const doc = iframe.contentDocument;
-        const ediInput = doc.getElementById('ediFile');
-        const zipInput = doc.getElementById('correspondentieFile');
-        const submitButton = doc.getElementById('Script_Bestand inlezen');
+    const ediDataTransfer = new DataTransfer();
+    ediDataTransfer.items.add(ediFile);
+    ediInput.files = ediDataTransfer.files;
 
-        if (!ediInput || !zipInput || !submitButton) return;
+    const zipDataTransfer = new DataTransfer();
+    zipDataTransfer.items.add(zipFile);
+    zipInput.files = zipDataTransfer.files;
 
-        const ediDataTransfer = new DataTransfer();
-        ediDataTransfer.items.add(ediFile);
-        ediInput.files = ediDataTransfer.files;
+    ediInput.dispatchEvent(new Event('change', { bubbles: true }));
+    zipInput.dispatchEvent(new Event('input', { bubbles: true }));
+    zipInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-        const zipDataTransfer = new DataTransfer();
-        zipDataTransfer.items.add(zipFile);
-        zipInput.files = zipDataTransfer.files;
+    console.log('Files assigned, submitting...');
 
-        ediInput.dispatchEvent(new Event('change', { bubbles: true }));
-        zipInput.dispatchEvent(new Event('input', { bubbles: true }));
+    setTimeout(() => {
+        submitButton.click();
+        console.log('Submit clicked');
+    }, 500);
+}
 
-        setTimeout(() => {
-            submitButton.click();
-        }, 500);
+function processDroppedFiles(files) {
+    console.log('Files dropped:', files.length);
+
+    if (files.length !== 2) {
+        console.log('Need exactly 2 files, got', files.length);
+        return;
     }
 
-    function processDroppedFiles(files) {
-        if (files.length !== 2) return;
-        if (!isOnMedovdImportPage()) return;
+    if (!isOnMedovdImportPage()) {
+        console.log('Not on MEDOVD import page');
+        return;
+    }
 
-        let ediFile = null;
-        let zipFile = null;
+    let ediFile = null;
+    let zipFile = null;
 
-        for (let file of files) {
-            const fileName = file.name.toLowerCase();
-            if (fileName.endsWith('.edi')) {
-                ediFile = file;
-            } else if (fileName.endsWith('.zip')) {
-                zipFile = file;
+    for (let file of files) {
+        const fileName = file.name.toLowerCase();
+        console.log('Processing file:', fileName);
+        if (fileName.endsWith('.edi')) {
+            ediFile = file;
+        } else if (fileName.endsWith('.zip')) {
+            zipFile = file;
+        }
+    }
+
+    if (!ediFile || !zipFile) {
+        console.log('Missing required files. EDI:', ediFile?.name, 'ZIP:', zipFile?.name);
+        return;
+    }
+
+    console.log('Both files found, filling form...');
+    fillFormWithFiles(ediFile, zipFile);
+}
+
+function setupIframeListeners() {
+    const iframe = getContentIframe();
+    if (!iframe) {
+        console.log('Iframe not found');
+        return;
+    }
+
+    let doc;
+    try {
+        doc = iframe.contentDocument || iframe.contentWindow.document;
+    } catch (e) {
+        console.log('Cannot access iframe document:', e);
+        return;
+    }
+
+    if (!doc) {
+        console.log('Iframe document not accessible');
+        return;
+    }
+
+    // Check if we're on the right page
+    if (!isOnMedovdImportPage()) {
+        return;
+    }
+
+    // Always re-attach listeners (in case iframe reloaded)
+    if (doc.body.dataset.medovdListenersAttached === 'true') {
+        return;
+    }
+
+    console.log('Attaching drag and drop listeners to iframe');
+
+    // Create a drop zone overlay for better visual feedback
+    let dropOverlay = doc.getElementById('medovd-drop-overlay');
+    if (!dropOverlay) {
+        dropOverlay = doc.createElement('div');
+        dropOverlay.id = 'medovd-drop-overlay';
+        dropOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(76, 175, 80, 0.1);
+            border: 3px dashed #4CAF50;
+            display: none;
+            z-index: 9999;
+            pointer-events: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        `;
+        dropOverlay.innerHTML = '📁 Drop EDI + ZIP files here';
+        doc.body.appendChild(dropOverlay);
+    }
+
+    let dragCounter = 0; // Track nested drag enter/leave events
+
+    doc.addEventListener('dragenter', (e) => {
+        // Check if dragging files (not just text or other draggables)
+        if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            dropOverlay.style.display = 'flex';
+            console.log('Drag enter with files, counter:', dragCounter);
+        }
+    }, true);
+
+    doc.addEventListener('dragover', (e) => {
+        // Check if dragging files
+        if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+    }, true);
+
+    doc.addEventListener('dragleave', (e) => {
+        // Only process if we were dragging files
+        if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter--;
+            console.log('Drag leave, counter:', dragCounter);
+
+            // Only hide overlay when all drag enters have been matched with leaves
+            if (dragCounter === 0) {
+                dropOverlay.style.display = 'none';
             }
         }
+    }, true);
 
-        if (!ediFile || !zipFile) return;
-        fillFormWithFiles(ediFile, zipFile);
-    }
-
-    function setupIframeListeners() {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
-
-        const doc = iframe.contentDocument;
-        if (doc.hasDropListener) return;
-
-        doc.addEventListener('dragover', (e) => {
+    doc.addEventListener('drop', (e) => {
+        // Check if dropping files
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             e.preventDefault();
             e.stopPropagation();
-        }, true);
+            dropOverlay.style.display = 'none';
+            dragCounter = 0; // Reset counter
 
-        doc.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            console.log('Drop event triggered with', e.dataTransfer.files.length, 'files');
             processDroppedFiles(Array.from(e.dataTransfer.files));
-        }, true);
+        }
+    }, true);
 
-        doc.hasDropListener = true;
-    }
+    // Also reset counter if drag ends outside the window
+    doc.addEventListener('dragend', (e) => {
+        dragCounter = 0;
+        dropOverlay.style.display = 'none';
+        console.log('Drag ended');
+    }, true);
 
-    function initMedovdImport() {
-        setInterval(setupIframeListeners, 2000);
-    }
+    doc.body.dataset.medovdListenersAttached = 'true';
+    console.log('Listeners attached successfully with visual overlay');
+}
+
+function initMedovdImport() {
+    // Check and setup listeners every 2 seconds
+    setInterval(() => {
+        setupIframeListeners();
+    }, 2000);
+
+    // Also try immediately
+    setTimeout(setupIframeListeners, 1000);
+}
 
     // ============================================================================
     // PATIENT FORM AUTO-FILL
@@ -298,20 +420,26 @@ function parseData(text) {
 function fillForm(data) {
     let filled = 0;
 
-    // Meisjesnaam (maiden name) goes to Achternaam
+    // Handle Achternaam and Meisjesnaam logic
     if (data['Meisjesnaam']) {
+        // If maiden name exists, it goes to Achternaam
         if (fillField('patientPersoonWrapper.persoon.achternaam', data['Meisjesnaam'])) filled++;
-    }
 
-    // Achternaam (from data) goes to Partner achternaam
-    if (data['Achternaam']) {
-        if (fillField('patientPersoonWrapper.persoon.partnerachternaam', data['Achternaam'])) filled++;
+        // And current last name goes to Partner achternaam
+        if (data['Achternaam']) {
+            if (fillField('patientPersoonWrapper.persoon.partnerachternaam', data['Achternaam'])) filled++;
+        }
+    } else if (data['Achternaam']) {
+        // If only Achternaam exists (no maiden name), it goes to Achternaam field
+        if (fillField('patientPersoonWrapper.persoon.achternaam', data['Achternaam'])) filled++;
     }
 
     // Tussenvoegsel (prefix like "van", "de", etc.)
     if (data['Tussenvoegsel']) {
         if (fillField('patientPersoonWrapper.persoon.tussenvoegsel', data['Tussenvoegsel'])) filled++;
     }
+
+    // ... rest of your code stays the same
 
 if (data['Naam volgorde']) {
     // Map the input format to the field format
@@ -379,7 +507,7 @@ if (data['Naam volgorde']) {
     const huisartsField = targetDoc.getElementById('praktijkMedewerker');
     if (huisartsField) {
         for (let option of huisartsField.options) {
-            if (option.text.includes('E.A.') && option.text.includes('Westerbeek van Eerten')) {
+            if (option.text.includes('E.A.') && option.text.includes('Westerbeek')) {
                 huisartsField.value = option.value;
                 huisartsField.dispatchEvent(new Event('change', { bubbles: true }));
                 if (huisartsField.onchange) huisartsField.onchange();

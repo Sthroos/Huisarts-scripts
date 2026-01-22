@@ -1,0 +1,6 @@
+{
+  "id": "inschrijvenMedovd",
+  "name": "Inschrijven en MEDOVD Import",
+  "description": "Patient registration and MEDOVD import",
+  "enabled": true
+}
