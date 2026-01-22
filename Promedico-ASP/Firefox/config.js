@@ -123,7 +123,7 @@ const SCRIPT_CONFIG = [
 
 // GitHub configuration for auto-updates
 const GITHUB_CONFIG = {
-  enabled: true, // Set to false to disable auto-updates
+  enabled: false, // Set to false to disable auto-updates
   owner: 'Sthroos', // Change this to your GitHub username
   repo: 'Huisarts-scripts', // Change this to your repo name
   branch: 'main',
