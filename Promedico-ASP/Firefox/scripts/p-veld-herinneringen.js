@@ -24,22 +24,13 @@
             max-width: 400px;
             animation: flyoverFadeIn 0.3s ease-in;
         }
-        .plan-flyover a {
-            margin-left: 10px;
-            color: #0066cc;
-            text-decoration: underline;
-            cursor: pointer;
-        }
-        .plan-flyover a:hover {
-            color: #004499;
-        }
     `;
     document.head.appendChild(style);
 
     let hideTimeout = null;
     let lastTriggeredWord = '';
 
-    function showFlyover(inputElement, message, linkUrl = null, linkText = null, triggerWord = '') {
+    function showFlyover(inputElement, message, triggerWord = '') {
         // Don't show again if already showing for this word
         if (lastTriggeredWord === triggerWord && document.querySelector('.plan-flyover')) {
             return;
@@ -67,17 +58,6 @@
         const messageSpan = document.createElement('span');
         messageSpan.textContent = message;
         flyover.appendChild(messageSpan);
-
-        // Voeg link toe indien aanwezig
-        if (linkUrl && linkText) {
-            flyover.appendChild(document.createTextNode(' '));
-            const link = document.createElement('a');
-            link.href = linkUrl;
-            link.textContent = linkText;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            flyover.appendChild(link);
-        }
 
         // Positioneer onder het inputveld
         const rect = inputElement.getBoundingClientRect();
@@ -136,21 +116,17 @@
         planVeld.addEventListener('input', function(e) {
             const currentValue = planVeld.value.toLowerCase();
 
-            // Check DIRECT of trigger woord aanwezig is (geen delay!)
-
-            // Liraglutide / Saxenda
-            if (currentValue.includes('liraglutide') || currentValue.includes('saxenda')) {
+            // Check of COPD aanwezig is
+            if (currentValue.includes('copd')) {
                 showFlyover(
                     planVeld,
-                    'Vergeet ZN formulier niet!',
-                    'https://www.zn.nl/znform/saxenda-liraglutide-artsenverklaring/',
-                    'Open formulier',
-                    'saxenda'
+                    'Hoort deze patient in ketenzorg?',
+                    'copd'
                 );
             }
             // Als het woord verwijderd is, reset de trigger
-            else if (!currentValue.includes('liraglutide') && !currentValue.includes('saxenda')) {
-                if (lastTriggeredWord === 'saxenda') {
+            else if (!currentValue.includes('copd')) {
+                if (lastTriggeredWord === 'copd') {
                     const existingFlyover = document.querySelector('.plan-flyover');
                     if (existingFlyover) {
                         existingFlyover.remove();
