@@ -102,42 +102,69 @@
     }
 
     // Fill the specialisme field and click Via ZorgDomein
-    function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
-        const iframe = getContentIframe();
-        if (!iframe || !iframe.contentDocument) return;
+function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
+    const iframe = getContentIframe();
+    if (!iframe || !iframe.contentDocument) return;
 
-        const doc = iframe.contentDocument;
+    const doc = iframe.contentDocument;
 
-        const specMnemField = doc.getElementById('specMnem');
-        if (specMnemField) {
-            specMnemField.value = specialisme;
-            specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
-            specMnemField.dispatchEvent(new Event('change', { bubbles: true }));
+    const specMnemField = doc.getElementById('specMnem');
+    if (specMnemField) {
+        specMnemField.value = specialisme;
+        specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
+        specMnemField.dispatchEvent(new Event('change', { bubbles: true }));
+        specMnemField.dispatchEvent(new Event('blur', { bubbles: true }));
+
+        // Trigger the parseSpecialisme() function in the iframe context
+        if (specMnemField.onchange) {
+            try {
+                specMnemField.onchange();
+            } catch(e) {
+                console.log('Could not trigger onchange directly:', e);
+            }
         }
 
+        // Also try to call parseSpecialisme directly in iframe context
         const script = doc.createElement('script');
         script.textContent = `
             (function() {
-                if (typeof disableScreen !== 'function') {
-                    window.disableScreen = function() { return true; };
-                }
-
-                var button = document.getElementById('action_via zorgDomein');
-                if (button) {
-                    button.click();
-                    setTimeout(function() {
-                        button.click();
-                    }, 200);
+                try {
+                    if (typeof parseSpecialisme === 'function') {
+                        parseSpecialisme();
+                    }
+                } catch(e) {
+                    console.error('Error calling parseSpecialisme:', e);
                 }
             })();
         `;
         doc.head.appendChild(script);
         script.remove();
-
-        setTimeout(() => {
-            clickScriptZorgDomein(callback);
-        }, 1200);
     }
+
+    // Now click the ZorgDomein button
+    const script2 = doc.createElement('script');
+    script2.textContent = `
+        (function() {
+            if (typeof disableScreen !== 'function') {
+                window.disableScreen = function() { return true; };
+            }
+
+            var button = document.getElementById('action_via zorgDomein');
+            if (button) {
+                button.click();
+                setTimeout(function() {
+                    button.click();
+                }, 200);
+            }
+        })();
+    `;
+    doc.head.appendChild(script2);
+    script2.remove();
+
+    setTimeout(() => {
+        clickScriptZorgDomein(callback);
+    }, 1200);
+}
 
     // Click the Script_ZorgDomein button
     function clickScriptZorgDomein(callback) {
