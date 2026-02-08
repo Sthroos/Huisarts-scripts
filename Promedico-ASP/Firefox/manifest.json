@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Promedico ASP Helper",
-  "version": "1.2",
+  "version": "1.3.5",
   "description": "Automation scripts for Promedico ASP",
   
   "browser_specific_settings": {
@@ -22,7 +22,9 @@
     "https://www.zorgdomein.nl/*",
     "https://api.github.com/*",
     "https://raw.githubusercontent.com/*",
-    "clipboardWrite"
+    "clipboardWrite",
+    "tabs",
+    "management"
   ],
   
   "background": {
@@ -42,27 +44,10 @@
         "https://www.zorgdomein.nl/*"
       ],
       "js": [
-        "scripts/zorgdomein-quick-menu.js",
-        "scripts/contactsoort-quick-buttons.js",
-        "scripts/p-veld-herinneringen.js",
-        "scripts/kopieer-buttons.js",
-        "scripts/ketenzorg-highlights.js",
-        "scripts/econsult-templates.js",
-        "scripts/lsp-instellingen.js",
-        "scripts/correspondentie-upload.js",
-        "scripts/auto-download-uitschrijfdossier.js",
-        "scripts/auto-delete-berichten.js",
-        "scripts/agenda-menu-items.js"
+        "config.js",
+        "content.js" 
       ],
       "run_at": "document_idle",
-      "all_frames": true
-    },
-    {
-      "matches": [
-        "https://www.promedico-asp.nl/promedico/*"
-      ],
-      "js": ["loader.js"],
-      "run_at": "document_end",
       "all_frames": true
     }
   ],

@@ -63,77 +63,123 @@ function updateLastCheckInfo(timestamp) {
   }
 }
 
-// Initialize
-generateScriptToggles();
-loadSettings();
-
-// Master toggle
-document.getElementById('masterToggle').addEventListener('change', function() {
-  const enabled = this.checked;
+// Display version info
+function displayVersionInfo() {
+  const manifest = browser.runtime.getManifest();
+  const badge = document.getElementById('versionBadge');
+  const info = document.getElementById('installInfo');
   
-  browser.storage.local.set({
-    scriptsEnabled: enabled
-  });
-  
-  updateScriptTogglesState(enabled);
-  showStatus(enabled ? 'All scripts enabled' : 'All scripts disabled');
-  
-  // Reload all Promedico tabs
-  reloadPromedicoTabs();
-});
-
-// Individual script toggles - attach dynamically
-document.querySelectorAll('.script-toggle').forEach(toggle => {
-  toggle.addEventListener('change', function() {
-    const scriptId = this.dataset.scriptId;
-    const enabledKey = scriptId + 'Enabled';
-    
-    browser.storage.local.set({
-      [enabledKey]: this.checked
-    });
-    
-    showStatus('Settings saved');
-    reloadPromedicoTabs();
-  });
-});
-
-// Update button
-document.getElementById('updateBtn').addEventListener('click', async function() {
-  if (!GITHUB_CONFIG.enabled) {
-    showStatus('Auto-updates are disabled in config', true);
+  if (!badge || !info) {
+    console.error('[Version] Elements not found!');
+    // Try again after a short delay
+    setTimeout(displayVersionInfo, 50);
     return;
   }
   
-  const btn = this;
-  btn.disabled = true;
-  btn.textContent = '🔄 Checking...';
+  console.log('[Version] Setting version:', manifest.version);
+  badge.textContent = 'v' + manifest.version;
   
-  try {
-    const result = await browser.runtime.sendMessage({type: 'checkUpdates'});
-    
-    if (result.success) {
-      showStatus(`✓ Found ${result.scriptsFound} script(s) on GitHub`);
-      
-      // Reload settings to show updated info
-      const settings = await browser.storage.local.get();
-      updateLastCheckInfo(settings.lastUpdateCheck);
-      
-      // Reload tabs to use new scripts
-      reloadPromedicoTabs();
+  browser.management.getSelf().then(ext => {
+    if (ext.installType === 'development') {
+      badge.textContent += ' DEBUG';
+      badge.className = 'version-badge version-debug';
+      info.textContent = 'Development Mode';
     } else {
-      let message = 'Update check failed';
-      if (result.reason === 'disabled') message = 'Auto-updates disabled';
-      if (result.reason === 'too_soon') message = 'Checked recently, try again later';
-      showStatus(message, true);
+      badge.className = 'version-badge version-production';
+      info.textContent = 'Installed from AMO';
     }
-  } catch (error) {
-    showStatus('Error checking for updates', true);
-    console.error('Update error:', error);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🔄 Check for Updates';
-  }
-});
+  }).catch(err => {
+    badge.className = 'version-badge version-production';
+    info.textContent = 'Version ' + manifest.version;
+  });
+}
+
+// Initialize everything when DOM is ready
+function initializePopup() {
+  console.log('[Popup] Initializing...');
+  
+  // Generate UI
+  generateScriptToggles();
+  loadSettings();
+  displayVersionInfo();
+  
+  // Setup event listeners
+  setupEventListeners();
+  
+  console.log('[Popup] Initialized!');
+}
+
+function setupEventListeners() {
+  // Master toggle
+  document.getElementById('masterToggle').addEventListener('change', function() {
+    const enabled = this.checked;
+    
+    browser.storage.local.set({
+      scriptsEnabled: enabled
+    });
+    
+    updateScriptTogglesState(enabled);
+    showStatus(enabled ? 'All scripts enabled' : 'All scripts disabled');
+    reloadPromedicoTabs();
+  });
+
+  // Individual script toggles
+  document.querySelectorAll('.script-toggle').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      const scriptId = this.dataset.scriptId;
+      const enabledKey = scriptId + 'Enabled';
+      
+      browser.storage.local.set({
+        [enabledKey]: this.checked
+      });
+      
+      showStatus('Settings saved');
+      reloadPromedicoTabs();
+    });
+  });
+
+  // Update button
+  document.getElementById('updateBtn').addEventListener('click', async function() {
+    if (!GITHUB_CONFIG.enabled) {
+      showStatus('Auto-updates are disabled in config', true);
+      return;
+    }
+    
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = '🔄 Checking...';
+    
+    try {
+      const result = await browser.runtime.sendMessage({type: 'checkUpdates'});
+      
+      if (result.success) {
+        if (result.updatedCount > 0) {
+          showStatus(`✓ Updated ${result.updatedCount} script(s), ${result.unchangedCount} unchanged`);
+        } else {
+          showStatus(`✓ All ${result.unchangedCount} scripts are up to date`);
+        }
+        
+        const settings = await browser.storage.local.get();
+        updateLastCheckInfo(settings.lastUpdateCheck);
+        
+        if (result.updatedCount > 0) {
+          reloadPromedicoTabs();
+        }
+      } else {
+        let message = 'Update check failed';
+        if (result.reason === 'disabled') message = 'Auto-updates disabled';
+        if (result.reason === 'too_soon') message = 'Checked recently, try again later';
+        showStatus(message, true);
+      }
+    } catch (error) {
+      showStatus('Error checking for updates', true);
+      console.error('Update error:', error);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔄 Check for Updates';
+    }
+  });
+}
 
 function updateScriptTogglesState(masterEnabled) {
   const scriptToggles = document.querySelectorAll('.script-toggle');
@@ -164,4 +210,11 @@ function reloadPromedicoTabs() {
       browser.tabs.reload(tab.id);
     });
   });
+}
+
+// Start when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializePopup);
+} else {
+  initializePopup();
 }

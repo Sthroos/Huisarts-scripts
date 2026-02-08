@@ -136,6 +136,34 @@
     #scriptsContainer {
       /* Will be populated dynamically */
     }
+    .version-info {
+      text-align: center;
+      padding: 10px;
+      font-size: 11px;
+      color: #666;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 10px;
+      background: #f9f9f9;
+    }
+    .version-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+    .version-production {
+      background: #d4edda;
+      color: #155724;
+    }
+    .version-debug {
+      background: #f8d7da;
+      color: #721c24;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   </style>
 </head>
 <body>
@@ -154,7 +182,6 @@
     
     <!-- Scripts will be dynamically inserted here -->
     <div id="scriptsContainer"></div>
-    
   </div>
   
   <div class="update-section">
@@ -164,6 +191,15 @@
   
   <div class="status" id="status"></div>
   
+  <!-- Version info -->
+  <div class="version-info">
+    <div>
+      <span class="version-badge" id="versionBadge">v0.0.0</span>
+    </div>
+    <div style="font-size: 10px; color: #999; margin-top: 5px;" id="installInfo"></div>
+  </div>
+  
+  <!-- Scripts -->
   <script src="config.js"></script>
   <script src="popup.js"></script>
 </body>

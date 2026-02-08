@@ -10,6 +10,15 @@ browser.runtime.onInstalled.addListener(() => {
     githubScripts: {}
   };
   
+    browser.management.getSelf().then(info => {
+    if (info.installType === 'development') {
+      // Show DEBUG badge
+      browser.browserAction.setBadgeText({ text: 'DEV' });
+      browser.browserAction.setBadgeBackgroundColor({ color: '#ff0000' });
+    }
+    // For production, no badge (or version number)
+  });
+
   SCRIPT_CONFIG.forEach(script => {
     defaults[script.id + 'Enabled'] = script.enabled;
   });
@@ -150,3 +159,17 @@ if (GITHUB_CONFIG.enabled) {
     checkForUpdates();
   }, GITHUB_CONFIG.checkInterval);
 }
+
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'injectScript') {
+    // Injecteer het bestand in de tab die het vroeg
+    browser.tabs.executeScript(sender.tab.id, {
+      file: message.file
+    }).then(() => {
+      console.log('Injected:', message.file);
+    }).catch(err => {
+      console.error('Injection failed:', err);
+    });
+    return false;
+  }
+});
