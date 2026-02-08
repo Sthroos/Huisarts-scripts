@@ -1,13 +1,6 @@
 (function() {
     'use strict';
 
-    // Store file globally for use across page transitions
-    let pendingCorrespondenceFile = null;
-    let correspondenceFileName = '';
-    let uploadAttempted = false; // Track if we've already tried uploading
-    let verderClickCount = 0; // Track how many times we've clicked Verder
-    let lastVerderClickTime = 0; // Track when we last clicked Verder
-
     // Get the content iframe
     function getContentIframe() {
         return document.getElementById('panelBackCompatibility-frame');
@@ -36,36 +29,25 @@
 
     // Check if we're on the upload page (Step 1 - Browse button)
     function isOnCorrespondenceUploadPage() {
-        // First check MAIN document (not iframe!)
-        const mainFileInput = document.querySelector('input[type="file"][name="uploadFile"]') ||
-                             document.getElementById('bestand') ||
-                             document.querySelector('input[type="file"]');
-        const mainVerderButton = document.getElementById('Script_Verder');
-
-        if (mainFileInput && mainVerderButton) {
-            return true;
-        }
-
-        // Then check iframe as fallback
         const iframe = getContentIframe();
-        if (!iframe) {
-            return false;
-        }
+        if (!iframe) return false;
 
         let doc;
         try {
             doc = iframe.contentDocument || iframe.contentWindow.document;
+            if (!doc) return false;
+            
+            // Test access
+            const testAccess = doc.body;
+            if (!testAccess) return false;
         } catch (e) {
-            return false;
-        }
-
-        if (!doc) {
+            // Dead object of andere error - niet toegankelijk
             return false;
         }
 
         // Look for the file input in iframe
         const fileInput = doc.getElementById('bestand') ||
-                         doc.querySelector('input[name="uploadFile"]') ||
+                         doc.querySelector('input[name="uploadfile"]') ||
                          doc.querySelector('input[type="file"]');
         const verderButton = doc.getElementById('Script_Verder');
 
@@ -164,189 +146,253 @@
         }
     }
 
-    // Upload the file to the browse button
-    function uploadCorrespondenceFile(file) {
-        if (uploadAttempted) {
-            console.log('[Correspondence] Upload already attempted, skipping');
-            return;
-        }
-
-        // First try MAIN document
-        let fileInput = document.querySelector('input[type="file"][name="uploadFile"]') ||
-                       document.getElementById('bestand') ||
-                       document.querySelector('input[type="file"]');
-        let verderButton = document.getElementById('Script_Verder');
-        let location = 'main document';
-
-        // If not found, try iframe
-        if (!fileInput || !verderButton) {
-            const iframe = getContentIframe();
-            if (iframe) {
-                try {
-                    const doc = iframe.contentDocument || iframe.contentWindow.document;
-                    if (doc) {
-                        fileInput = doc.getElementById('bestand') ||
-                                   doc.querySelector('input[name="uploadFile"]') ||
-                                   doc.querySelector('input[type="file"]');
-                        verderButton = doc.getElementById('Script_Verder');
-                        location = 'iframe';
-                    }
-                } catch (e) {
-                    console.log('[Correspondence] Cannot access iframe:', e);
-                }
+    // Upload file from chrome.storage
+    function uploadCorrespondenceFile() {
+        console.log('[Correspondence] uploadCorrespondenceFile called');
+        
+        // Haal file data op uit chrome.storage
+        chrome.storage.local.get([
+            'correspondence_pending_file',
+            'correspondence_file_name',
+            'correspondence_upload_attempted'
+        ], function(data) {
+            
+            if (!data.correspondence_pending_file) {
+                console.log('[Correspondence] No pending file in storage');
+                return;
             }
-        }
 
-        if (!fileInput) {
-            console.log('[Correspondence] File input not found in either main document or iframe');
-            return;
-        }
+            if (data.correspondence_upload_attempted) {
+                console.log('[Correspondence] Upload already attempted, skipping');
+                return;
+            }
 
-        if (!verderButton) {
-            console.log('[Correspondence] Verder button not found');
-            return;
-        }
+            console.log('[Correspondence] Looking for file input in IFRAME...');
 
-        uploadAttempted = true; // Set flag to prevent multiple attempts
+            // Get FRESH iframe reference
+            const iframe = getContentIframe();
+            if (!iframe) {
+                console.log('[Correspondence] ERROR: No iframe found');
+                return;
+            }
 
-        console.log('[Correspondence] Found file input in', location);
-        console.log('[Correspondence] Uploading file:', file.name);
+            let doc;
+            try {
+                doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc || !doc.body) {
+                    console.log('[Correspondence] ERROR: Cannot access iframe document');
+                    return;
+                }
+            } catch (e) {
+                console.log('[Correspondence] ERROR: Cannot access iframe:', e);
+                return;
+            }
 
-        // Attach file to input
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        fileInput.files = dataTransfer.files;
+            // Look for file input
+            const fileInput = doc.querySelector('input[type="file"][name="uploadfile"]') ||
+                             doc.querySelector('input[type="file"]');
+            
+            if (!fileInput) {
+                console.log('[Correspondence] ERROR: File input not found!');
+                return;
+            }
 
-        // Trigger change events
-        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-        fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+            const verderButton = doc.getElementById('Script_Verder');
+            if (!verderButton) {
+                console.log('[Correspondence] ERROR: Verder button not found!');
+                return;
+            }
 
-        console.log('[Correspondence] File attached, clicking Verder...');
+            // Mark as attempted FIRST
+            chrome.storage.local.set({'correspondence_upload_attempted': true}, function() {
+                console.log('[Correspondence] Uploading file:', data.correspondence_file_name);
 
-        // Click "Verder" to proceed to preview
-        setTimeout(() => {
-            verderButton.click();
-            console.log('[Correspondence] Verder clicked');
-        }, 300); // Reduced from 500ms to 300ms
+                try {
+                    // Convert base64 back to File object
+                    fetch(data.correspondence_pending_file)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const file = new File([blob], data.correspondence_file_name, {
+                                type: blob.type
+                            });
+
+                            // Attach file
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            fileInput.files = dataTransfer.files;
+
+                            console.log('[Correspondence] Files attached:', fileInput.files.length);
+                            console.log('[Correspondence] File name in input:', fileInput.files[0]?.name);
+
+                            // Trigger events
+                            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+                            console.log('[Correspondence] Events triggered, clicking Verder...');
+
+                            // Click Verder
+                            verderButton.click();
+                            console.log('[Correspondence] Verder clicked!');
+                        });
+                } catch (e) {
+                    console.log('[Correspondence] ERROR during upload:', e);
+                    chrome.storage.local.set({'correspondence_upload_attempted': false});
+                }
+            });
+        });
     }
 
     // Simple function to auto-click Verder button after upload
     function autoClickVerderIfNeeded() {
-        // Only work if we have a pending file and have uploaded it
-        if (!pendingCorrespondenceFile || !uploadAttempted) {
-            return;
-        }
+        chrome.storage.local.get([
+            'correspondence_pending_file',
+            'correspondence_upload_attempted',
+            'correspondence_verder_click_count',
+            'correspondence_last_verder_click_time'
+        ], function(data) {
+            // Only work if we have a pending file and have uploaded it
+            if (!data.correspondence_pending_file || !data.correspondence_upload_attempted) {
+                return;
+            }
 
-        // Don't click more than twice (once after upload, once after preview)
-        if (verderClickCount >= 2) {
-            return;
-        }
+            const verderClickCount = data.correspondence_verder_click_count || 0;
+            const lastVerderClickTime = data.correspondence_last_verder_click_time || 0;
 
-        // Don't click too quickly (prevent double-clicks)
-        const now = Date.now();
-        if (now - lastVerderClickTime < 2000) { // Wait at least 2 seconds between clicks
-            return;
-        }
+            // Don't click more than twice (once after upload, once after preview)
+            if (verderClickCount >= 2) {
+                return;
+            }
 
-        // Look for Verder button in iframe first
-        const iframe = getContentIframe();
-        if (iframe) {
-            try {
-                const doc = iframe.contentDocument || iframe.contentWindow.document;
-                const url = iframe.contentWindow?.location?.href || '';
+            // Don't click too quickly (prevent double-clicks)
+            const now = Date.now();
+            if (now - lastVerderClickTime < 2000) { // Wait at least 2 seconds between clicks
+                return;
+            }
 
-                // Don't click on uploadkenmerken page (that's the description page - user should click)
+            // Look for Verder button in iframe first
+            const iframe = getContentIframe();
+            if (iframe) {
+                try {
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    const url = iframe.contentWindow?.location?.href || '';
+
+                    // Don't click on uploadkenmerken page (that's the description page - user should click)
+                    if (url.includes('uploadkenmerken')) {
+                        console.log('[Correspondence] On description page, stopping auto-click');
+                        return;
+                    }
+
+                    // Don't click on uploadselectie page (that's the initial upload page)
+                    if (url.includes('uploadselectie')) {
+                        return;
+                    }
+
+                    const verderButton = doc?.getElementById('Script_Verder');
+                    if (verderButton) {
+                        const newCount = verderClickCount + 1;
+                        chrome.storage.local.set({
+                            'correspondence_verder_click_count': newCount,
+                            'correspondence_last_verder_click_time': now
+                        });
+                        console.log('[Correspondence] Auto-clicking Verder button #' + newCount + ' on page:', url);
+                        verderButton.click();
+                        return;
+                    }
+                } catch (e) {
+                    // Cannot access iframe
+                }
+            }
+
+            // Check main document
+            const verderButton = document.getElementById('Script_Verder');
+            if (verderButton) {
+                const url = window.location.href;
+
+                // Don't click on uploadkenmerken page
                 if (url.includes('uploadkenmerken')) {
                     console.log('[Correspondence] On description page, stopping auto-click');
                     return;
                 }
 
-                // Don't click on uploadselectie page (that's the initial upload page)
-                if (url.includes('uploadselectie')) {
-                    return;
-                }
-
-                const verderButton = doc?.getElementById('Script_Verder');
-                if (verderButton) {
-                    verderClickCount++;
-                    lastVerderClickTime = now;
-                    console.log('[Correspondence] Auto-clicking Verder button #' + verderClickCount + ' on page:', url);
-                    verderButton.click();
-                    return;
-                }
-            } catch (e) {
-                // Cannot access iframe
+                const newCount = verderClickCount + 1;
+                chrome.storage.local.set({
+                    'correspondence_verder_click_count': newCount,
+                    'correspondence_last_verder_click_time': now
+                });
+                console.log('[Correspondence] Auto-clicking Verder button #' + newCount + ' on main page:', url);
+                verderButton.click();
             }
-        }
-
-        // Check main document
-        const verderButton = document.getElementById('Script_Verder');
-        if (verderButton) {
-            const url = window.location.href;
-
-            // Don't click on uploadkenmerken page
-            if (url.includes('uploadkenmerken')) {
-                console.log('[Correspondence] On description page, stopping auto-click');
-                return;
-            }
-
-            verderClickCount++;
-            lastVerderClickTime = now;
-            console.log('[Correspondence] Auto-clicking Verder button #' + verderClickCount + ' on main page:', url);
-            verderButton.click();
-        }
+        });
     }
 
     // Fill the Omschrijving field with filename
     function fillCorrespondenceDescription() {
-        if (!correspondenceFileName) return;
+        chrome.storage.local.get(['correspondence_file_name'], function(data) {
+            if (!data.correspondence_file_name) return;
 
-        // Check main document first
-        let omschrijvingInput = document.querySelector('input[name="briefAdres.omschrijving"]');
+            // Check main document first
+            let omschrijvingInput = document.querySelector('input[name="briefAdres.omschrijving"]');
 
-        // If not in main, check iframe
-        if (!omschrijvingInput) {
-            const iframe = getContentIframe();
-            if (iframe) {
-                try {
-                    const doc = iframe.contentDocument || iframe.contentWindow.document;
-                    if (doc) {
-                        omschrijvingInput = doc.querySelector('input[name="briefAdres.omschrijving"]');
+            // If not in main, check iframe
+            if (!omschrijvingInput) {
+                const iframe = getContentIframe();
+                if (iframe) {
+                    try {
+                        const doc = iframe.contentDocument || iframe.contentWindow.document;
+                        if (doc) {
+                            omschrijvingInput = doc.querySelector('input[name="briefAdres.omschrijving"]');
+                        }
+                    } catch (e) {
+                        console.error('[Correspondence] Error accessing iframe:', e);
                     }
-                } catch (e) {
-                    console.error('[Correspondence] Error accessing iframe:', e);
                 }
             }
-        }
 
-        if (omschrijvingInput && omschrijvingInput.value === '') {
-            // Remove file extension and use filename as description
-            const description = correspondenceFileName.replace(/\.[^/.]+$/, '');
-            omschrijvingInput.value = description;
+            if (omschrijvingInput && omschrijvingInput.value === '') {
+                // Remove file extension and use filename as description
+                const description = data.correspondence_file_name.replace(/\.[^/.]+$/, '');
+                omschrijvingInput.value = description;
 
-            // Trigger events
-            omschrijvingInput.dispatchEvent(new Event('input', { bubbles: true }));
-            omschrijvingInput.dispatchEvent(new Event('change', { bubbles: true }));
-            omschrijvingInput.dispatchEvent(new Event('blur', { bubbles: true }));
+                // Trigger events
+                omschrijvingInput.dispatchEvent(new Event('input', { bubbles: true }));
+                omschrijvingInput.dispatchEvent(new Event('change', { bubbles: true }));
+                omschrijvingInput.dispatchEvent(new Event('blur', { bubbles: true }));
 
-            console.log('[Correspondence] Filled Omschrijving with:', description);
+                console.log('[Correspondence] Filled Omschrijving with:', description);
 
-            // Clear stored data
-            correspondenceFileName = '';
-            pendingCorrespondenceFile = null;
-        }
+                // Clear stored data
+                chrome.storage.local.remove([
+                    'correspondence_pending_file',
+                    'correspondence_file_name',
+                    'correspondence_upload_attempted',
+                    'correspondence_verder_click_count',
+                    'correspondence_last_verder_click_time'
+                ]);
+            }
+        });
     }
 
-    // Store the dropped file
+    // Store the dropped file in chrome.storage
     function processCorrespondenceFile(file) {
         console.log('[Correspondence] Processing file:', file.name);
 
-        // Store file and filename globally
-        pendingCorrespondenceFile = file;
-        correspondenceFileName = file.name;
-        uploadAttempted = false; // Reset upload flag for new file
-        verderClickCount = 0; // Reset click counter for new file
-        lastVerderClickTime = 0; // Reset time tracker
+        // Read file as base64
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64Data = e.target.result;
+            
+            // Store in chrome.storage
+            chrome.storage.local.set({
+                'correspondence_pending_file': base64Data,
+                'correspondence_file_name': file.name,
+                'correspondence_upload_attempted': false,
+                'correspondence_verder_click_count': 0,
+                'correspondence_last_verder_click_time': 0
+            }, function() {
+                console.log('[Correspondence] File stored in chrome.storage');
+            });
+        };
+        reader.readAsDataURL(file);
     }
 
     // Setup drag and drop listeners on the correspondence list page
@@ -464,10 +510,8 @@
                     let uploadLink = targetDoc.querySelector('tr.line[onclick*="uploadselectie"]');
 
                     if (uploadLink) {
-                        setTimeout(() => {
-                            uploadLink.click();
-                            console.log('[Correspondence] Clicked Document uploaden link');
-                        }, 300);
+                        uploadLink.click();
+                        console.log('[Correspondence] Clicked Document uploaden link');
                     } else {
                         console.log('[Correspondence] Document uploaden link not found');
                     }
@@ -488,27 +532,58 @@
 
     // Handle the workflow progression across different pages
     function handleCorrespondenceWorkflow() {
-        // Step 1: Upload page - attach file if we have one pending
-        if (pendingCorrespondenceFile && isOnCorrespondenceUploadPage()) {
-            console.log('[Correspondence] On upload page with pending file:', pendingCorrespondenceFile.name);
-            if (!uploadAttempted) {
-                console.log('[Correspondence] Attempting upload...');
-                setTimeout(() => {
-                    uploadCorrespondenceFile(pendingCorrespondenceFile);
-                }, 500);
+        try {
+            const iframe = getContentIframe();
+            if (!iframe) return;
+
+            let doc;
+            try {
+                doc = iframe.contentDocument || iframe.contentWindow.document;
+            } catch (e) {
+                return;
             }
-            return;
-        }
+            
+            if (!doc) return;
+            
+            try {
+                const bodyTest = doc.body;
+                if (!bodyTest) return;
+            } catch (e) {
+                return;
+            }
 
-        // Step 2: Auto-click any Verder buttons (up to 2 times)
-        autoClickVerderIfNeeded();
+            // Step 1: Upload page - check chrome.storage for pending file
+            chrome.storage.local.get([
+                'correspondence_pending_file',
+                'correspondence_upload_attempted'
+            ], function(data) {
+                if (data.correspondence_pending_file && !data.correspondence_upload_attempted) {
+                    const onUploadPage = isOnCorrespondenceUploadPage();
+                    
+                    if (onUploadPage) {
+                        console.log('[Correspondence] On upload page, attempting upload...');
+                        uploadCorrespondenceFile();
+                    }
+                }
+            });
 
-        // Step 3: Description page - fill Omschrijving
-        if (isOnCorrespondenceDescriptionPage() && correspondenceFileName) {
-            console.log('[Correspondence] On description page, filling Omschrijving...');
-            setTimeout(() => {
-                fillCorrespondenceDescription();
-            }, 300);
+            // Step 2: Auto-click any Verder buttons (up to 2 times)
+            autoClickVerderIfNeeded();
+
+            // Step 3: Description page - fill Omschrijving
+            chrome.storage.local.get(['correspondence_file_name'], function(data) {
+                if (data.correspondence_file_name) {
+                    const onDescriptionPage = isOnCorrespondenceDescriptionPage();
+                    
+                    if (onDescriptionPage) {
+                        console.log('[Correspondence] On description page, filling Omschrijving...');
+                        setTimeout(() => {
+                            fillCorrespondenceDescription();
+                        }, 300);
+                    }
+                }
+            });
+        } catch (e) {
             return;
         }
     }

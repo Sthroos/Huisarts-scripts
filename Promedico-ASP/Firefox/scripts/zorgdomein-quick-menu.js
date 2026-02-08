@@ -66,6 +66,9 @@
 
     // Navigate to Verwijzen and start the ZorgDomein flow
     function navigateToZorgDomein(specialisme, targetUrl, callback) {
+        console.log('[ZD Menu] navigateToZorgDomein called');
+        console.log('[ZD Menu] specialisme:', specialisme);
+        console.log('[ZD Menu] targetUrl:', targetUrl);
         const iframe = getContentIframe();
         if (!iframe || !iframe.contentDocument) return;
 
@@ -86,75 +89,129 @@
             return;
         }
 
-        if (targetUrl) {
-            chrome.storage.local.set({'zorgdomein_target_url_global': targetUrl });
-
-            try {
-                localStorage.setItem('zd_target_url', targetUrl);
-            } catch(e) {}
-        }
+if (targetUrl) {
+    // BELANGRIJK: Wacht tot storage is opgeslagen voordat we verder gaan
+    chrome.storage.local.set({'zorgdomein_target_url_global': targetUrl }, function() {
+        try {
+            localStorage.setItem('zd_target_url', targetUrl);
+        } catch(e) {}
 
         verwijzenButton.click();
 
         setTimeout(() => {
             fillSpecialismeAndClickZorgDomein(specialisme, callback);
         }, 500);
+    });
+} else {
+    verwijzenButton.click();
+
+    setTimeout(() => {
+        fillSpecialismeAndClickZorgDomein(specialisme, callback);
+    }, 500);
+}
     }
 
     // Fill the specialisme field and click Via ZorgDomein
 function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
-    const iframe = getContentIframe();
-    if (!iframe || !iframe.contentDocument) return;
-
-    const doc = iframe.contentDocument;
-
-    const specMnemField = doc.getElementById('specMnem');
-    if (specMnemField) {
-        specMnemField.value = specialisme;
-        specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
-        specMnemField.dispatchEvent(new Event('change', { bubbles: true }));
-        specMnemField.dispatchEvent(new Event('blur', { bubbles: true }));
-
-        // Trigger the parseSpecialisme() function in the iframe context
-        if (specMnemField.onchange) {
-            try {
-                specMnemField.onchange();
-            } catch(e) {
-                console.log('Could not trigger onchange directly:', e);
+    console.log('[ZD Menu] fillSpecialismeAndClickZorgDomein called with specialisme:', specialisme);
+    
+    // WAIT for the field to appear (polling with timeout)
+    let attempts = 0;
+    const maxAttempts = 20; // 20 * 250ms = 5 seconds max
+    
+    const waitForField = setInterval(() => {
+        attempts++;
+        
+        // GET FRESH IFRAME AND DOCUMENT ON EACH ATTEMPT!
+        const iframe = getContentIframe();
+        if (!iframe || !iframe.contentDocument) {
+            console.log(`[ZD Menu] Attempt ${attempts}/${maxAttempts} - No iframe`);
+            if (attempts >= maxAttempts) {
+                clearInterval(waitForField);
+                console.log('[ZD Menu] ERROR: iframe not available after', maxAttempts, 'attempts!');
             }
+            return;
         }
+        
+        const doc = iframe.contentDocument;
+        const specMnemField = doc.getElementById('specMnem');
+        
+        console.log(`[ZD Menu] Attempt ${attempts}/${maxAttempts} - specMnemField:`, specMnemField);
+        
+        if (specMnemField) {
+            clearInterval(waitForField);
+            console.log('[ZD Menu] Field found! Current value:', specMnemField.value);
+            
+            // OVERRIDE disableScreen METEEN - VOORDAT WE IETS ANDERS DOEN
+            const overrideScript = doc.createElement('script');
+            overrideScript.textContent = `
+                window.disableScreen = function() { 
+                    console.log('[ZD Override] disableScreen called but suppressed');
+                    return true; 
+                };
+                window.enableScreen = function() { 
+                    console.log('[ZD Override] enableScreen called but suppressed');
+                    return true; 
+                };  
+            `;  
+            doc.head.appendChild(overrideScript);
+            overrideScript.remove();
+    
+            specMnemField.value = specialisme;
+            console.log('[ZD Menu] Value set to:', specialisme);
+            console.log('[ZD Menu] Field value after setting:', specMnemField.value);
+            specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
+            specMnemField.dispatchEvent(new Event('change', { bubbles: true }));
+            specMnemField.dispatchEvent(new Event('blur', { bubbles: true }));
 
-        // Also try to call parseSpecialisme directly in iframe context
-        const script = doc.createElement('script');
-        script.textContent = `
-            (function() {
+            // Trigger the parseSpecialisme() function in the iframe context
+            if (specMnemField.onchange) {
                 try {
-                    if (typeof parseSpecialisme === 'function') {
-                        parseSpecialisme();
-                    }
+                    specMnemField.onchange();
                 } catch(e) {
-                    console.error('Error calling parseSpecialisme:', e);
+                    console.log('[ZD Menu] Could not trigger onchange directly:', e);
                 }
-            })();
-        `;
-        doc.head.appendChild(script);
-        script.remove();
-    }
+            }
 
-    // Now click the ZorgDomein button
+            // Also try to call parseSpecialisme directly in iframe context
+            const script = doc.createElement('script');
+            script.textContent = `
+                (function() {
+                    try {
+                        if (typeof parseSpecialisme === 'function') {
+                            parseSpecialisme();
+                        }
+                    } catch(e) {
+                        console.error('Error calling parseSpecialisme:', e);
+                    }
+                })();
+            `;
+            doc.head.appendChild(script);
+            script.remove();
+
+// Now click the ZorgDomein button
+setTimeout(() => {
     const script2 = doc.createElement('script');
     script2.textContent = `
         (function() {
-            if (typeof disableScreen !== 'function') {
-                window.disableScreen = function() { return true; };
-            }
+            // FORCEER de override - altijd!
+            window.disableScreen = function() { return true; };
+            window.enableScreen = function() { return true; };
+            
+            console.log('[ZD Menu Script] disableScreen overridden');
 
             var button = document.getElementById('action_via zorgDomein');
+            console.log('[ZD Menu Script] Via ZorgDomein button:', button);
+            
             if (button) {
                 button.click();
+                console.log('[ZD Menu Script] Button clicked once');
                 setTimeout(function() {
                     button.click();
+                    console.log('[ZD Menu Script] Button clicked twice');
                 }, 200);
+            } else {
+                console.log('[ZD Menu Script] ERROR: Via ZorgDomein button not found!');
             }
         })();
     `;
@@ -164,6 +221,13 @@ function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
     setTimeout(() => {
         clickScriptZorgDomein(callback);
     }, 1200);
+}, 300);
+            
+        } else if (attempts >= maxAttempts) {
+            clearInterval(waitForField);
+            console.log('[ZD Menu] ERROR: specMnemField not found after', maxAttempts, 'attempts!');
+        }
+    }, 250); // Check every 250ms
 }
 
     // Click the Script_ZorgDomein button
@@ -269,7 +333,7 @@ function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
     // --- 1. DIAGNOSTIEK ---
     {
         text: 'Diagnostiek',
-        code: 'DGN',
+        code: 'LAB',
         url: 'https://www.zorgdomein.nl/healthcare-request/diagnostics',
         submenu: [
             {
@@ -364,17 +428,17 @@ function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
     // --- 2. PARAMEDISCHE ZORG ---
     {
         text: 'Paramedische zorg',
-        code: 'PAZ',
+        code: 'FYS',
         url: 'https://www.zorgdomein.nl/healthcare-request/paramedicalCare',
         submenu: [
-            { text: 'Diëtetiek', code: 'PAZDIE', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=42e12f32-4337-4f87-ae9c-80395225b82c' },
-            { text: 'Ergotherapie', code: 'PAZERG', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e416fc6b-b7eb-4671-bbad-d260552e28de' },
-            { text: 'Fysio- en oefentherapie', code: 'PAZFOT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=6049bd0e-2e3a-465d-b7d0-4fec63ace267' },
-            { text: 'Huidtherapie', code: 'PAZHUI', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=c848781e-01c3-4712-a71e-45de1c9db06a' },
-            { text: 'Logopedie', code: 'PAZLOG', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=078ed1fc-f065-4600-b644-9156281800d1' },
-            { text: 'Optometrie / orthoptie', code: 'PAZOPT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=ffcff372-2788-4180-afc6-6878d5151af4' },
-            { text: 'Podotherapie', code: 'PAZPOD', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=0ed98ea6-d7c1-4309-b867-de4e7067e9e2' },
-            { text: 'Verloskunde', code: 'PAZVLK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e1b33f03-91cf-47dc-9e24-dff586094d4c' }
+            { text: 'Diëtetiek', code: 'DIE', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=42e12f32-4337-4f87-ae9c-80395225b82c' },
+            { text: 'Ergotherapie', code: 'ERT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e416fc6b-b7eb-4671-bbad-d260552e28de' },
+            { text: 'Fysio- en oefentherapie', code: 'FYS', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=6049bd0e-2e3a-465d-b7d0-4fec63ace267' },
+            { text: 'Huidtherapie', code: 'HUT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=c848781e-01c3-4712-a71e-45de1c9db06a' },
+            { text: 'Logopedie', code: 'LOG', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=078ed1fc-f065-4600-b644-9156281800d1' },
+            { text: 'Optometrie / orthoptie', code: 'OPM', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=ffcff372-2788-4180-afc6-6878d5151af4' },
+            { text: 'Podotherapie', code: 'POT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=0ed98ea6-d7c1-4309-b867-de4e7067e9e2' },
+            { text: 'Verloskunde', code: 'VLK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e1b33f03-91cf-47dc-9e24-dff586094d4c' }
         ]
     },
 
@@ -421,36 +485,36 @@ function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
     // --- 4. AANVULLENDE ZORG ---
     {
         text: 'Aanvullende zorg',
-        code: 'AVZ',
+        code: 'XXX',
         url: 'https://www.zorgdomein.nl/healthcare-request/additionalCare',
         submenu: [
-            { text: 'Leefstijlcoaching', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=0a1be68c-2c9e-4b13-900f-ac3c4a0da3f4' },
-            { text: 'Overgangsconsulent', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=31d649b3-1f80-41a6-b833-c295fd9f583a' },
-            { text: 'Pedicure', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=62aed695-8e31-487e-ac4e-738dcb533144' }
+            { text: 'Leefstijlcoaching', code: 'XXX', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=0a1be68c-2c9e-4b13-900f-ac3c4a0da3f4' },
+            { text: 'Overgangsconsulent', code: 'XXX', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=31d649b3-1f80-41a6-b833-c295fd9f583a' },
+            { text: 'Pedicure', code: 'PDC', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=62aed695-8e31-487e-ac4e-738dcb533144' }
         ]
     },
 
     // --- 5. GEESTELIJKE GEZONDHEIDSZORG ---
     {
         text: 'Geestelijke gezondheidszorg',
-        code: 'GGZ',
+        code: 'PSY',
         url: 'https://www.zorgdomein.nl/healthcare-request/psychiatryMentalHealth/PSYOVE',
         submenu: [
-            { text: 'ADHD', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=cfa4f0d0-3af2-4174-899a-4ad8a387836c' },
-            { text: 'Angstklachten', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=a880f297-680d-4f8a-9085-0feeae488ac6' },
-            { text: 'Autisme', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=49fe3e07-dcdf-43f3-9e93-35df5c4c8bce' },
-            { text: 'Cognitieve problemen (o.a. dementie)', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=51abc542-f144-4b1d-a0aa-1ecbaa8324ce' },
-            { text: 'Eetproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=175a1b71-9fc3-4fab-80ec-9b447e581232' },
-            { text: 'Gedragsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e270826c-4d1d-4708-9231-1d12627f27b9' },
-            { text: 'Persoonlijkheidsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e802d17b-53ef-46e8-ae59-e4c9d142c3b3' },
-            { text: 'Psychose', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=efacc43b-a810-4d2c-82a1-cf5565c39709' },
-            { text: 'Psychotraumatische klachten', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=c8e21b68-bffe-4a20-8383-006d2c6eabea' },
-            { text: 'Relatie- en gezinsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b635f44f-1198-4f0d-8575-cddd2165436b' },
-            { text: 'Seksuologische problemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=6a138349-16c1-4006-b26d-0f012ef92fbb' },
-            { text: 'Somatoforme klachten', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=de26054e-e8d8-447c-ae37-a03eef56fb8e' },
-            { text: 'Stemmingsklachten', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=9e117ccf-382c-43a8-9f9c-989b3533ddfc' },
-            { text: 'Verslavingsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=2ef663a4-47ab-4f5c-9ef9-e0be37dffb0d' },
-            { text: 'Overige zorgvragen Geestelijke gezondheidszorg', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=d8190f53-0ce4-4206-8ce6-23c3083f69f6' }
+            { text: 'ADHD', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=cfa4f0d0-3af2-4174-899a-4ad8a387836c' },
+            { text: 'Angstklachten', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=a880f297-680d-4f8a-9085-0feeae488ac6' },
+            { text: 'Autisme', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=49fe3e07-dcdf-43f3-9e93-35df5c4c8bce' },
+            { text: 'Cognitieve problemen (o.a. dementie)', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=51abc542-f144-4b1d-a0aa-1ecbaa8324ce' },
+            { text: 'Eetproblemen', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=175a1b71-9fc3-4fab-80ec-9b447e581232' },
+            { text: 'Gedragsproblemen', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e270826c-4d1d-4708-9231-1d12627f27b9' },
+            { text: 'Persoonlijkheidsproblemen', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e802d17b-53ef-46e8-ae59-e4c9d142c3b3' },
+            { text: 'Psychose', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=efacc43b-a810-4d2c-82a1-cf5565c39709' },
+            { text: 'Psychotraumatische klachten', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=c8e21b68-bffe-4a20-8383-006d2c6eabea' },
+            { text: 'Relatie- en gezinsproblemen', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b635f44f-1198-4f0d-8575-cddd2165436b' },
+            { text: 'Seksuologische problemen', code: 'SEX', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=6a138349-16c1-4006-b26d-0f012ef92fbb' },
+            { text: 'Somatoforme klachten', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=de26054e-e8d8-447c-ae37-a03eef56fb8e' },
+            { text: 'Stemmingsklachten', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=9e117ccf-382c-43a8-9f9c-989b3533ddfc' },
+            { text: 'Verslavingsproblemen', code: 'VER', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=2ef663a4-47ab-4f5c-9ef9-e0be37dffb0d' },
+            { text: 'Overige zorgvragen Geestelijke gezondheidszorg', code: 'PSY', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=d8190f53-0ce4-4206-8ce6-23c3083f69f6' }
         ]
     },
 
@@ -460,63 +524,63 @@ function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
         code: 'JGZ',
         url: 'https://www.zorgdomein.nl/healthcare-request/youthCare/OPOOVE',
         submenu: [
-            { text: 'Cognitieve ontwikkeling', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=53b283ee-cf15-4b61-89f1-04fc29127b9d' },
-            { text: 'Gezins- en omgevingsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=863d01c0-81c1-4a36-bcff-728fa592b2a8' },
-            { text: 'Opvoedingsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=76e6bfde-367e-4ae5-9fd4-a84996367a88' },
-            { text: 'Problemen in ouder-kind relatie', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e753ef97-af50-4837-b3a3-8864f52869e3' },
-            { text: 'Verwaarlozing / mishandeling / misbruik', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=caf72f06-86c3-4a8c-81e9-a0a4c1f37cd7' },
-            { text: 'Overige zorgvragen Jeugdzorg', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=eddca9bb-3329-4b24-b6b4-a5924dfd72ad' }
+            { text: 'Cognitieve ontwikkeling', code: 'JGZ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=53b283ee-cf15-4b61-89f1-04fc29127b9d' },
+            { text: 'Gezins- en omgevingsproblemen', code: 'JGZ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=863d01c0-81c1-4a36-bcff-728fa592b2a8' },
+            { text: 'Opvoedingsproblemen', code: 'JGZ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=76e6bfde-367e-4ae5-9fd4-a84996367a88' },
+            { text: 'Problemen in ouder-kind relatie', code: 'JGZ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=e753ef97-af50-4837-b3a3-8864f52869e3' },
+            { text: 'Verwaarlozing / mishandeling / misbruik', code: 'JGZ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=caf72f06-86c3-4a8c-81e9-a0a4c1f37cd7' },
+            { text: 'Overige zorgvragen Jeugdzorg', code: 'JGZ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=eddca9bb-3329-4b24-b6b4-a5924dfd72ad' }
         ]
     },
 
     // --- 7. VERPLEGING EN VERZORGING ---
     {
         text: 'Verpleging en verzorging',
-        code: 'VVT',
+        code: 'WVK',
         url: 'https://www.zorgdomein.nl/healthcare-request/nursingCareAndHomeCare/VVTOVE',
         submenu: [
-            { text: 'Complexe gezondheidsproblemen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=8dfd2da8-2fa7-46b1-805f-395524a9242c' },
-            { text: 'Palliatieve zorg', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=5f42e23b-c6df-4afb-9a7f-850dba9bd830' },
-            { text: 'Persoonlijke verzorging', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=f3b3fe06-039f-4d7d-b1c0-30331987f054' },
-            { text: 'Specialistische verpleging', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b5f2f257-be4f-429d-82c3-c923a030ff55' },
-            { text: 'Verpleging', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=10223d2c-c754-4778-b32a-57bb6d98cf0c' },
-            { text: 'Overige zorgvragen Verpleging & verzorging', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=7b9a08c8-00cc-453d-9bb2-7134bd2d49ef' }
+            { text: 'Complexe gezondheidsproblemen', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=8dfd2da8-2fa7-46b1-805f-395524a9242c' },
+            { text: 'Palliatieve zorg', code: 'INT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=5f42e23b-c6df-4afb-9a7f-850dba9bd830' },
+            { text: 'Persoonlijke verzorging', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=f3b3fe06-039f-4d7d-b1c0-30331987f054' },
+            { text: 'Specialistische verpleging', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b5f2f257-be4f-429d-82c3-c923a030ff55' },
+            { text: 'Verpleging', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=10223d2c-c754-4778-b32a-57bb6d98cf0c' },
+            { text: 'Overige zorgvragen Verpleging & verzorging', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=7b9a08c8-00cc-453d-9bb2-7134bd2d49ef' }
         ]
     },
 
     // --- 8. VERBLIJF EN WONEN ---
     {
         text: 'Verblijf en wonen',
-        code: 'VBW',
+        code: 'VPH',
         url: 'https://www.zorgdomein.nl/healthcare-request/stayAndLiving/VBWKOR',
         submenu: [
-            { text: 'Dagbehandeling', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b178414a-268c-497e-b042-1447b4022fa2' },
-            { text: 'Kortdurend verblijf', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=762e6b89-c6a8-44f8-8936-c79f2b21a49a' },
-            { text: 'Langdurend verblijf', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=070c8a5c-bfcc-47de-864a-97f98bb0c1bc' },
-            { text: 'Overige zorgvragen Verblijf & wonen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=a375cb76-bc1e-4817-88f7-152defd77cd3' }
+            { text: 'Dagbehandeling', code: 'VPH', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b178414a-268c-497e-b042-1447b4022fa2' },
+            { text: 'Kortdurend verblijf', code: 'VPH', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=762e6b89-c6a8-44f8-8936-c79f2b21a49a' },
+            { text: 'Langdurend verblijf', code: 'VPH', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=070c8a5c-bfcc-47de-864a-97f98bb0c1bc' },
+            { text: 'Overige zorgvragen Verblijf & wonen', code: 'VPH', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=a375cb76-bc1e-4817-88f7-152defd77cd3' }
         ]
     },
 
     // --- 9. HULPMIDDELEN ---
     {
         text: 'Hulpmiddelen',
-        code: 'HMZ',
+        code: 'XXX',
         url: 'https://www.zorgdomein.nl/healthcare-request/assistiveDevices/HMZOVE2',
         submenu: [
-            { text: 'Auditieve en visuele hulpmiddelen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=26dc7eff-ca33-4d96-a9fc-e39a293f7d3b' },
-            { text: 'Compressie- en wondmaterialen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=f3cd08c5-caef-4fb1-99ed-3036c38542dd' },
-            { text: 'Continentie- en urologische materialen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=ba6de09f-e970-408d-b6fb-a96adda21679' },
-            { text: 'Diabetesmaterialen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=4a9c22de-338a-49ab-b60a-bdd28d0a87db' },
-            { text: 'Irrigatie- en stomamaterialen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=eb35ed6f-ca56-4150-8e29-11de0f05fe8e' },
-            { text: 'Mobiliteit', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=af88c707-38de-446f-a348-9208caa717b0' },
-            { text: 'Orthesen en prothesen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=44bea61d-1f0a-40cf-934b-8217236e4614' },
-            { text: 'Pijnbehandeling', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b90d6593-7e2c-40b7-854c-cde971a00a86' },
-            { text: 'Respiratoire hulpmiddelen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=fdffda18-4796-4532-8586-a2efa0ee0c04' },
-            { text: 'Verpleeghulpmiddelen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=1979152e-2b7e-41aa-8253-ad7bc53e6c87' },
-            { text: 'Verzorgingshulpmiddelen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=6a3b4454-956d-44c5-b957-bd767f453ec3' },
-            { text: 'Voedings- en medicatiematerialen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=8bc50b31-9b1f-497d-8551-e0d5af760a82' },
-            { text: 'Voethulpmiddelen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=a51cd651-f7bd-4251-8d28-47778eefc149' },
-            { text: 'Overige hulpmiddelen', code: '', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=f7aac6f0-43e4-45d1-b3e1-94c5f05603eb' }
+            { text: 'Auditieve en visuele hulpmiddelen', code: 'OPT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=26dc7eff-ca33-4d96-a9fc-e39a293f7d3b' },
+            { text: 'Compressie- en wondmaterialen', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=f3cd08c5-caef-4fb1-99ed-3036c38542dd' },
+            { text: 'Continentie- en urologische materialen', code: 'URO', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=ba6de09f-e970-408d-b6fb-a96adda21679' },
+            { text: 'Diabetesmaterialen', code: 'DBM', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=4a9c22de-338a-49ab-b60a-bdd28d0a87db' },
+            { text: 'Irrigatie- en stomamaterialen', code: 'CHI', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=eb35ed6f-ca56-4150-8e29-11de0f05fe8e' },
+            { text: 'Mobiliteit', code: 'ORT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=af88c707-38de-446f-a348-9208caa717b0' },
+            { text: 'Orthesen en prothesen', code: 'ORH', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=44bea61d-1f0a-40cf-934b-8217236e4614' },
+            { text: 'Pijnbehandeling', code: 'PIJ', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=b90d6593-7e2c-40b7-854c-cde971a00a86' },
+            { text: 'Respiratoire hulpmiddelen', code: 'LNG', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=fdffda18-4796-4532-8586-a2efa0ee0c04' },
+            { text: 'Verpleeghulpmiddelen', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=1979152e-2b7e-41aa-8253-ad7bc53e6c87' },
+            { text: 'Verzorgingshulpmiddelen', code: 'WVK', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=6a3b4454-956d-44c5-b957-bd767f453ec3' },
+            { text: 'Voedings- en medicatiematerialen', code: 'DIE', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=8bc50b31-9b1f-497d-8551-e0d5af760a82' },
+            { text: 'Voethulpmiddelen', code: 'POT', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=a51cd651-f7bd-4251-8d28-47778eefc149' },
+            { text: 'Overige hulpmiddelen', code: 'XXX', url: 'https://www.zorgdomein.nl/supply-matcher/supply?flowId=f7aac6f0-43e4-45d1-b3e1-94c5f05603eb' }
         ]
     }
 ];
