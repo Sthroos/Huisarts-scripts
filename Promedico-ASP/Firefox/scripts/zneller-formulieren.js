@@ -1,8 +1,10 @@
-// Promedico-ZNeller Auto Transfer - Chrome Extension Version
-// Add this to your content script
+// Promedico-ZNeller Auto Transfer - Cross-browser Extension Version
 
 (function() {
     'use strict';
+
+    // Cross-browser compatibility - CRITICAL for Firefox!
+    const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
 
     // Check which domain we're on
     const isPromedico = window.location.hostname.includes('promedico-asp.nl');
@@ -73,14 +75,14 @@
             // We need to look in the parent/top window for patient data
             const topDoc = window.top.document;
             
-            console.log('=== Starting data extraction from top window ===');
+            console.log('[ZNeller] Starting data extraction from top window');
             
             // Extract name and DOB from the patient info div
             const patientInfoDiv = topDoc.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
             
             if (patientInfoDiv) {
                 const infoText = patientInfoDiv.textContent.trim();
-                console.log('Patient info text:', infoText);
+                console.log('[ZNeller] Patient info text:', infoText);
                 
                 // Format: "Test2, t.e.s.t. /  / 01-01-1950 (76) / Man / BSN:  onbekend"
                 const parts = infoText.split('/').map(s => s.trim());
@@ -105,7 +107,7 @@
                 let addressText = addressDiv.textContent.trim();
                 // Remove the copy button emoji if present
                 addressText = addressText.replace(/📋/g, '').trim();
-                console.log('Address text (cleaned):', addressText);
+                console.log('[ZNeller] Address text (cleaned):', addressText);
                 
                 // Format: "Dorpsstraat 1, 1011AA, Testcity, NL"
                 const addressParts = addressText.split(',').map(s => s.trim());
@@ -117,37 +119,33 @@
                 }
             }
             
-            console.log('=== Final extracted data ===', data);
+            console.log('[ZNeller] Final extracted data:', data);
             return data;
         }
 
         function sendToZNeller(url) {
             const data = extractPatientData();
             
-            console.log('Storing patient data with chrome.storage.local');
-            console.log('Data:', data);
+            console.log('[ZNeller] Storing patient data with browserAPI.storage.local');
+            console.log('[ZNeller] Data:', data);
             
-            // Store in Chrome storage (works cross-domain within extension)
-            chrome.storage.local.set({
+            // Store in browser storage (works cross-domain within extension)
+            browserAPI.storage.local.set({
                 'zneller_patient_data': JSON.stringify(data),
                 'zneller_timestamp': Date.now()
-            }, function() {
-                if (chrome.runtime.lastError) {
-                    console.error('Error storing data:', chrome.runtime.lastError);
-                    return;
-                }
-                
-                console.log('Data stored successfully');
+            }).then(() => {
+                console.log('[ZNeller] Data stored successfully');
                 
                 // Verify storage
-                chrome.storage.local.get(['zneller_patient_data'], function(result) {
-                    console.log('Verified stored data:', result.zneller_patient_data);
-                });
-                
-                console.log('Opening ZNeller URL:', url);
+                return browserAPI.storage.local.get(['zneller_patient_data']);
+            }).then(result => {
+                console.log('[ZNeller] Verified stored data:', result.zneller_patient_data);
+                console.log('[ZNeller] Opening ZNeller URL:', url);
                 
                 // Open ZNeller in new tab
                 window.open(url, '_blank');
+            }).catch(error => {
+                console.error('[ZNeller] Error storing data:', error);
             });
         }
 
@@ -196,7 +194,7 @@
                 link.href = '#';
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
-                    console.log('Opening:', linkConfig.url);
+                    console.log('[ZNeller] Opening:', linkConfig.url);
                     sendToZNeller(linkConfig.url);
                 });
                 flyover.appendChild(link);
@@ -256,6 +254,8 @@
                 return;
             }
 
+            console.log('[ZNeller] Plan veld gevonden, listener toegevoegd');
+
             planVeld.addEventListener('input', function(e) {
                 const currentValue = planVeld.value.toLowerCase();
 
@@ -263,6 +263,7 @@
                 
                 // Liraglutide / Saxenda
                 if (currentValue.includes('liraglutide') || currentValue.includes('saxenda')) {
+                    console.log('[ZNeller] Saxenda trigger detected!');
                     showFlyover(planVeld, {
                         message: 'Vergeet ZN formulier niet!',
                         triggerWord: 'saxenda',
@@ -274,6 +275,7 @@
                 }
                 // Naltrexon / Bupropion
                 else if (currentValue.includes('naltrexon') || currentValue.includes('bupropion')) {
+                    console.log('[ZNeller] Naltrexon/Bupropion trigger detected!');
                     showFlyover(planVeld, {
                         message: 'Vergeet ZN formulier niet!',
                         triggerWord: 'naltrexon-bupropion',
@@ -285,6 +287,7 @@
                 }
                 // Exenatide / Dulaglutide / Semaglutide (GLP-1 agonisten)
                 else if (currentValue.includes('exenatide') || currentValue.includes('dulaglutide') || currentValue.includes('semaglutide')) {
+                    console.log('[ZNeller] GLP-1 agonist trigger detected!');
                     showFlyover(planVeld, {
                         message: 'Vergeet ZN formulier niet!',
                         triggerWord: 'glp1-agonist',
@@ -327,34 +330,34 @@
 
     // ==================== ZNELLER PART ====================
     function initZNeller() {
-        console.log('=== ZNeller form filler started ===');
+        console.log('[ZNeller] ZNeller form filler started');
         
         function fillForm() {
-            console.log('Starting fillForm function');
+            console.log('[ZNeller] Starting fillForm function');
             
-            // Get data from Chrome storage
-            chrome.storage.local.get(['zneller_patient_data', 'zneller_timestamp'], function(result) {
+            // Get data from browser storage
+            browserAPI.storage.local.get(['zneller_patient_data', 'zneller_timestamp']).then(result => {
                 const dataStr = result.zneller_patient_data;
                 const timestamp = result.zneller_timestamp;
                 
-                console.log('Retrieved data from chrome.storage.local:', dataStr);
-                console.log('Timestamp:', timestamp);
+                console.log('[ZNeller] Retrieved data from storage:', dataStr);
+                console.log('[ZNeller] Timestamp:', timestamp);
                 
                 if (!dataStr) {
-                    console.log('No patient data found in storage');
+                    console.log('[ZNeller] No patient data found in storage');
                     return;
                 }
                 
                 // Check if data is not too old (5 minutes)
                 if (timestamp && (Date.now() - timestamp > 5 * 60 * 1000)) {
-                    console.log('Patient data is too old, clearing');
-                    chrome.storage.local.remove(['zneller_patient_data', 'zneller_timestamp']);
+                    console.log('[ZNeller] Patient data is too old, clearing');
+                    browserAPI.storage.local.remove(['zneller_patient_data', 'zneller_timestamp']);
                     return;
                 }
                 
                 try {
                     const data = JSON.parse(dataStr);
-                    console.log('Parsed patient data:', data);
+                    console.log('[ZNeller] Parsed patient data:', data);
                     
                     // Wait for form to be ready
                     const checkFormReady = setInterval(() => {
@@ -362,14 +365,14 @@
                         
                         if (nameField) {
                             clearInterval(checkFormReady);
-                            console.log('Form is ready, filling fields...');
+                            console.log('[ZNeller] Form is ready, filling fields...');
                             
                             // Fill patient name (complete name as-is)
                             if (data.naam) {
                                 nameField.value = data.naam;
                                 nameField.dispatchEvent(new Event('input', { bubbles: true }));
                                 nameField.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('Name filled:', nameField.value);
+                                console.log('[ZNeller] Name filled:', nameField.value);
                             }
                             
                             // Fill date of birth
@@ -378,7 +381,7 @@
                                 dobField.value = data.geboortedatum;
                                 dobField.dispatchEvent(new Event('input', { bubbles: true }));
                                 dobField.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('DOB filled:', dobField.value);
+                                console.log('[ZNeller] DOB filled:', dobField.value);
                             }
                             
                             // Fill address
@@ -387,7 +390,7 @@
                                 addressField.value = data.straat;
                                 addressField.dispatchEvent(new Event('input', { bubbles: true }));
                                 addressField.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('Address filled:', addressField.value);
+                                console.log('[ZNeller] Address filled:', addressField.value);
                             }
                             
                             // Fill postal code
@@ -396,7 +399,7 @@
                                 postalField.value = data.postcode;
                                 postalField.dispatchEvent(new Event('input', { bubbles: true }));
                                 postalField.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('Postal code filled:', postalField.value);
+                                console.log('[ZNeller] Postal code filled:', postalField.value);
                             }
                             
                             // Fill city
@@ -405,23 +408,23 @@
                                 cityField.value = data.gemeente;
                                 cityField.dispatchEvent(new Event('input', { bubbles: true }));
                                 cityField.dispatchEvent(new Event('change', { bubbles: true }));
-                                console.log('City filled:', cityField.value);
+                                console.log('[ZNeller] City filled:', cityField.value);
                             }
                             
-                            console.log('Form filled successfully');
+                            console.log('[ZNeller] Form filled successfully');
                             
                             // Click the indication accordion button after a short delay
                             setTimeout(() => {
                                 const indicationButton = document.getElementById('indication-accordion-button');
                                 if (indicationButton) {
                                     indicationButton.click();
-                                    console.log('Clicked indication accordion button');
+                                    console.log('[ZNeller] Clicked indication accordion button');
                                 }
                             }, 500);
                             
                             // Clear the stored data after successful fill
-                            chrome.storage.local.remove(['zneller_patient_data', 'zneller_timestamp'], function() {
-                                console.log('Cleared stored data');
+                            browserAPI.storage.local.remove(['zneller_patient_data', 'zneller_timestamp']).then(() => {
+                                console.log('[ZNeller] Cleared stored data');
                             });
                         }
                     }, 100);
@@ -432,8 +435,10 @@
                     }, 10000);
                     
                 } catch (error) {
-                    console.error('Error parsing patient data:', error);
+                    console.error('[ZNeller] Error parsing patient data:', error);
                 }
+            }).catch(error => {
+                console.error('[ZNeller] Error retrieving data:', error);
             });
         }
 

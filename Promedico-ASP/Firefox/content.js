@@ -36,14 +36,30 @@
     config.scripts.forEach(script => {
       const enabledKey = script.id + 'Enabled';
       
-      if (!settings[enabledKey]) {
+      console.log(`[Promedico Helper] Checking script: ${script.name}`);
+      console.log(`[Promedico Helper]   - ID: ${script.id}`);
+      console.log(`[Promedico Helper]   - Enabled key: ${enabledKey}`);
+      console.log(`[Promedico Helper]   - Setting value: ${settings[enabledKey]}`);
+      console.log(`[Promedico Helper]   - Default enabled: ${script.enabled}`);
+      
+      // FIX: Check if setting exists, otherwise use default from config
+      const isEnabled = settings[enabledKey] !== undefined ? settings[enabledKey] : script.enabled;
+      
+      if (!isEnabled) {
         console.log('[Promedico Helper] Script disabled:', script.name);
         return;
       }
       
+      console.log('[Promedico Helper]   - Script is ENABLED');
+      
       // Check if URL matches (if urlPatterns is defined)
       if (script.urlPatterns && script.urlPatterns.length > 0) {
-        const matches = script.urlPatterns.some(pattern => urlMatches(pattern));
+        console.log('[Promedico Helper]   - Checking URL patterns:', script.urlPatterns);
+        const matches = script.urlPatterns.some(pattern => {
+          const result = urlMatches(pattern);
+          console.log(`[Promedico Helper]     - Pattern "${pattern}" matches: ${result}`);
+          return result;
+        });
         
         if (!matches) {
           console.log('[Promedico Helper] URL does not match for:', script.name);
@@ -56,20 +72,26 @@
       // Check if we have a GitHub version first
       if (settings.githubScripts && settings.githubScripts[script.id]) {
         console.log('[Promedico Helper] Using GitHub version of', script.name);
-        injectScriptCode(settings.githubScripts[script.id]);
+        executeScriptCode(settings.githubScripts[script.id]);
       } else {
         // Load from local file
+        console.log('[Promedico Helper] Loading from file:', script.scriptFile);
         loadScriptFile(script.scriptFile);
       }
     });
   });
   
-  // Inject script code directly
-  function injectScriptCode(code) {
-    const script = document.createElement('script');
-    script.textContent = code;
-    (document.head || document.documentElement).appendChild(script);
-    script.remove();
+  // Execute script code in content script context (NOT page context!)
+  // This allows scripts to use browser.storage and other extension APIs
+  function executeScriptCode(code) {
+    try {
+      // Use indirect eval to execute in content script context
+      // This gives access to browser.storage API
+      (1, eval)(code);
+      console.log('[Promedico Helper] Script executed in content script context');
+    } catch (error) {
+      console.error('[Promedico Helper] Script execution error:', error);
+    }
   }
   
   // Load script from file
@@ -77,7 +99,8 @@
     fetch(browser.runtime.getURL(scriptPath))
       .then(response => response.text())
       .then(code => {
-        injectScriptCode(code);
+        console.log('[Promedico Helper] Script loaded successfully:', scriptPath);
+        executeScriptCode(code);
       })
       .catch(error => {
         console.error('[Promedico Helper] Failed to load script:', scriptPath, error);

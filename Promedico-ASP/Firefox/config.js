@@ -58,7 +58,8 @@ const SCRIPT_CONFIG = [
     description: 'Patient registration and MEDOVD import',
     enabled: true,
     scriptFile: 'scripts/inschrijven-medovd.js',
-    urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+    urlPatterns: ['https://www.promedico-asp.nl/promedico/*'],
+    injectMode: 'main_world'
   },
   {
     id: 'meetwaardenHighlights',
@@ -98,7 +99,8 @@ const SCRIPT_CONFIG = [
     description: 'Measurement automation in SOEP',
     enabled: true,
     scriptFile: 'scripts/soep-metingen.js',
-    urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+    urlPatterns: ['https://www.promedico-asp.nl/promedico/*'],
+    injectMode: 'main_world'
   },
   {
     id: 'soepSjablonen',
@@ -106,7 +108,19 @@ const SCRIPT_CONFIG = [
     description: 'SOEP templates',
     enabled: true,
     scriptFile: 'scripts/soep-sjablonen.js',
-    urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+    urlPatterns: ['https://www.promedico-asp.nl/promedico/*'],
+    injectMode: 'main_world'
+  },
+  {
+    id: 'znellerFormulieren',
+    name: 'ZN formulieren via Zneller.nl',
+    description: 'Zneller formulieren invullen uit P',
+    enabled: true,
+    scriptFile: 'scripts/zneller-formulieren.js',
+    urlPatterns: [
+      'https://www.promedico-asp.nl/promedico/*',
+      'https://www.zneller.nl/*'
+    ]
   },
   {
     id: 'zorgdomeinQuickMenu',
