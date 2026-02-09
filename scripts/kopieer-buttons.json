@@ -1,6 +1,0 @@
-{
-  "id": "copyButtons",
-  "name": "Copy Phone, Email, BSN, Address",
-  "description": "Quick copy buttons for patient info",
-  "enabled": true
-}
