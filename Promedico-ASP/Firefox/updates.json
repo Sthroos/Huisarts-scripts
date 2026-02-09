@@ -1,0 +1,13 @@
+{
+  "addons": {
+    "promedico-helper@degrotedokter": {
+      "updates": [
+        {
+          "version": "1.3.656",
+          "update_link": "https://github.com/Sthroos/Huisarts-scripts/raw/main/Promedico-ASP/Firefox/Promedico-Helper-Scripts.xpi",
+          "update_hash": "sha256:will_be_updated_by_script"
+        }
+      ]
+    }
+  }
+}
