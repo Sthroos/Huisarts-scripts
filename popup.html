@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 320px;
+      padding: 15px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+    }
+    h2 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    .toggle-container {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .toggle-row:last-child {
+      margin-bottom: 0;
+    }
+    .toggle-label {
+      font-weight: 500;
+      color: #333;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .status {
+      text-align: center;
+      padding: 10px;
+      background: #e8f5e9;
+      border-radius: 5px;
+      color: #2e7d32;
+      font-size: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+    .status.show {
+      display: block;
+    }
+    .status.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .script-description {
+      font-size: 11px;
+      color: #666;
+      margin-top: 3px;
+    }
+    .master-toggle {
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+    .master-toggle .toggle-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1976d2;
+    }
+    .update-section {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #ddd;
+    }
+    .update-btn {
+      width: 100%;
+      padding: 8px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .update-btn:hover {
+      background: #1976D2;
+    }
+    .update-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .update-info {
+      font-size: 11px;
+      color: #666;
+      margin-top: 5px;
+      text-align: center;
+    }
+    #scriptsContainer {
+      /* Will be populated dynamically */
+    }
+    .version-info {
+      text-align: center;
+      padding: 10px;
+      font-size: 11px;
+      color: #666;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 10px;
+      background: #f9f9f9;
+    }
+    .version-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+    .version-production {
+      background: #d4edda;
+      color: #155724;
+    }
+    .version-debug {
+      background: #f8d7da;
+      color: #721c24;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <h2>Promedico ASP Helper</h2>
+  
+  <div class="toggle-container">
+    <div class="toggle-row master-toggle">
+      <div>
+        <div class="toggle-label">Zet alle scripts aan</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="masterToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <!-- Scripts will be dynamically inserted here -->
+    <div id="scriptsContainer"></div>
+  </div>
+  
+  <div class="update-section">
+    <button id="updateBtn" class="update-btn">🔄 Controleer op Updates</button>
+    <div class="update-info" id="updateInfo"></div>
+  </div>
+  
+  <div class="status" id="status"></div>
+  
+  <!-- Version info -->
+  <div class="version-info">
+    <div>
+      <span class="version-badge" id="versionBadge">v0.0.0</span>
+    </div>
+    <div style="font-size: 10px; color: #999; margin-top: 5px;" id="installInfo"></div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
