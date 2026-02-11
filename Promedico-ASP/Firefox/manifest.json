@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Promedico ASP Helper",
-  "version": "1.3.665",
+  "version": "1.3.666",
   "description": "Automation scripts for Promedico ASP",
   
   "browser_specific_settings": {
