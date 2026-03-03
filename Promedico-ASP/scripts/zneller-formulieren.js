@@ -4,7 +4,7 @@
     'use strict';
 
     // Cross-browser compatibility - CRITICAL for Firefox!
-    const browserAPI = (typeof browser !== 'undefined') ? browser : (typeof chrome !== 'undefined') ? chrome : null;
+    const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
 
     // Check which domain we're on
     const isPromedico = window.location.hostname.includes('promedico-asp.nl');

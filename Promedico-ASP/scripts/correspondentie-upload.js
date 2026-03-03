@@ -1,6 +1,3 @@
-// Browser API shim - in page context is 'browser' niet beschikbaar; chrome wordt gezet door de extensie-shim
-const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeof browser !== 'undefined' ? browser : null);
-
 (function() {
     'use strict';
 
@@ -149,12 +146,12 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
         }
     }
 
-    // Upload file from _api.storage
+    // Upload file from chrome.storage
     function uploadCorrespondenceFile() {
         console.log('[Correspondence] uploadCorrespondenceFile called');
         
-        // Haal file data op uit _api.storage
-        _api.storage.local.get([
+        // Haal file data op uit chrome.storage
+        chrome.storage.local.get([
             'correspondence_pending_file',
             'correspondence_file_name',
             'correspondence_upload_attempted'
@@ -207,7 +204,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
             }
 
             // Mark as attempted FIRST
-            _api.storage.local.set({'correspondence_upload_attempted': true}, function() {
+            chrome.storage.local.set({'correspondence_upload_attempted': true}, function() {
                 console.log('[Correspondence] Uploading file:', data.correspondence_file_name);
 
                 try {
@@ -239,7 +236,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
                         });
                 } catch (e) {
                     console.log('[Correspondence] ERROR during upload:', e);
-                    _api.storage.local.set({'correspondence_upload_attempted': false});
+                    chrome.storage.local.set({'correspondence_upload_attempted': false});
                 }
             });
         });
@@ -247,7 +244,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
 
     // Simple function to auto-click Verder button after upload
     function autoClickVerderIfNeeded() {
-        _api.storage.local.get([
+        chrome.storage.local.get([
             'correspondence_pending_file',
             'correspondence_upload_attempted',
             'correspondence_verder_click_count',
@@ -293,7 +290,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
                     const verderButton = doc?.getElementById('Script_Verder');
                     if (verderButton) {
                         const newCount = verderClickCount + 1;
-                        _api.storage.local.set({
+                        chrome.storage.local.set({
                             'correspondence_verder_click_count': newCount,
                             'correspondence_last_verder_click_time': now
                         });
@@ -318,7 +315,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
                 }
 
                 const newCount = verderClickCount + 1;
-                _api.storage.local.set({
+                chrome.storage.local.set({
                     'correspondence_verder_click_count': newCount,
                     'correspondence_last_verder_click_time': now
                 });
@@ -330,7 +327,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
 
     // Fill the Omschrijving field with filename
     function fillCorrespondenceDescription() {
-        _api.storage.local.get(['correspondence_file_name'], function(data) {
+        chrome.storage.local.get(['correspondence_file_name'], function(data) {
             if (!data.correspondence_file_name) return;
 
             // Check main document first
@@ -364,7 +361,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
                 console.log('[Correspondence] Filled Omschrijving with:', description);
 
                 // Clear stored data
-                _api.storage.local.remove([
+                chrome.storage.local.remove([
                     'correspondence_pending_file',
                     'correspondence_file_name',
                     'correspondence_upload_attempted',
@@ -375,7 +372,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
         });
     }
 
-    // Store the dropped file in _api.storage
+    // Store the dropped file in chrome.storage
     function processCorrespondenceFile(file) {
         console.log('[Correspondence] Processing file:', file.name);
 
@@ -384,15 +381,15 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
         reader.onload = function(e) {
             const base64Data = e.target.result;
             
-            // Store in _api.storage
-            _api.storage.local.set({
+            // Store in chrome.storage
+            chrome.storage.local.set({
                 'correspondence_pending_file': base64Data,
                 'correspondence_file_name': file.name,
                 'correspondence_upload_attempted': false,
                 'correspondence_verder_click_count': 0,
                 'correspondence_last_verder_click_time': 0
             }, function() {
-                console.log('[Correspondence] File stored in _api.storage');
+                console.log('[Correspondence] File stored in chrome.storage');
             });
         };
         reader.readAsDataURL(file);
@@ -555,8 +552,8 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
                 return;
             }
 
-            // Step 1: Upload page - check _api.storage for pending file
-            _api.storage.local.get([
+            // Step 1: Upload page - check chrome.storage for pending file
+            chrome.storage.local.get([
                 'correspondence_pending_file',
                 'correspondence_upload_attempted'
             ], function(data) {
@@ -574,7 +571,7 @@ const _api = (typeof chrome !== 'undefined' && chrome.storage) ? chrome : (typeo
             autoClickVerderIfNeeded();
 
             // Step 3: Description page - fill Omschrijving
-            _api.storage.local.get(['correspondence_file_name'], function(data) {
+            chrome.storage.local.get(['correspondence_file_name'], function(data) {
                 if (data.correspondence_file_name) {
                     const onDescriptionPage = isOnCorrespondenceDescriptionPage();
                     

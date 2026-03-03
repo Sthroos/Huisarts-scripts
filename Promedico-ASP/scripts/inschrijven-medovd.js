@@ -66,7 +66,7 @@
             e.preventDefault();
             e.stopPropagation();
             clickSidebarButton(sidebarButtonId);
-        }, true);
+        });
 
         // Voeg in na het afterElement (broer-node, zelfde parent)
         afterElement.parentNode.insertBefore(newA, afterElement.nextSibling);
@@ -200,25 +200,30 @@
             style.id = 'pm-favorieten-style';
             style.textContent = `
                 .pm-fav-star {
-                    display: inline-block;
+                    float: right;
+                    margin-left: 8px;
                     color: #ccc;
                     font-size: 12px;
                     cursor: pointer;
-                    padding: 0 6px 0 0;
-                    vertical-align: middle;
-                    opacity: 0;
-                    transition: opacity 0.15s;
+                    line-height: inherit;
                 }
                 .pm-fav-star.actief {
                     color: #f5a623;
-                    opacity: 1;
                 }
                 .pm-fav-star:hover {
                     color: #f5a623;
+                }
+                li.dropdown-submenu > a .pm-fav-star,
+                li > a .pm-fav-star {
+                    opacity: 0;
+                    transition: opacity 0.15s;
+                }
+                li.dropdown-submenu:hover > a .pm-fav-star,
+                li:hover > a .pm-fav-star {
                     opacity: 1;
                 }
-                li:hover > .pm-fav-star,
-                li.dropdown-submenu:hover > .pm-fav-star {
+                li.dropdown-submenu > a .pm-fav-star.actief,
+                li > a .pm-fav-star.actief {
                     opacity: 1;
                 }
                 /* Favorieten bewerken modal */
@@ -352,7 +357,7 @@
         function voegSterretjesToe() {
             ALLE_MENU_ITEMS.forEach(item => {
                 const el = document.getElementById(item.targetId);
-                if (!el || el.previousElementSibling?.classList.contains('pm-fav-star')) return;
+                if (!el || el.querySelector('.pm-fav-star')) return;
 
                 const favorieten = loadFavorieten();
                 const isActief = favorieten.includes(item.targetId);
@@ -380,9 +385,7 @@
                     herlaadFavorietenMenu();
                 }, true);
 
-                // Ster vóór het menu-item invoegen (broer, niet kind)
-                // zodat klikken op het item zelf niet geblokkeerd wordt
-                el.parentNode.insertBefore(star, el);
+                el.appendChild(star);
             });
         }
 
@@ -423,7 +426,7 @@
                     if (!li.classList.contains('disabled')) {
                         clickById(itemDef.targetId);
                     }
-                }, true);
+                });
 
                 li.appendChild(a);
                 submenuUl.appendChild(li);
@@ -636,8 +639,7 @@
                 ALLE_MENU_ITEMS.forEach(item => {
                     const el = document.getElementById(item.targetId);
                     if (!el) return;
-                    const star = el.previousElementSibling && el.previousElementSibling.classList.contains('pm-fav-star')
-                        ? el.previousElementSibling : el.querySelector('.pm-fav-star');
+                    const star = el.querySelector('.pm-fav-star');
                     if (!star) return;
                     const isActief = huidigeFavorieten.includes(item.targetId);
                     star.classList.toggle('actief', isActief);
