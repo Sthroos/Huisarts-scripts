@@ -1,0 +1,6 @@
+{
+  "id": "soepMeasurements",
+  "name": "SOEP Measurements",
+  "description": "Measurement automation in SOEP",
+  "enabled": true
+}

@@ -1,0 +1,6 @@
+{
+  "id": "lspInstellingen",
+  "name": "LSP-instellingen",
+  "description": "LSP settings automation",
+  "enabled": true
+}

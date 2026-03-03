@@ -1,0 +1,6 @@
+{
+  "id": "autoDelete",
+  "name": "Auto-delete Berichten",
+  "description": "Auto-delete spam messages",
+  "enabled": true
+}

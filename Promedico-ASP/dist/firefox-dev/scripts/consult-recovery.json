@@ -1,0 +1,6 @@
+{
+  "id": "consultRecovery",
+  "name": "Promedico Crash Recovery",
+  "description": "Snel consultteksten plakken en invoeren",
+  "enabled": true
+}
