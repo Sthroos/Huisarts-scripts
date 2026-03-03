@@ -1,0 +1,6 @@
+{
+  "id": "herhaalRecept",
+  "name": "Herhaalrecepten Verwerken",
+  "description": "Automatisch alle herhaalrecepten verwerken",
+  "enabled": true
+}
