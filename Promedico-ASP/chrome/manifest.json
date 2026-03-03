@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Promedico ASP Helper",
-  "version": "1.6.4",
+  "version": "1.7.1",
   "description": "Automation scripts for Promedico ASP",
   "icons": {
     "48": "icons/icon-48.png",
@@ -17,9 +17,7 @@
   ],
   "host_permissions": [
     "https://www.promedico-asp.nl/*",
-    "https://www.zorgdomein.nl/*",
-    "https://api.github.com/*",
-    "https://raw.githubusercontent.com/*"
+    "https://www.zorgdomein.nl/*"
   ],
   "background": {
     "service_worker": "background.js"
