@@ -101,12 +101,12 @@ echo -e "${GREEN}✓${NC} Schoon"
 echo ""
 echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (30-60 seconden)..."
 
-#web-ext sign \
-#    --source-dir=dist/firefox \
-#    --artifacts-dir=web-ext-artifacts \
-#    --api-key="$AMO_API_KEY" \
-#    --api-secret="$AMO_API_SECRET" \
-#    --channel=unlisted
+web-ext sign \
+    --source-dir=dist/firefox \
+    --artifacts-dir=web-ext-artifacts \
+    --api-key="$AMO_API_KEY" \
+    --api-secret="$AMO_API_SECRET" \
+    --channel=unlisted
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}✗ Signing mislukt${NC}"
@@ -120,13 +120,13 @@ echo -e "${GREEN}[5/7]${NC} XPI verwerken..."
 
 SIGNED_XPI=$(ls web-ext-artifacts/*.xpi 2>/dev/null | head -n 1)
 
-#if [ -z "$SIGNED_XPI" ]; then
-#    echo -e "${RED}✗ Geen gesigneerde XPI gevonden in web-ext-artifacts/${NC}"
-#    ls -la web-ext-artifacts/
-#    exit 1
-#fi
+if [ -z "$SIGNED_XPI" ]; then
+    echo -e "${RED}✗ Geen gesigneerde XPI gevonden in web-ext-artifacts/${NC}"
+    ls -la web-ext-artifacts/
+    exit 1
+fi
 
-#cp "$SIGNED_XPI" Promedico-Helper-Scripts.xpi
+cp "$SIGNED_XPI" Promedico-Helper-Scripts.xpi
 echo -e "${GREEN}✓${NC} XPI: $(basename $SIGNED_XPI)"
 echo -e "${GREEN}✓${NC} Gekopieerd naar: Promedico-Helper-Scripts.xpi"
 
