@@ -1,9 +1,0 @@
-.env
-dist/
-*.xpi
-!Promedico-Helper-Scripts.xpi
-node_modules/
-web-ext-artifacts/
-.DS_Store
-web-ext-artifacts/
-dist/
