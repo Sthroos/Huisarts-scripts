@@ -88,7 +88,7 @@ echo -e "${GREEN}✓${NC} Schoon"
 
 # ─── Stap 4: Firefox signeren via AMO ────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (30-60 seconden)..."
+echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (kan wel even duren)..."
 
 web-ext sign \
     --source-dir=dist/firefox \
