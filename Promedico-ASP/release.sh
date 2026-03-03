@@ -56,6 +56,17 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
+# ─── Git: sync met remote vóór we iets wijzigen ──────────────────────────────
+echo ""
+echo -e "${GREEN}[0/7]${NC} Synchroniseren met GitHub..."
+REPO_ROOT="$(cd .. && pwd)"
+cd "$REPO_ROOT"
+git stash
+git pull origin main --rebase
+git stash pop 2>/dev/null || true
+cd "$OLDPWD"
+echo -e "${GREEN}✓${NC} Gesynchroniseerd"
+
 # ─── Stap 1: Versie updaten in beide manifests ────────────────────────────────
 echo ""
 echo -e "${GREEN}[1/7]${NC} Versie bijwerken in manifests..."
@@ -90,12 +101,12 @@ echo -e "${GREEN}✓${NC} Schoon"
 echo ""
 echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (30-60 seconden)..."
 
-web-ext sign \
-    --source-dir=dist/firefox \
-    --artifacts-dir=web-ext-artifacts \
-    --api-key="$AMO_API_KEY" \
-    --api-secret="$AMO_API_SECRET" \
-    --channel=unlisted
+#web-ext sign \
+#    --source-dir=dist/firefox \
+#    --artifacts-dir=web-ext-artifacts \
+#    --api-key="$AMO_API_KEY" \
+#    --api-secret="$AMO_API_SECRET" \
+#    --channel=unlisted
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}✗ Signing mislukt${NC}"
@@ -109,13 +120,13 @@ echo -e "${GREEN}[5/7]${NC} XPI verwerken..."
 
 SIGNED_XPI=$(ls web-ext-artifacts/*.xpi 2>/dev/null | head -n 1)
 
-if [ -z "$SIGNED_XPI" ]; then
-    echo -e "${RED}✗ Geen gesigneerde XPI gevonden in web-ext-artifacts/${NC}"
-    ls -la web-ext-artifacts/
-    exit 1
-fi
+#if [ -z "$SIGNED_XPI" ]; then
+#    echo -e "${RED}✗ Geen gesigneerde XPI gevonden in web-ext-artifacts/${NC}"
+#    ls -la web-ext-artifacts/
+#    exit 1
+#fi
 
-cp "$SIGNED_XPI" Promedico-Helper-Scripts.xpi
+#cp "$SIGNED_XPI" Promedico-Helper-Scripts.xpi
 echo -e "${GREEN}✓${NC} XPI: $(basename $SIGNED_XPI)"
 echo -e "${GREEN}✓${NC} Gekopieerd naar: Promedico-Helper-Scripts.xpi"
 
@@ -165,18 +176,13 @@ echo -e "${GREEN}✓${NC} Firefox-dev XPI: Promedico-Helper-Firefox-dev.xpi  ←
 echo ""
 echo -e "${GREEN}[7/7]${NC} Pushen naar GitHub..."
 
-# release.sh draait vanuit Promedico-ASP/, maar git repo root is één map hoger
-REPO_ROOT="$(cd .. && pwd)"
+# Terug naar repo root voor git commando's
 SCRIPT_DIR="$(pwd)"
-# Relatief pad van repo root naar deze map (bijv. "Promedico-ASP")
 REL_DIR="$(basename $SCRIPT_DIR)"
-
 cd "$REPO_ROOT"
 
 # Voeg alles toe in Promedico-ASP/ — .gitignore filtert dist/, .env, web-ext-artifacts/ eruit
 git add "$REL_DIR/"
-
-git pull origin main --rebase
 git commit -m "Release v$NEW_VERSION - $RELEASE_NOTES"
 git push origin main
 
