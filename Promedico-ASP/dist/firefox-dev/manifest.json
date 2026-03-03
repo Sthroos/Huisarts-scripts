@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Promedico ASP Helper [DEV]",
-  "version": "1.6.4",
+  "version": "1.7.1.5",
   "description": "Automation scripts for Promedico ASP",
   "browser_specific_settings": {
     "gecko": {
@@ -17,8 +17,6 @@
     "storage",
     "https://www.promedico-asp.nl/*",
     "https://www.zorgdomein.nl/*",
-    "https://api.github.com/*",
-    "https://raw.githubusercontent.com/*",
     "clipboardWrite",
     "tabs",
     "management"
@@ -51,6 +49,7 @@
   ],
   "web_accessible_resources": [
     "scripts/*.js",
-    "config.js"
+    "config.js",
+    "storage-bridge-client.js"
   ]
 }

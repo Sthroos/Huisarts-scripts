@@ -44,7 +44,7 @@ echo -e "${YELLOW}╔═══════════════════�
 echo -e "${YELLOW}║  Promedico ASP Helper Release Tool    ║${NC}"
 echo -e "${YELLOW}╚════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "Huidige versie:  ${YELLOW}$CURRENT_VERSION${NC}"
+echo -e "Vorige versie:   ${YELLOW}$CURRENT_VERSION${NC}"
 echo -e "Nieuwe versie:   ${GREEN}$NEW_VERSION${NC}"
 echo -e "Release notes:   $RELEASE_NOTES"
 echo ""
@@ -88,7 +88,7 @@ echo -e "${GREEN}✓${NC} Schoon"
 
 # ─── Stap 4: Firefox signeren via AMO ────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (duurt even)..."
+echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (30-60 seconden)..."
 
 web-ext sign \
     --source-dir=dist/firefox \
@@ -151,12 +151,15 @@ cat > firefox/updates.json << EOF
 EOF
 echo -e "${GREEN}✓${NC} updates.json bijgewerkt"
 
-# ─── Stap 6: Chrome/Edge ZIP ─────────────────────────────────────────────────
+# ─── Stap 6: Chrome/Edge ZIP + Firefox-dev XPI ───────────────────────────────
 echo ""
-echo -e "${GREEN}[6/7]${NC} Chrome/Edge ZIP maken..."
+echo -e "${GREEN}[6/7]${NC} Chrome/Edge ZIP + Firefox-dev XPI maken..."
 
 (cd dist/chrome && zip -r "$OLDPWD/Promedico-Helper-Chrome.zip" . -x "*.DS_Store" > /dev/null)
 echo -e "${GREEN}✓${NC} Chrome/Edge ZIP: Promedico-Helper-Chrome.zip"
+
+(cd dist/firefox-dev && zip -r "$OLDPWD/Promedico-Helper-Firefox-dev.xpi" . -x "*.DS_Store" > /dev/null)
+echo -e "${GREEN}✓${NC} Firefox-dev XPI: Promedico-Helper-Firefox-dev.xpi  ← sleep naar Firefox Developer"
 
 # ─── Stap 7: GitHub push ─────────────────────────────────────────────────────
 echo ""
@@ -170,15 +173,10 @@ REL_DIR="$(basename $SCRIPT_DIR)"
 
 cd "$REPO_ROOT"
 
-git add \
-    "$REL_DIR/firefox/manifest.json" \
-    "$REL_DIR/firefox/updates.json" \
-    "$REL_DIR/chrome/manifest.json" \
-    "$REL_DIR/scripts/" \
-    "$REL_DIR/shared/" \
-    "$REL_DIR/Promedico-Helper-Scripts.xpi" \
-    "$REL_DIR/Promedico-Helper-Chrome.zip"
+# Voeg alles toe in Promedico-ASP/ — .gitignore filtert dist/, .env, web-ext-artifacts/ eruit
+git add "$REL_DIR/"
 
+git pull origin main --rebase
 git commit -m "Release v$NEW_VERSION - $RELEASE_NOTES"
 git push origin main
 

@@ -53,13 +53,14 @@ function displayVersionInfo() {
   badge.textContent = 'v' + manifest.version;
 
   _api.management.getSelf().then(ext => {
-    if (ext.installType === 'development') {
-      badge.textContent += ' DEBUG';
+    const isDev = ext.installType === 'development' || ext.installType === 'temporary';
+    if (isDev) {
+      badge.textContent += ' [DEV]';
       badge.className = 'version-badge version-debug';
-      info.textContent = 'Development Mode';
+      info.textContent = '⚠ Development / tijdelijke installatie';
     } else {
       badge.className = 'version-badge version-production';
-      info.textContent = 'Installed from store';
+      info.textContent = '✓ Geïnstalleerd via store';
     }
   }).catch(() => {
     badge.className = 'version-badge version-production';

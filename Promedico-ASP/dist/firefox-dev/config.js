@@ -158,21 +158,3 @@ const SCRIPT_CONFIG = [
     ]
   }
 ];
-
-// GitHub configuration for auto-updates
-const GITHUB_CONFIG = {
-  enabled: false, // Set to false to disable auto-updates
-  owner: 'Sthroos', // Change this to your GitHub username
-  repo: 'Huisarts-scripts', // Change this to your repo name
-  branch: 'main',
-  scriptsPath: 'Promedico-ASP/Firefox/scripts', // Folder in repo containing scripts
-  checkInterval: 3600000, // Check every hour (in milliseconds)
-  // Script files should be named: script-name.js
-  // Config files should be named: script-name.json and contain:
-  // {
-  //   "id": "scriptId",
-  //   "name": "Display Name",
-  //   "description": "What it does",
-  //   "enabled": true
-  // }
-};

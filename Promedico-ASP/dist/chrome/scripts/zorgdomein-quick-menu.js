@@ -2,7 +2,7 @@
     'use strict';
     
     // Cross-browser compatibility: gebruik browser API (met fallback naar chrome)
-    const browserAPI = (typeof browser !== 'undefined') ? browser : (typeof chrome !== 'undefined') ? chrome : null;
+    const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
 
     // Handle ZorgDomein pages
     if (window.location.hostname === 'www.zorgdomein.nl') {

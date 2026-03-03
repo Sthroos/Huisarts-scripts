@@ -5,18 +5,39 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
 (function() {
   'use strict';
 
-  // Deduplicatie guard - voorkomt dubbel laden bij meerdere frames/navigaties
   if (document.documentElement.hasAttribute('data-promedico-loaded')) return;
   document.documentElement.setAttribute('data-promedico-loaded', '1');
 
   console.log('[Promedico Helper] Content script loaded');
 
+  // ── Storage bridge: luistert naar postMessage van page context scripts ──────
+  // Scripts draaien in page context en hebben geen directe toegang tot
+  // extension storage. Ze sturen berichten via window.postMessage,
+  // wij voeren de echte storage-aanroep uit en sturen het resultaat terug.
+  window.addEventListener('message', function(event) {
+    if (event.source !== window) return;
+    if (!event.data || event.data.source !== 'promedico-page') return;
+
+    const { requestId, method, args } = event.data;
+
+    let promise;
+    if (method === 'storage.local.get')    promise = _api.storage.local.get(args[0]);
+    else if (method === 'storage.local.set')    promise = _api.storage.local.set(args[0]);
+    else if (method === 'storage.local.remove') promise = _api.storage.local.remove(args[0]);
+    else return;
+
+    promise.then(result => {
+      window.postMessage({ source: 'promedico-extension', requestId, result: result || {} }, '*');
+    }).catch(err => {
+      window.postMessage({ source: 'promedico-extension', requestId, error: err.message }, '*');
+    });
+  });
+
   function urlMatches(pattern) {
-    const currentUrl = window.location.href;
     const regexPattern = pattern
       .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
       .replace(/\*/g, '.*');
-    return new RegExp('^' + regexPattern + '$').test(currentUrl);
+    return new RegExp('^' + regexPattern + '$').test(window.location.href);
   }
 
   // In Firefox MV2 is inline script.textContent toegestaan vanuit content script context
@@ -25,20 +46,17 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
     document.documentElement.setAttribute('data-promedico-shim', '1');
     const s = document.createElement('script');
     s.charset = 'utf-8';
-    s.textContent = `(function(){
-      if(typeof chrome==='undefined'&&typeof browser!=='undefined'){window.chrome=browser;}
-      if(typeof chrome==='undefined'){window.chrome={storage:{local:{get:function(k,cb){if(cb)cb({});return Promise.resolve({});},set:function(v,cb){if(cb)cb();return Promise.resolve();},remove:function(k,cb){if(cb)cb();return Promise.resolve();}}},runtime:{getURL:function(p){return p;}}}}
-    })();`;
+    // Laad de storage-bridge-client als inline shim zodat hij VOOR de scripts draait
+    s.src = _api.runtime.getURL('storage-bridge-client.js');
+    s.onload = function() { this.remove(); callback(); };
+    s.onerror = function() { this.remove(); callback(); };
     (document.head || document.documentElement).appendChild(s);
-    s.remove();
-    callback();
   }
 
   Promise.all([
     _api.runtime.sendMessage({type: 'getSettings'}),
     _api.runtime.sendMessage({type: 'getScriptConfig'})
   ]).then(([settings, config]) => {
-    console.log('[Promedico Helper] Settings:', settings);
     console.log('[Promedico Helper] Current URL:', window.location.href);
 
     if (!settings.scriptsEnabled) {
@@ -60,12 +78,7 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
         }
 
         console.log('[Promedico Helper] Loading script:', script.name);
-
-        if (settings.githubScripts?.[script.id]) {
-          injectAsBlob(settings.githubScripts[script.id], script.name);
-        } else {
-          injectAsScriptTag(_api.runtime.getURL(script.scriptFile), script.name);
-        }
+        injectAsScriptTag(_api.runtime.getURL(script.scriptFile), script.name);
       });
     });
   }).catch(err => console.error('[Promedico Helper] Failed:', err));
@@ -77,20 +90,6 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
     s.onload = function() { console.log('[Promedico Helper] Loaded:', name); this.remove(); };
     s.onerror = function() { console.error('[Promedico Helper] Failed:', name); this.remove(); };
     (document.head || document.documentElement).appendChild(s);
-  }
-
-  function injectAsBlob(code, name) {
-    try {
-      const blob = new Blob([code], {type: 'application/javascript'});
-      const url = URL.createObjectURL(blob);
-      const s = document.createElement('script');
-      s.src = url;
-      s.onload = function() { console.log('[Promedico Helper] Loaded (blob):', name); URL.revokeObjectURL(url); this.remove(); };
-      s.onerror = function() { console.error('[Promedico Helper] Failed (blob):', name); URL.revokeObjectURL(url); this.remove(); };
-      (document.head || document.documentElement).appendChild(s);
-    } catch(e) {
-      console.error('[Promedico Helper] Blob error:', name, e);
-    }
   }
 
 })();
