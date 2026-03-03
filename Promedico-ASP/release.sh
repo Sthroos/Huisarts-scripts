@@ -88,7 +88,7 @@ echo -e "${GREEN}✓${NC} Schoon"
 
 # ─── Stap 4: Firefox signeren via AMO ────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (kan wel even duren)..."
+echo -e "${GREEN}[4/7]${NC} Firefox signeren via AMO (duurt even)..."
 
 web-ext sign \
     --source-dir=dist/firefox \
@@ -162,14 +162,22 @@ echo -e "${GREEN}✓${NC} Chrome/Edge ZIP: Promedico-Helper-Chrome.zip"
 echo ""
 echo -e "${GREEN}[7/7]${NC} Pushen naar GitHub..."
 
+# release.sh draait vanuit Promedico-ASP/, maar git repo root is één map hoger
+REPO_ROOT="$(cd .. && pwd)"
+SCRIPT_DIR="$(pwd)"
+# Relatief pad van repo root naar deze map (bijv. "Promedico-ASP")
+REL_DIR="$(basename $SCRIPT_DIR)"
+
+cd "$REPO_ROOT"
+
 git add \
-    firefox/manifest.json \
-    firefox/updates.json \
-    chrome/manifest.json \
-    scripts/ \
-    shared/ \
-    Promedico-Helper-Scripts.xpi \
-    Promedico-Helper-Chrome.zip
+    "$REL_DIR/firefox/manifest.json" \
+    "$REL_DIR/firefox/updates.json" \
+    "$REL_DIR/chrome/manifest.json" \
+    "$REL_DIR/scripts/" \
+    "$REL_DIR/shared/" \
+    "$REL_DIR/Promedico-Helper-Scripts.xpi" \
+    "$REL_DIR/Promedico-Helper-Chrome.zip"
 
 git commit -m "Release v$NEW_VERSION - $RELEASE_NOTES"
 git push origin main
@@ -180,6 +188,8 @@ else
     echo -e "${RED}✗${NC} Push mislukt"
     exit 1
 fi
+
+cd "$SCRIPT_DIR"
 
 echo ""
 echo -e "${GREEN}═══════════════════════════════════════${NC}"
