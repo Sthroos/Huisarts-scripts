@@ -100,14 +100,14 @@
 
                 setTimeout(() => {
                     fillSpecialismeAndClickZorgDomein(specialisme, callback);
-                }, 500);
+                }, 800);
             });
         } else {
             verwijzenButton.click();
 
             setTimeout(() => {
                 fillSpecialismeAndClickZorgDomein(specialisme, callback);
-            }, 500);
+            }, 800);
         }
     }
 
@@ -137,74 +137,61 @@
             if (specMnemField) {
                 clearInterval(waitForField);
                 
-                // OVERRIDE disableScreen
+                // OVERRIDE disableScreen - var declaratie zodat ook lokale scope-lookups werken
                 const overrideScript = doc.createElement('script');
                 overrideScript.textContent = `
-                    window.disableScreen = function() { 
+                    var disableScreen = function() {
                         console.log('[ZD Override] disableScreen called but suppressed');
-                        return true; 
+                        return true;
                     };
-                    window.enableScreen = function() { 
+                    var enableScreen = function() {
                         console.log('[ZD Override] enableScreen called but suppressed');
-                        return true; 
-                    };  
-                `;  
+                        return true;
+                    };
+                    window.disableScreen = disableScreen;
+                    window.enableScreen = enableScreen;
+                `;
                 doc.head.appendChild(overrideScript);
                 overrideScript.remove();
         
+                // Alleen de waarde invullen - GEEN change/blur events of parseSpecialisme()
+                // want die triggeren ongewenst de brief-sjabloonkeuze navigatie
                 specMnemField.value = specialisme;
                 specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
-                specMnemField.dispatchEvent(new Event('change', { bubbles: true }));
-                specMnemField.dispatchEvent(new Event('blur', { bubbles: true }));
 
-                // Trigger the parseSpecialisme() function in the iframe context
-                if (specMnemField.onchange) {
-                    try {
-                        specMnemField.onchange();
-                    } catch(e) {
-                        console.log('[ZD Menu] Could not trigger onchange directly:', e);
-                    }
-                }
-
-                // Also try to call parseSpecialisme directly in iframe context
-                const script = doc.createElement('script');
-                script.textContent = `
-                    (function() {
-                        try {
-                            if (typeof parseSpecialisme === 'function') {
-                                parseSpecialisme();
-                            }
-                        } catch(e) {
-                            console.error('Error calling parseSpecialisme:', e);
-                        }
-                    })();
-                `;
-                doc.head.appendChild(script);
-                script.remove();
-
-                // Now click the ZorgDomein button
+                // Nu de "Via ZorgDomein" button triggeren
+                // Strategie: lees onclick-string uit, strip disableScreen() eruit, eval het
+                // Dit is robuuster dan button.click() (vermijdt de disableScreen TypeError)
                 setTimeout(() => {
                     const script2 = doc.createElement('script');
                     script2.textContent = `
-                        (function() {
-                            // FORCEER de override - altijd!
-                            window.disableScreen = function() { return true; };
-                            window.enableScreen = function() { return true; };
-                            
-                            console.log('[ZD Menu Script] disableScreen overridden');
+                        // Override disableScreen als top-level var én window property
+                        var disableScreen = function() {
+                            console.log('[ZD Override] disableScreen suppressed (script2)');
+                            return true;
+                        };
+                        var enableScreen = function() { return true; };
+                        window.disableScreen = disableScreen;
+                        window.enableScreen = enableScreen;
 
+                        (function() {
                             var button = document.getElementById('action_via zorgDomein');
-                            console.log('[ZD Menu Script] Via ZorgDomein button:', button);
-                            
-                            if (button) {
-                                button.click();
-                                console.log('[ZD Menu Script] Button clicked once');
-                                setTimeout(function() {
-                                    button.click();
-                                    console.log('[ZD Menu Script] Button clicked twice');
-                                }, 200);
+                            if (!button) {
+                                console.log('[ZD Menu Script] ERROR: Via ZorgDomein button niet gevonden!');
+                                return;
+                            }
+                            // Haal onclick-string op en verwijder alle disableScreen()-aanroepen
+                            var onclickStr = button.getAttribute('onclick') || '';
+                            console.log('[ZD Menu Script] onclick:', onclickStr.substring(0, 100));
+                            // Roep koppelNaarZorgDomeinNaValidatieSpecialisme direct aan
+                            // als dat in de onclick staat - negeer de rest (disableScreen etc.)
+                            if (typeof koppelNaarZorgDomeinNaValidatieSpecialisme === 'function') {
+                                console.log('[ZD Menu Script] Calling koppelNaarZorgDomeinNaValidatieSpecialisme');
+                                koppelNaarZorgDomeinNaValidatieSpecialisme();
                             } else {
-                                console.log('[ZD Menu Script] ERROR: Via ZorgDomein button not found!');
+                                // Fallback: button.click() - disableScreen is al overridden als var
+                                console.log('[ZD Menu Script] Fallback: button.click()');
+                                button.click();
                             }
                         })();
                     `;
@@ -213,8 +200,8 @@
 
                     setTimeout(() => {
                         clickScriptZorgDomein(callback);
-                    }, 300);
-                }, 300);
+                    }, 500);
+                }, 400);
                 
             } else if (attempts >= maxAttempts) {
                 clearInterval(waitForField);
@@ -223,10 +210,10 @@
         }, 250); // Check every 250ms
     }
 
- // Click the Script_ZorgDomein button
+ // Click the Script_ZorgDomein button - wacht op URL-change naar koppeling/zorgdomein
     function clickScriptZorgDomein(callback) {
         let attempts = 0;
-        const maxAttempts = 20; // 20 * 250ms = 5 seconden max
+        const maxAttempts = 40; // 40 * 250ms = 10 seconden (ruimer voor trage pc's)
 
         const poll = setInterval(() => {
             attempts++;
@@ -235,26 +222,23 @@
             if (!iframe || !iframe.contentDocument) {
                 if (attempts >= maxAttempts) {
                     clearInterval(poll);
-                    console.log('[ZD] ERROR: iframe gone after clicking Via ZorgDomein');
+                    console.log('[ZD] ERROR: iframe weg na Via ZorgDomein klik');
                 }
                 return;
             }
 
             const doc = iframe.contentDocument;
-            
-            // Wacht ook tot de URL veranderd is (pagina is genavigeerd)
             const url = doc.location?.href || '';
-            
             const zorgDomeinButton = doc.getElementById('Script_ZorgDomein');
 
             if (zorgDomeinButton) {
                 clearInterval(poll);
+                console.log('[ZD] Script_ZorgDomein gevonden op:', url);
                 zorgDomeinButton.click();
                 if (callback) callback();
             } else if (attempts >= maxAttempts) {
                 clearInterval(poll);
-                console.log('[ZD] ERROR: Script_ZorgDomein not found after', maxAttempts, 'attempts');
-                // Debug: log alle elementen om te zien wat er wél op de pagina staat
+                console.log('[ZD] ERROR: Script_ZorgDomein niet gevonden na', maxAttempts, 'pogingen. Laatste URL:', url);
                 console.log('[ZD] All inputs/buttons:', 
                     [...doc.querySelectorAll('input[type=submit],button,td.actie')]
                     .map(e => `${e.tagName} id="${e.id}" text="${e.textContent.trim().slice(0,30)}"`));
