@@ -649,14 +649,37 @@ BSN: 123456789 s/ Hoofdpijn O; Bloeddruk normaal e/ Spanning P: Rust`;
     }
 
     // ============================================================================
+    // URL CLASSIFICATION - alleen SOEP pagina
+    // ============================================================================
+
+    function isSOEPPage() {
+        const href = window.location.href;
+        if (href.includes('losseuitslag'))  return false;
+        if (href.includes('meetwaarden'))   return false;
+        if (href.includes('bewaardossier')) return true;
+        if (href.includes('wisseldossier')) return true;
+        if (href.includes('journaal.contact')) return true;
+        if (href.includes('journaal'))      return true;
+        return false;
+    }
+
+    function shouldShowButton() {
+        if (window.self === window.top) return false;
+        return isSOEPPage();
+    }
+
+    // ============================================================================
     // INITIALIZATION
     // ============================================================================
 
     function initialize() {
-        // Wait for contactcontent div to be available
+        if (!shouldShowButton()) return;
+
+        // Wait for contactcontent div én SOEP-velden aanwezig te zijn
         const checkInterval = setInterval(() => {
             const contactContent = document.getElementById('contactcontent');
-            if (contactContent) {
+            const soepField = document.querySelector('textarea[name="contactForm.regelS"], textarea[name="contactForm.regelO"]');
+            if (contactContent && soepField) {
                 clearInterval(checkInterval);
                 createQuickConsultButton();
             }

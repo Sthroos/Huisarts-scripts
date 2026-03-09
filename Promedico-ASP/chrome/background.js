@@ -20,17 +20,17 @@ _api.runtime.onInstalled.addListener(() => {
   console.log('[Promedico Helper] Installed - version', _api.runtime.getManifest().version);
 });
 
-// Toon DEV badge in ontwikkelaarsmodus of tijdelijke installatie
-_api.management.getSelf().then(info => {
-  const isDev = info.installType === 'development' || info.installType === 'temporary';
-  if (isDev) {
-    const _actionApi = _api.action || _api.browserAction;
-    if (_actionApi) {
-      _actionApi.setBadgeText({ text: 'DEV' });
-      _actionApi.setBadgeBackgroundColor({ color: '#cc0000' });
-    }
+// Toon DEV badge als extensie als unpacked/tijdelijk is geladen
+// chrome.management is niet nodig: unpacked extensies hebben geen update_url in het manifest
+const _manifest = _api.runtime.getManifest();
+const _isDev = !_manifest.update_url;
+if (_isDev) {
+  const _actionApi = _api.action || _api.browserAction;
+  if (_actionApi) {
+    _actionApi.setBadgeText({ text: 'DEV' });
+    _actionApi.setBadgeBackgroundColor({ color: '#cc0000' });
   }
-});
+}
 
 // Berichtenhandler voor content scripts en popup
 _api.runtime.onMessage.addListener((message, sender, sendResponse) => {

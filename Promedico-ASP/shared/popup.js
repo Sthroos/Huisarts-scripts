@@ -52,17 +52,18 @@ function displayVersionInfo() {
 
   badge.textContent = 'v' + manifest.version;
 
-  _api.management.getSelf().then(ext => {
-    const isDev = ext.installType === 'development' || ext.installType === 'temporary';
-    if (isDev) {
-      badge.textContent += ' [DEV]';
-      badge.className = 'version-badge version-debug';
-      info.textContent = '⚠ Development / tijdelijke installatie';
-    } else {
-      badge.className = 'version-badge version-production';
-      info.textContent = '✓ Geïnstalleerd via store';
-    }
-  }).catch(() => {
+  // Detecteer dev-build via afwezigheid van update_url (geen management-recht nodig)
+  const isDev = !_api.runtime.getManifest().update_url;
+  if (isDev) {
+    badge.textContent += ' [DEV]';
+    badge.className = 'version-badge version-debug';
+    info.textContent = '⚠ Development / tijdelijke installatie';
+  } else {
+    badge.className = 'version-badge version-production';
+    info.textContent = '✓ Geïnstalleerd via store';
+  }
+  // Legacy catch-blok voor compatibiliteit
+  {
     badge.className = 'version-badge version-production';
     info.textContent = 'v' + manifest.version;
   });
