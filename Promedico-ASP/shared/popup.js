@@ -62,11 +62,6 @@ function displayVersionInfo() {
     badge.className = 'version-badge version-production';
     info.textContent = '✓ Geïnstalleerd via store';
   }
-  // Legacy catch-blok voor compatibiliteit
-  {
-    badge.className = 'version-badge version-production';
-    info.textContent = 'v' + manifest.version;
-  });
 }
 
 function initializePopup() {

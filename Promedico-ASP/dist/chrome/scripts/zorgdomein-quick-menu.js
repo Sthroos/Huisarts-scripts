@@ -563,6 +563,13 @@
         ]
     },
 
+    // --- SCEN ARTS ---
+    {
+        text: '⚕ SCEN arts aanvragen',
+        code: 'SCE',
+        url: 'https://www.zorgdomein.nl/protocol/7d726008-4da6-44ec-87eb-ebdad54c8319'
+    },
+
     // --- 9. HULPMIDDELEN ---
     {
         text: 'Hulpmiddelen',

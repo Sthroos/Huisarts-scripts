@@ -1,12 +1,18 @@
 {
   "manifest_version": 2,
   "name": "Promedico ASP Helper [DEV]",
-  "version": "1.7.2",
+  "version": "1.7.3.1",
   "description": "Automation scripts for Promedico ASP",
   "browser_specific_settings": {
     "gecko": {
       "id": "promedico-helper-dev@degrotedokter",
-      "strict_min_version": "109.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ],
+        "optional": []
+      }
     }
   },
   "icons": {
@@ -18,8 +24,7 @@
     "https://www.promedico-asp.nl/*",
     "https://www.zorgdomein.nl/*",
     "clipboardWrite",
-    "tabs",
-    "management"
+    "tabs"
   ],
   "background": {
     "scripts": [
