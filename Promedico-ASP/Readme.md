@@ -51,7 +51,7 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 
 ---
 
-## Mappenstructuur (voor ontwikkelaars)
+## Mappenstructuur (voor ontwikkelaars / build log referentie)
 
 ```
 Promedico-ASP/
@@ -77,7 +77,7 @@ Promedico-ASP/
 ├── dist/            # Gegenereerd door build.sh, niet committen
 ├── build.sh         # Bouwt Firefox en Chrome distributies
 ├── release.sh       # Versie bumpen, AMO signing, GitHub push
-└── .env             # AMO credentials (niet committen!)
+└── .env             # AMO credentials (nooit committen!)
 ```
 
 ---
@@ -132,7 +132,7 @@ Na een wijziging: `./build.sh all` en herlaad de extensie in de browser.
 
 ### Vereisten
 
-Maak een `.env` bestand aan in `Promedico-ASP/` (wordt nooit gecommit):
+Maak een `.env` bestand aan in `Promedico-ASP/` (nooit commit!):
 
 ```bash
 AMO_API_KEY=user:12345:678
@@ -140,6 +140,21 @@ AMO_API_SECRET=abcdef1234567890abcdef1234567890
 ```
 
 AMO credentials zijn te vinden op [addons.mozilla.org/developers](https://addons.mozilla.org/nl/developers/) → API-sleutels.
+
+Maak een `.gitignore` bestand aan in `Promedico-ASP/`:
+
+```bash
+dist/
+web-ext-artifacts/
+.env
+node_modules/
+
+# Wel committen: Promedico-Helper-*.xpi en Promedico-Helper-*.zip
+*.xpi
+*.zip
+!Promedico-Helper-Scripts.xpi
+!Promedico-Helper-Chrome.zip
+```
 
 ### Release uitvoeren
 
