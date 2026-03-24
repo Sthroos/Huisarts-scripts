@@ -136,6 +136,14 @@ const SCRIPT_CONFIG = [
     injectMode: 'main_world'
   },
   {
+    id: 'verrichtingQuickButtons',
+    name: 'Verrichting Quick Buttons',
+    description: 'Snel verrichtingen toevoegen via knoppen op het declaratiescherm',
+    enabled: true,
+    scriptFile: 'scripts/verrichting-quick-buttons.js',
+    urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+  },
+  {
     id: 'znellerFormulieren',
     name: 'ZN formulieren via Zneller.nl',
     description: 'Zneller formulieren invullen uit P',

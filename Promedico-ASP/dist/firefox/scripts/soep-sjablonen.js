@@ -9,28 +9,56 @@
         'BVO': {
             action: 'bvo'
         },
+        'PMDD': {
+            P: 'Patiënt geadviseerd een vervolgafspraak op het spreekuur te maken via Praat met de Dokter; mag zelf een moment inplannen.'
+        },
+        'Pijn': {
+            submenu: {
+                'Pcm': {
+                    P: 'Geadviseerd paracetamol te gebruiken: 4x daags 2 tabletten van 500 mg (maximaal 4 dd 1000 mg). Terugkomen bij onvoldoende effect.'
+                },
+                'NSAID': {
+                    P: 'Geadviseerd ibuprofen te gebruiken: tot 3x daags 400 mg bij de maaltijd. Terugkomen bij onvoldoende effect of maagklachten; ibuprofen vermijden bij nierfunctiestoornissen, hartfalen of gebruik van antistolling.'
+                },
+                'Tramadol': {
+                    P: 'Recept tramadol uitgeschreven. Patiënt geïnformeerd over bijwerkingen: misselijkheid, duizeligheid, valrisico en verminderde rijvaardigheid.'
+                }
+            }
+        },
+        'ECG': {
+            submenu: {
+                'Normaal': {
+                    O: 'ECG: sinusritme, normale geleidingstijden, normale hartas, normale QTc-tijd, geen ST-segmentafwijkingen, geen T-topafwijkingen.'
+                },
+                'Ischemie': {
+                    O: 'ECG afwijkend: ST-segmentafwijkingen en repolarisatiestoornis.'
+                },
+                'Ritme': {
+                    O: 'ECG: boezemfibrilleren met rustige volgfrequentie, geen tekenen van ischemie.'
+                },
+                'Bundeltak': {
+                    O: 'ECG: linker bundeltakblok, Sgarbossa-criteria negatief.'
+                }
+            }
+        },
         'UWI': {
             submenu: {
                 'Normale urine': {
-                    O: 'Urine strip gecontroleerd, geen afwijkingen',
-                    P: 'Patiënt heeft geen urineweginfectie'
+                    O: 'Urinestrip zonder afwijkingen.',
+                    P: 'Geen aanwijzingen voor een urineweginfectie.'
                 },
                 'Urineweginfectie': {
-                    O: 'Afwijkende strip passend bij urineweginfectie, nitriet positief',
-                    P: `Behandeling conform NHG-standaard met antibiotica en zelfzorgadviezen: veel drinken, cranberry overwegen. Informatie verstrekt over:
-- Voldoende drinken (1,5-2 liter per dag)
-- Bij pijn: paracetamol
-- Signalen waarmee terug te komen (koorts, bloederig, pijn in rug)
-- Informatie: https://www.thuisarts.nl/blaasontsteking`,
+                    O: 'Urinestrip afwijkend, nitriet positief, passend bij urineweginfectie.',
+                    P: `Behandeling conform NHG-standaard gestart met antibiotica. Zelfzorgadvies meegegeven: voldoende drinken (1,5–2 liter/dag), eventueel cranberry. Bij pijn paracetamol. Terugkomen bij koorts, hematurie of pijn in de flank. Meer informatie: https://www.thuisarts.nl/blaasontsteking`,
                     icpc: 'U71'
                 },
                 'Op dip gezet': {
-                    O: 'Urine afwijkend, nitriet negatief',
-                    P: 'Dipslide ingezet, patiënt kan morgen bellen voor de uitslag'
+                    O: 'Urinestrip afwijkend, nitriet negatief.',
+                    P: 'Dipslide ingezet; patiënt kan morgen bellen voor de uitslag.'
                 },
                 'Op kweek gestuurd': {
                     O: '',
-                    P: 'Urine op kweek naar het laboratorium gestuurd'
+                    P: 'Urine ingestuurd voor kweek en resistentiebepaling.'
                 }
             }
         }
@@ -286,9 +314,9 @@
 
     // Create styled menu
     function createMenu() {
-        // Find the O field to place button next to it
-        const oField = document.getElementById('contactForm.regelO');
-        if (!oField) {
+        // Find the P field to place button below it
+        const pField = document.getElementById('contactForm.regelP');
+        if (!pField) {
             return;
         }
 
@@ -327,7 +355,7 @@
         dropdown.id = 'sjablonenDropdown';
         dropdown.style.cssText = `
             display: none;
-            position: absolute;
+            position: fixed;
             background-color: white;
             min-width: 200px;
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
@@ -335,6 +363,41 @@
             border-radius: 4px;
             overflow: hidden;
         `;
+
+        // Track the currently visible submenu and its hide-timer globally within this menu
+        let activeSubmenu = null;
+        let activeSubmenuItem = null;
+        let submenuHideTimer = null;
+
+        function hideActiveSubmenu() {
+            if (activeSubmenu) {
+                activeSubmenu.style.display = 'none';
+                activeSubmenu = null;
+            }
+            if (activeSubmenuItem) {
+                activeSubmenuItem.style.backgroundColor = 'white';
+                activeSubmenuItem = null;
+            }
+        }
+
+        function cancelHideTimer() {
+            if (submenuHideTimer) {
+                clearTimeout(submenuHideTimer);
+                submenuHideTimer = null;
+            }
+        }
+
+        function scheduleHide(delay = 200) {
+            cancelHideTimer();
+            submenuHideTimer = setTimeout(() => {
+                const hovered = document.querySelector(':hover');
+                const overSubmenu = activeSubmenu && activeSubmenu.contains(hovered);
+                const overItem   = activeSubmenuItem && activeSubmenuItem.contains(hovered);
+                if (!overSubmenu && !overItem) {
+                    hideActiveSubmenu();
+                }
+            }, delay);
+        }
 
         // Build menu items
         Object.keys(templates).forEach(key => {
@@ -348,7 +411,7 @@
             `;
             item.textContent = key;
 
-            // Hover effect
+            // Hover effect for non-submenu items
             item.addEventListener('mouseenter', () => {
                 item.style.backgroundColor = '#f5f5f5';
             });
@@ -388,97 +451,75 @@
                     subItem.textContent = subKey;
 
                     subItem.addEventListener('mouseenter', () => {
-                        subItem.style.backgroundColor = '#f5f5f5 !important';
+                        subItem.style.backgroundColor = '#f5f5f5';
                     });
                     subItem.addEventListener('mouseleave', () => {
-                        subItem.style.backgroundColor = 'white !important';
+                        subItem.style.backgroundColor = 'white';
                     });
 
                     subItem.addEventListener('click', (e) => {
                         e.stopPropagation();
                         applyTemplate(subTemplate);
                         dropdown.style.display = 'none';
-                        submenu.style.display = 'none';
+                        hideActiveSubmenu();
                     });
 
                     submenu.appendChild(subItem);
                 });
 
-                let submenuTimeout = null;
-
-                // Show submenu on hover
+                // Show this submenu, hide any other that was open
                 item.addEventListener('mouseenter', () => {
                     item.style.backgroundColor = '#f5f5f5';
+                    cancelHideTimer();
 
-                    // Clear any pending hide timeout
-                    if (submenuTimeout) {
-                        clearTimeout(submenuTimeout);
-                        submenuTimeout = null;
+                    // Close any other open submenu immediately
+                    if (activeSubmenu && activeSubmenu !== submenu) {
+                        hideActiveSubmenu();
                     }
 
                     // Position submenu next to the item
                     const rect = item.getBoundingClientRect();
-                    const submenuWidth = 250; // min-width of submenu
+                    const submenuWidth = 250;
                     const windowWidth = window.innerWidth;
+                    const windowHeight = window.innerHeight;
 
-                    // Check if submenu would go off-screen to the right
-                    const wouldOverflow = (rect.right + 5 + submenuWidth) > windowWidth;
-
-                    if (wouldOverflow) {
-                        // Position to the left
-                        submenu.style.top = rect.top + 'px';
-                        submenu.style.left = (rect.left - submenuWidth - 5) + 'px';
-                        submenu.style.right = 'auto';
+                    // Horizontal: prefer right, fall back to left
+                    let left;
+                    if ((rect.right + 5 + submenuWidth) > windowWidth) {
+                        left = rect.left - submenuWidth - 5;
                     } else {
-                        // Position to the right (default)
-                        submenu.style.top = rect.top + 'px';
-                        submenu.style.left = (rect.right + 5) + 'px';
-                        submenu.style.right = 'auto';
+                        left = rect.right + 5;
                     }
 
+                    // Vertical: align to item top, but clamp so it doesn't go off-screen
                     submenu.style.display = 'block';
+                    const submenuHeight = submenu.offsetHeight;
+                    let top = rect.top;
+                    if (top + submenuHeight > windowHeight) {
+                        top = Math.max(0, windowHeight - submenuHeight - 8);
+                    }
 
+                    submenu.style.top  = top + 'px';
+                    submenu.style.left = left + 'px';
+                    submenu.style.right = 'auto';
+
+                    activeSubmenu = submenu;
+                    activeSubmenuItem = item;
                 });
 
-                // Keep submenu visible when hovering over it
+                item.addEventListener('mouseleave', () => {
+                    scheduleHide(200);
+                });
+
                 submenu.addEventListener('mouseenter', () => {
-
-                    // Clear any pending hide timeout
-                    if (submenuTimeout) {
-                        clearTimeout(submenuTimeout);
-                        submenuTimeout = null;
-                    }
-
-                    submenu.style.display = 'block';
+                    cancelHideTimer();
                 });
 
-                // Hide submenu when leaving the item
-                item.addEventListener('mouseleave', (e) => {
-
-                    // Delay hiding to allow time to move to submenu
-                    submenuTimeout = setTimeout(() => {
-                        const hoveredElement = document.querySelector(':hover');
-                        if (hoveredElement !== submenu && !submenu.contains(hoveredElement)) {
-                            submenu.style.display = 'none';
-                            item.style.backgroundColor = 'white';
-                        }
-                    }, 300); // Increased delay to 300ms
-                });
-
-                // Hide submenu when leaving the submenu
                 submenu.addEventListener('mouseleave', () => {
-
-                    // Delay hiding to allow moving back to item
-                    submenuTimeout = setTimeout(() => {
-                        const hoveredElement = document.querySelector(':hover');
-                        if (hoveredElement !== item && !item.contains(hoveredElement)) {
-                            submenu.style.display = 'none';
-                            item.style.backgroundColor = 'white';
-                        }
-                    }, 200);
+                    scheduleHide(200);
                 });
 
-                // Append submenu to body instead of item
+                // Append submenu to body
                 document.body.appendChild(submenu);
 
             } else if (template.action === 'crp') {
@@ -506,13 +547,25 @@
         menuButton.addEventListener('click', (e) => {
             e.stopPropagation();
             const isVisible = dropdown.style.display === 'block';
+
+            // Close any open submenu when toggling
+            hideActiveSubmenu();
             dropdown.style.display = isVisible ? 'none' : 'block';
 
             if (!isVisible) {
-                // Position dropdown below button
+                // Position dropdown below button, clamp if it goes off-screen
                 const rect = menuButton.getBoundingClientRect();
-                dropdown.style.top = (rect.bottom + 5) + 'px';
+                dropdown.style.top  = (rect.bottom + 5) + 'px';
                 dropdown.style.left = rect.left + 'px';
+
+                // After rendering, check if it clips at the bottom
+                requestAnimationFrame(() => {
+                    const ddRect = dropdown.getBoundingClientRect();
+                    if (ddRect.bottom > window.innerHeight) {
+                        const newTop = rect.top - ddRect.height - 5;
+                        dropdown.style.top = Math.max(0, newTop) + 'px';
+                    }
+                });
             }
         });
 
@@ -521,11 +574,11 @@
             dropdown.style.display = 'none';
         });
 
-        // Insert button after O field
-        if (oField.nextSibling) {
-            oField.parentNode.insertBefore(menuButton, oField.nextSibling);
+        // Insert button after P field
+        if (pField.nextSibling) {
+            pField.parentNode.insertBefore(menuButton, pField.nextSibling);
         } else {
-            oField.parentNode.appendChild(menuButton);
+            pField.parentNode.appendChild(menuButton);
         }
 
         document.body.appendChild(dropdown);
@@ -536,7 +589,7 @@
     function initialize() {
 
         const checkInterval = setInterval(() => {
-            if (document.getElementById('contactForm.regelO')) {
+            if (document.getElementById('contactForm.regelP')) {
                 clearInterval(checkInterval);
                 createMenu();
             }

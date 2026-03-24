@@ -1,0 +1,6 @@
+{
+  "id": "verrichtingQuickButtons",
+  "name": "Verrichting Quick Buttons",
+  "description": "Snel verrichtingen toevoegen via knoppen op het declaratiescherm",
+  "enabled": true
+}
