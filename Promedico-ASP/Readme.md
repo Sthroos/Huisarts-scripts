@@ -1,6 +1,6 @@
 # Promedico ASP Helper
 
-Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor huisartspraktijken. Beschikbaar voor Firefox en Chrome/Edge.
+Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor huisartspraktijken. Beschikbaar voor Firefox, Chrome en Edge.
 
 ---
 
@@ -11,16 +11,15 @@ Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor hu
 2. Open Firefox → `about:addons` → tandwiel-icoon → **Installeer add-on uit bestand**
 3. Selecteer het gedownloade `.xpi` bestand
 
-### Chrome / Edge
-De extensie is nog niet gepubliceerd in de Chrome Web Store. Installeer handmatig als unpacked extensie:
+### Chrome
+1. Ga naar de [Chrome Web Store](https://chromewebstore.google.com) en zoek op **Promedico ASP Helper**
+2. Klik op **Toevoegen aan Chrome**
 
-1. Download en unzip `Promedico-Helper-Chrome.zip` uit deze repository
-2. Ga naar `chrome://extensions` (of `edge://extensions`)
-3. Zet **Ontwikkelaarsmodus** aan (rechtsboven)
-4. Klik **Uitgepakte extensie laden**
-5. Selecteer de uitgepakte map
+### Edge
+1. Ga naar [Microsoft Edge Add-ons](https://microsoftedgeaddons.microsoft.com) en zoek op **Promedico ASP Helper**
+2. Klik op **Ophalen**
 
-> **Let op:** Bij Chrome/Edge moet je dit herhalen na elke update. Een eigen update-systeem is in ontwikkeling.
+> **Let op:** Na een update wordt de extensie automatisch bijgewerkt via de betreffende store.
 
 ---
 
@@ -30,8 +29,8 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 
 | Script | Omschrijving |
 |--------|-------------|
-| Agenda Menu Items | Snelkoppelingen in het agendamenu |
-| Auto-delete Berichten | Automatisch verwijderen van verwerkte berichten |
+| Agenda Menu Items | Snelkoppelingen in het agendamenu (Berichten, E-consult, Recept) |
+| Auto-delete Berichten | Automatisch verwijderen van verwerkte spamberichten |
 | Auto-check MEDOVD & Auto-download | Automatisch controleren en downloaden van MEDOVD dossiers |
 | Contactsoort Quick Buttons | Snelknoppen voor contactsoort bij consulten |
 | Correspondentie Upload | Drag & drop bestanden uploaden naar correspondentie |
@@ -39,14 +38,15 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 | E-consult Template Responses | Vaste antwoordteksten voor e-consulten |
 | Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow |
 | Inschrijven en MEDOVD Import | Favorieten menu + inschrijven/MEDOVD automatisering |
-| Meetwaarden Highlights | Twee-regelweergave bij meetwaarden |
+| Meetwaarden Highlights (2 regels) | Twee-regelweergave bij meetwaarden in ketenzorg |
 | Copy Phone, Email, BSN, Address | Kopieerknopjes voor patiëntgegevens |
 | LSP-instellingen | Snelle toegang tot LSP-instellingen |
-| P veld herinneringen | Herinneringen in het P-veld |
-| Snel consulten invoeren | Versneld consulten invoeren |
-| SOEP Measurements | Meetwaarden invoeren vanuit SOEP |
+| P veld herinneringen | Automatische herinnering popup bij teksten in het P-veld |
+| Promedico Crash Recovery | Snel consultteksten terugplaatsen en invoeren na een crash |
+| SOEP Measurements | Meetwaarden (gewicht, RR, pols, temp, etc.) invoeren vanuit SOEP |
 | SOEP Sjablonen | Sjablonen voor SOEP-notities |
-| ZN formulieren via Zneller.nl | Directe formulierenintegratie met Zneller |
+| Verrichting Quick Buttons | Snel verrichtingen toevoegen via knoppen op het declaratiescherm |
+| Zneller Formulieren | Directe formulierenintegratie met Zneller.nl vanuit de P-regel |
 | Zorgdomein Quick Menu | Snelmenu voor Zorgdomein verwijzingen |
 
 ---
@@ -160,8 +160,8 @@ Dit doet automatisch:
 
 **Firefox:** Wordt automatisch aangeboden aan bestaande gebruikers via de `update_url` in het manifest.
 
-**Chrome/Edge:** `Promedico-Helper-Chrome.zip` handmatig uploaden:
-- Chrome Web Store: [chrome.google.com/webstore/devconsole](https://chrome.google.com/webstore/devconsole)
+**Chrome/Edge:** Upload de nieuwe versie handmatig via de respectievelijke store-consoles:
+- Chrome Web Store: [chromewebstore.google.com/u/0/developer/dashboard](https://chromewebstore.google.com/u/0/developer/dashboard)
 - Edge Add-ons: [partner.microsoft.com/dashboard](https://partner.microsoft.com/dashboard)
 
 ---
