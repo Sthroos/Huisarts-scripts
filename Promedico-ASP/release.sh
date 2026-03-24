@@ -41,7 +41,7 @@ if [ -z "$AMO_API_KEY" ] || [ -z "$AMO_API_SECRET" ]; then
 fi
 
 echo -e "${YELLOW}╔════════════════════════════════════════╗${NC}"
-echo -e "${YELLOW}║  Promedico ASP Helper Release Tool    ║${NC}"
+echo -e "${YELLOW}║  Promedico ASP Helper Release Tool     ║${NC}"
 echo -e "${YELLOW}╚════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "Vorige versie:   ${YELLOW}$CURRENT_VERSION${NC}"
