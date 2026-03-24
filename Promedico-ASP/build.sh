@@ -40,7 +40,7 @@ if [[ ! " ${VALID_TARGETS[@]} " =~ " $TARGET " ]]; then
 fi
 
 echo -e "${YELLOW}╔════════════════════════════════════════╗${NC}"
-echo -e "${YELLOW}║  Promedico ASP Helper Build Tool      ║${NC}"
+echo -e "${YELLOW}║  Promedico ASP Helper Build Tool       ║${NC}"
 echo -e "${YELLOW}╚════════════════════════════════════════╝${NC}"
 echo ""
 
