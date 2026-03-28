@@ -31,6 +31,7 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 | Agenda Menu Items | Snelkoppelingen in het agendamenu (Berichten, E-consult, Recept) |
 | Auto-delete Berichten | Automatisch verwijderen van verwerkte spamberichten |
 | Auto-check MEDOVD & Auto-download | Automatisch controleren en downloaden van MEDOVD dossiers |
+| Brief Verwerker | Automatisch brieven verwerken in de berichtenbox |
 | Contactsoort Quick Buttons | Snelknoppen voor contactsoort bij consulten |
 | Correspondentie Upload | Drag & drop bestanden uploaden naar correspondentie |
 | Verplaats en Verberg Delen | UI-aanpassingen voor de delenweergave |
