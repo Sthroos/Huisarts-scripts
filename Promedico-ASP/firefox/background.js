@@ -26,7 +26,7 @@ _api.runtime.onInstalled.addListener(() => {
 // - Chrome/Firefox store: heeft update_url → geen DEV badge
 // - Lokaal unpacked: geen update_url → DEV badge
 const _manifest = _api.runtime.getManifest();
-const _isDev = _manifest.name.includes('[DEV]') || !_manifest.update_url;
+const _isDev = _manifest.name.includes('[DEV]');
 if (_isDev) {
   const _actionApi = _api.action || _api.browserAction;
   if (_actionApi) {
