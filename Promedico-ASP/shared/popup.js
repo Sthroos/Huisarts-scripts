@@ -53,7 +53,7 @@ function displayVersionInfo() {
   badge.textContent = 'v' + manifest.version;
 
   // Detecteer dev-build via afwezigheid van update_url (geen management-recht nodig)
-  const isDev = !_api.runtime.getManifest().update_url;
+  const isDev = _api.runtime.getManifest().name.includes('[DEV]');
   if (isDev) {
     badge.textContent += ' [DEV]';
     badge.className = 'version-badge version-debug';
