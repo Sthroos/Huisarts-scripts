@@ -7,16 +7,15 @@ Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor hu
 ## Installatie voor eindgebruikers
 
 ### Firefox
-1. Download `Promedico-Helper-Scripts.xpi` uit deze repository
-2. Open Firefox → `about:addons` → tandwiel-icoon → **Installeer add-on uit bestand**
-3. Selecteer het gedownloade `.xpi` bestand
+1. Ga naar de [Firefox Extension Store](https://addons.mozilla.org/en-US/firefox/addon/promedico-asp-helper/)
+2. Klik op **Voeg toe aan Firefox**
 
 ### Chrome
-1. Ga naar de [Chrome Web Store](https://chromewebstore.google.com) en zoek op **Promedico ASP Helper**
+1. Ga naar de [Chrome Web Store](https://chromewebstore.google.com/detail/promedico-asp-helper/ahlcoanebdplegdafjdlohmaegkfjijf)
 2. Klik op **Toevoegen aan Chrome**
 
 ### Edge
-1. Ga naar [Microsoft Edge Add-ons](https://microsoftedgeaddons.microsoft.com) en zoek op **Promedico ASP Helper**
+1. Ga naar [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/promedico-asp-helper/knhpdlkbbcnkdgifckaaboleenbiolgo) 
 2. Klik op **Ophalen**
 
 > **Let op:** Na een update wordt de extensie automatisch bijgewerkt via de betreffende store.
@@ -70,7 +69,6 @@ Promedico-ASP/
 │   ├── manifest.json
 │   ├── content.js   # Shim via apart bestand (CSP vereiste)
 │   ├── background.js
-│   └── shim.js      # Page-context shim voor cross-browser compatibiliteit
 ├── scripts/         # Alle userscripts (gedeeld voor beide browsers)
 │   ├── *.js
 │   └── *.json       # Metadata per script (naam, ID, URL-patronen)
