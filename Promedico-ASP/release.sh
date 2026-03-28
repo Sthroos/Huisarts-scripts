@@ -9,16 +9,18 @@
 #   0. Sync met GitHub
 #   1. Versie bijwerken in beide manifests
 #   2. Alle targets bouwen
-#   3. Chrome/Edge ZIP + Firefox-dev ZIP maken
-#   4. Edge publiceren via API
-#   5. Chrome Web Store publiceren via API
-#   6. Pushen naar GitHub
+#   3. Firefox unlisted signeren via AMO → XPI + updates.json voor testpc
+#   4. Chrome/Edge ZIP + Firefox-dev ZIP maken
+#   5. Edge publiceren via API
+#   6. Chrome Web Store publiceren via API
+#   7. Pushen naar GitHub
 #
-# Firefox listed doe je handmatig via https://addons.mozilla.org/developers/
-# Upload daar dist/firefox/ als ZIP na elke release.
-# AMO regelt updates automatisch voor listed extensies — geen update_url nodig.
+# Firefox LISTED doe je handmatig via https://addons.mozilla.org/developers/
+# Upload dist/firefox.zip na elke release.
 #
 # VEREISTE .env variabelen:
+#   AMO_API_KEY            Firefox AMO API key
+#   AMO_API_SECRET         Firefox AMO API secret
 #   EDGE_CLIENT_ID         Microsoft Partner Center Client ID
 #   EDGE_API_KEY           Microsoft Partner Center API key (verloopt na ~90 dagen)
 #   EDGE_PRODUCT_ID        Microsoft Edge product ID (GUID)
@@ -230,7 +232,6 @@ chrome_api_upload() {
     local ZIP=$1 PUBLISHER_ID=$2 EXTENSION_ID=$3 ACCESS_TOKEN=$4
     local BASE="https://chromewebstore.googleapis.com"
 
-    # Controleer of er een lopende submission is — annuleer die indien nodig
     echo -e "  Status controleren..."
     STATUS_RESPONSE=$(curl -s \
         -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -238,8 +239,7 @@ chrome_api_upload() {
 
     UPLOAD_STATE=$(echo "$STATUS_RESPONSE" | python3 -c "
 import json,sys
-d=json.load(sys.stdin)
-print(d.get('itemState', {}).get('uploadState', ''))
+print(json.load(sys.stdin).get('itemState', {}).get('uploadState', ''))
 " 2>/dev/null || echo "")
 
     if [ "$UPLOAD_STATE" = "UPLOAD_IN_PROGRESS" ]; then
@@ -262,14 +262,9 @@ print(d.get('itemState', {}).get('uploadState', ''))
         -X POST -T "$ZIP" \
         "$BASE/upload/v2/publishers/$PUBLISHER_ID/items/$EXTENSION_ID:upload")
 
-    UPLOAD_RESULT=$(echo "$UPLOAD_RESPONSE" | python3 -c "
-import json,sys
-d=json.load(sys.stdin)
-print(d.get('uploadState', d.get('error', {}).get('message', 'UNKNOWN')))
-" 2>/dev/null || echo "UNKNOWN")
-
-    if echo "$UPLOAD_RESPONSE" | grep -qi '"error"' && [ "$UPLOAD_RESULT" != "SUCCESS" ]; then
-        echo -e "  ${RED}✗ Upload mislukt: $UPLOAD_RESULT${NC}"
+    if echo "$UPLOAD_RESPONSE" | grep -qi '"error"'; then
+        UPLOAD_MSG=$(echo "$UPLOAD_RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('error',{}).get('message','onbekend'))" 2>/dev/null || echo "onbekend")
+        echo -e "  ${RED}✗ Upload mislukt: $UPLOAD_MSG${NC}"
         echo "$UPLOAD_RESPONSE"
         return 1
     fi
@@ -307,6 +302,14 @@ NEW_VERSION=$1
 RELEASE_NOTES=${2:-"Release $NEW_VERSION"}
 CURRENT_VERSION=$(grep -Po '"version":\s*"\K[^"]+' firefox/manifest.json)
 CHROME_ACCESS_TOKEN=""
+
+# AMO credentials — alleen voor unlisted signing, niet fataal
+AMO_OK=true
+if [ -z "$AMO_API_KEY" ] || [ -z "$AMO_API_SECRET" ]; then
+    warn "AMO credentials niet gevonden — Firefox unlisted signing wordt overgeslagen"
+    warn "Voeg AMO_API_KEY en AMO_API_SECRET toe aan .env"
+    AMO_OK=false
+fi
 
 # Edge credentials — niet fataal
 EDGE_OK=true
@@ -346,6 +349,11 @@ echo -e "Nieuwe versie:   ${GREEN}$NEW_VERSION${NC}"
 echo -e "Release notes:   $RELEASE_NOTES"
 echo ""
 echo -e "Dit script doet:"
+if [ "$AMO_OK" = true ]; then
+    echo -e "  ${GREEN}Firefox unlisted${NC}  → AMO signing + updates.json (testpc auto-updates)"
+else
+    echo -e "  ${YELLOW}Firefox unlisted${NC}  → OVERGESLAGEN — AMO credentials ontbreken"
+fi
 if [ "$EDGE_OK" = true ]; then
     echo -e "  ${GREEN}Edge Add-ons${NC}      → automatisch via API"
 else
@@ -357,7 +365,7 @@ else
     echo -e "  ${YELLOW}Chrome Web Store${NC}  → OVERGESLAGEN — credentials ontbreken/ongeldig"
 fi
 echo -e "  ${BLUE}Firefox listed${NC}    → handmatig uploaden op addons.mozilla.org"
-echo -e "                    Upload: ${BLUE}dist/firefox/${NC} als ZIP"
+echo -e "                    Upload: ${BLUE}dist/firefox.zip${NC}"
 echo ""
 
 read -p "Doorgaan met release? (y/n) " -n 1 -r
@@ -369,7 +377,7 @@ fi
 
 # ─── Stap 0: Git sync ────────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[0/6]${NC} Synchroniseren met GitHub..."
+echo -e "${GREEN}[0/7]${NC} Synchroniseren met GitHub..."
 REPO_ROOT="$(cd .. && pwd)"
 cd "$REPO_ROOT"
 git stash
@@ -380,7 +388,7 @@ echo -e "${GREEN}✓${NC} Gesynchroniseerd"
 
 # ─── Stap 1: Versie bijwerken ────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[1/6]${NC} Versie bijwerken in manifests..."
+echo -e "${GREEN}[1/7]${NC} Versie bijwerken in manifests..."
 
 update_version() {
     local FILE=$1
@@ -397,23 +405,85 @@ echo -e "${GREEN}✓${NC} Versie $NEW_VERSION ingesteld in beide manifests"
 
 # ─── Stap 2: Build ───────────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[2/6]${NC} Bouwen..."
+echo -e "${GREEN}[2/7]${NC} Bouwen..."
 ./build.sh all
 echo -e "${GREEN}✓${NC} Build klaar"
 
-# ─── Stap 3: Chrome/Edge ZIP + Firefox-dev ZIP maken ─────────────────────────
+# ─── Stap 3: Firefox unlisted signeren via AMO ───────────────────────────────
 echo ""
-echo -e "${GREEN}[3/6]${NC} Distributiepakketten maken..."
+echo -e "${GREEN}[3/7]${NC} Firefox unlisted signeren via AMO (30-60 seconden)..."
+
+UNLISTED_XPI=""
+if [ "$AMO_OK" = true ]; then
+    rm -rf web-ext-artifacts/
+    mkdir -p web-ext-artifacts/
+
+    SIGNING_OK=false
+    web-ext sign \
+        --source-dir=dist/firefox-unlisted \
+        --artifacts-dir=web-ext-artifacts/ \
+        --api-key="$AMO_API_KEY" \
+        --api-secret="$AMO_API_SECRET" \
+        --channel=unlisted \
+        && SIGNING_OK=true || true
+
+    UNLISTED_XPI=$(ls web-ext-artifacts/*.xpi 2>/dev/null | head -n 1)
+
+    if [ "$SIGNING_OK" = true ] && [ -n "$UNLISTED_XPI" ]; then
+        echo -e "${GREEN}✓${NC} Signing klaar: $(basename $UNLISTED_XPI)"
+
+        # Kopieer naar vaste naam voor GitHub
+        cp "$UNLISTED_XPI" Promedico-Helper-Dev.xpi
+        echo -e "${GREEN}✓${NC} Dev XPI: Promedico-Helper-Dev.xpi"
+
+        # SHA256 hash
+        if command -v sha256sum &> /dev/null; then
+            HASH=$(sha256sum Promedico-Helper-Dev.xpi | awk '{print $1}')
+        elif command -v shasum &> /dev/null; then
+            HASH=$(shasum -a 256 Promedico-Helper-Dev.xpi | awk '{print $1}')
+        else
+            warn "SHA256 tool niet gevonden — update_hash weggelaten"
+            HASH=""
+        fi
+        [ -n "$HASH" ] && echo -e "${GREEN}✓${NC} Hash: $HASH"
+
+        # updates.json bijwerken — testpc pikt deze automatisch op
+        cat > firefox/updates.json << EOF
+{
+  "addons": {
+    "promedico-helper-dev@degrotedokter": {
+      "updates": [
+        {
+          "version": "$NEW_VERSION",
+          "update_link": "https://github.com/Sthroos/Huisarts-scripts/raw/main/Promedico-ASP/Promedico-Helper-Dev.xpi"$([ -n "$HASH" ] && echo ",
+          \"update_hash\": \"sha256:$HASH\"")
+        }
+      ]
+    }
+  }
+}
+EOF
+        echo -e "${GREEN}✓${NC} updates.json bijgewerkt"
+    else
+        warn "Firefox unlisted signing mislukt — testpc krijgt geen auto-update"
+        UNLISTED_XPI=""
+    fi
+else
+    echo -e "${YELLOW}⚠${NC} Overgeslagen — geen AMO credentials"
+fi
+
+# ─── Stap 4: Pakketten klaarmaken ────────────────────────────────────────────
+echo ""
+echo -e "${GREEN}[4/7]${NC} Distributiepakketten maken..."
 
 (cd dist/chrome && zip -r "$OLDPWD/Promedico-Helper-Chrome.zip" . -x "*.DS_Store" > /dev/null)
 echo -e "${GREEN}✓${NC} Chrome/Edge ZIP: Promedico-Helper-Chrome.zip"
+echo -e "${GREEN}✓${NC} Firefox listed:  dist/firefox.zip        ← upload op addons.mozilla.org"
+echo -e "${GREEN}✓${NC} Firefox dev:     dist/firefox-dev.zip    ← sleep naar Firefox Developer Edition"
 
-echo -e "${GREEN}✓${NC} Firefox-dev ZIP: dist/firefox-dev.zip  ← sleep naar Firefox Developer Edition"
-echo -e "${GREEN}✓${NC} Firefox listed:  dist/firefox/         ← upload handmatig naar AMO"
-
-# ─── Stap 4: Edge publishing ─────────────────────────────────────────────────
+# ─── Stap 5: Edge publishing ─────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[4/6]${NC} Microsoft Edge Add-ons publiceren..."
+echo -e "${GREEN}[5/7]${NC} Microsoft Edge Add-ons publiceren..."
 
 EDGE_PUBLISHED=false
 EDGE_DRAFT_ONLY=false
@@ -433,9 +503,9 @@ else
     echo -e "${YELLOW}⚠${NC} Overgeslagen — geen geldige Edge credentials"
 fi
 
-# ─── Stap 5: Chrome publishing ───────────────────────────────────────────────
+# ─── Stap 6: Chrome publishing ───────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[5/6]${NC} Chrome Web Store publiceren..."
+echo -e "${GREEN}[6/7]${NC} Chrome Web Store publiceren..."
 
 CHROME_PUBLISHED=false
 if [ "$CHROME_OK" = true ]; then
@@ -455,21 +525,28 @@ else
     echo -e "${YELLOW}⚠${NC} Overgeslagen — geen geldige Chrome credentials"
 fi
 
-# ─── Stap 6: GitHub push ─────────────────────────────────────────────────────
+# ─── Stap 7: GitHub push ─────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}[6/6]${NC} Pushen naar GitHub..."
+echo -e "${GREEN}[7/7]${NC} Pushen naar GitHub..."
 
 SCRIPT_DIR="$(pwd)"
 REL_DIR="$(basename $SCRIPT_DIR)"
 cd "$REPO_ROOT"
 
 GITIGNORE="$REL_DIR/.gitignore"
-for IGNORE_ENTRY in "dist/" "web-ext-artifacts/" "*.xpi" "*.zip" ".env"; do
+for IGNORE_ENTRY in "dist/" "web-ext-artifacts/" "*.zip" ".env"; do
     if [ ! -f "$GITIGNORE" ] || ! grep -qxF "$IGNORE_ENTRY" "$GITIGNORE" 2>/dev/null; then
         echo "$IGNORE_ENTRY" >> "$GITIGNORE"
         echo -e "${GREEN}✓${NC} Toegevoegd aan .gitignore: $IGNORE_ENTRY"
     fi
 done
+
+# XPI's wél op GitHub zetten (Promedico-Helper-Dev.xpi voor auto-updates)
+# Zorg dat *.xpi niet in .gitignore staat
+if grep -qxF "*.xpi" "$GITIGNORE" 2>/dev/null; then
+    grep -v "^\*\.xpi$" "$GITIGNORE" > "$GITIGNORE.tmp" && mv "$GITIGNORE.tmp" "$GITIGNORE"
+    echo -e "${GREEN}✓${NC} *.xpi uit .gitignore verwijderd (XPI moet op GitHub staan)"
+fi
 
 if git ls-files --error-unmatch "$REL_DIR/dist/" &>/dev/null 2>&1; then
     git rm -r --cached "$REL_DIR/dist/" > /dev/null 2>&1 || true
@@ -493,6 +570,19 @@ echo -e "${GREEN}✓ Release $NEW_VERSION afgerond${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
 echo ""
 
+if [ -n "$UNLISTED_XPI" ]; then
+    echo -e "${GREEN}Firefox unlisted:${NC}  Promedico-Helper-Dev.xpi gepusht naar GitHub"
+    echo -e "                   → testpc krijgt auto-update via updates.json"
+else
+    echo -e "${YELLOW}Firefox unlisted:${NC}  NIET gesigneerd — testpc krijgt geen auto-update"
+fi
+
+echo ""
+echo -e "${BLUE}Firefox listed:${NC}    Upload handmatig op addons.mozilla.org:"
+echo "               https://addons.mozilla.org/developers/"
+echo "               Upload: dist/firefox.zip"
+
+echo ""
 if [ "$EDGE_PUBLISHED" = true ]; then
     echo -e "${GREEN}Edge Add-ons:${NC}      Gepubliceerd via API ✓ (staat in review bij Microsoft)"
 elif [ "$EDGE_DRAFT_ONLY" = true ]; then
@@ -515,13 +605,7 @@ else
 fi
 
 echo ""
-echo -e "${BLUE}Firefox listed:${NC}    Upload handmatig op addons.mozilla.org:"
-echo "               https://addons.mozilla.org/developers/"
-echo "               Upload: dist/firefox/ als ZIP"
-echo "               (AMO regelt updates automatisch voor listed extensies)"
-
-echo ""
-echo -e "${YELLOW}Firefox-dev:${NC}       dist/firefox-dev.zip ← sleep naar Firefox Developer Edition"
+echo -e "${YELLOW}Firefox dev:${NC}       dist/firefox-dev.zip ← sleep naar Firefox Developer Edition"
 
 if [ ${#WARNINGS[@]} -gt 0 ]; then
     echo ""

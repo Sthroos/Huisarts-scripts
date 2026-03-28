@@ -5,7 +5,6 @@ node_modules/
 *.swp
 
 # Wel committen: Promedico-Helper-*.xpi en Promedico-Helper-*.zip
-*.xpi
 *.zip
 !Promedico-Helper-Scripts.xpi
 !Promedico-Helper-Chrome.zip
