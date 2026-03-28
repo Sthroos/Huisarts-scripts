@@ -6,22 +6,21 @@
 #   ./build.sh                    # bouwt alle targets
 #   ./build.sh firefox            # listed build voor AMO (handmatig uploaden)
 #   ./build.sh firefox-unlisted   # unlisted build voor testpc (AMO signing, auto-updates)
-#   ./build.sh firefox-dev        # debug build voor lokaal slepen (ongezind)
+#   ./build.sh firefox-dev        # debug build voor lokaal slepen (ongetekend)
 #   ./build.sh chrome             # Chrome/Edge build
-#   ./build.sh all                # zelfde als geen argument
 #
 # OUTPUT:
 #   dist/firefox/           → zip en upload handmatig naar addons.mozilla.org (listed)
 #   dist/firefox.zip        → kant-en-klaar voor AMO upload
 #   dist/firefox-unlisted/  → input voor AMO signing (--channel=unlisted)
-#   dist/firefox-dev/       → lokaal testen (ongezind)
+#   dist/firefox-dev/       → lokaal testen (ongetekend)
 #   dist/firefox-dev.zip    → sleep naar Firefox Developer Edition
 #   dist/chrome/            → input voor release.sh (Edge + Chrome Web Store)
 #
 # FIREFOX VERSIES:
-#   listed    → promedico-helper@degrotedokter       — officiële store versie
+#   listed    → promedico-helper-dev@degrotedokter   — officiële store versie
 #   unlisted  → promedico-helper-dev@degrotedokter   — testpc, auto-updates via updates.json
-#   dev       → promedico-helper-dev@degrotedokter   — lokaal, ongezind
+#   dev       → promedico-helper-dev@degrotedokter   — lokaal, ongetekend
 
 set -e
 
@@ -33,6 +32,7 @@ NC='\033[0m'
 
 TARGET=${1:-"all"}
 BUILD_DIR="dist"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 VALID_TARGETS=("all" "firefox" "firefox-unlisted" "firefox-dev" "chrome")
 if [[ ! " ${VALID_TARGETS[@]} " =~ " $TARGET " ]]; then
@@ -74,7 +74,7 @@ copy_browser_files() {
 
 # ─── TARGET: firefox (listed — handmatig uploaden op AMO) ─────────────────────
 # Geen update_url — AMO regelt updates zelf voor listed extensies
-# Extension ID: promedico-helper@degrotedokter
+# Extension ID: promedico-helper-dev@degrotedokter
 build_firefox() {
     echo -e "${GREEN}► firefox${NC}  (listed — handmatig uploaden op AMO)"
     local OUT="$BUILD_DIR/firefox"
@@ -84,12 +84,13 @@ build_firefox() {
 import json, sys
 path = sys.argv[1]
 m = json.load(open(path))
+m['browser_specific_settings']['gecko']['id'] = 'promedico-helper-dev@degrotedokter'
 m['browser_specific_settings']['gecko'].pop('update_url', None)
 json.dump(m, open(path, 'w'), indent=2, ensure_ascii=False)
 PYEOF
     local ZIP="$BUILD_DIR/firefox.zip"
     rm -f "$ZIP"
-    (cd "$OUT" && zip -r "$OLDPWD/$ZIP" . -x "*.DS_Store" > /dev/null)
+    (cd "$OUT" && zip -r "$SCRIPT_DIR/$ZIP" . -x "*.DS_Store" > /dev/null)
     echo -e "  ${GREEN}✓${NC} $OUT/"
     echo -e "  ${GREEN}✓${NC} $ZIP  ← upload op addons.mozilla.org"
 }
@@ -117,7 +118,7 @@ PYEOF
     echo -e "  ${GREEN}✓${NC} $OUT/  ← input voor AMO signing (release.sh)"
 }
 
-# ─── TARGET: firefox-dev (lokaal, ongezind) ───────────────────────────────────
+# ─── TARGET: firefox-dev (lokaal, ongetekend) ───────────────────────────────────
 # - Geen signing nodig, gewoon slepen naar Firefox Developer Edition
 # - Zelfde DEV extension ID zodat hij de unlisted versie vervangt als die er al is
 build_firefox_dev() {
@@ -136,7 +137,7 @@ json.dump(m, open(path, 'w'), indent=2, ensure_ascii=False)
 PYEOF
     local ZIP="$BUILD_DIR/firefox-dev.zip"
     rm -f "$ZIP"
-    (cd "$OUT" && zip -r "$OLDPWD/$ZIP" . -x "*.DS_Store" > /dev/null)
+    (cd "$OUT" && zip -r "$SCRIPT_DIR/$ZIP" . -x "*.DS_Store" > /dev/null)
     echo -e "  ${GREEN}✓${NC} $OUT/"
     echo -e "  ${GREEN}✓${NC} $ZIP  ← sleep naar Firefox Developer Edition"
 }
