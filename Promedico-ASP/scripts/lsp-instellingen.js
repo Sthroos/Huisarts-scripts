@@ -1,9 +1,6 @@
 (function() {
     'use strict';
 
-    // Track if we're in an automated registration flow
-    let isAutomatedRegistration = false;
-
     // Create custom styled confirmation dialog
     function createConfirmationDialog() {
         return new Promise((resolve) => {
@@ -188,8 +185,24 @@
         }
 
         try {
-            // Wait for popup to appear
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Wacht actief tot één van beide panels zichtbaar is (max 10s)
+            // Vervangt de vaste 500ms wacht - werkt ook bij een trage server
+            await new Promise((resolve, reject) => {
+                const startTime = Date.now();
+                const interval = setInterval(() => {
+                    const pre = document.getElementById('OptInViewPrerequisitesPanel');
+                    const inp = document.getElementById('OptInViewInputPanel');
+                    if ((pre && pre.style.display !== 'none') ||
+                        (inp && inp.style.display !== 'none')) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                    if (Date.now() - startTime > 10000) {
+                        clearInterval(interval);
+                        reject(new Error('Timeout: LSP panels niet verschenen'));
+                    }
+                }, 100);
+            });
 
             // Check which panel is visible
             const prerequisitesPanel = document.getElementById('OptInViewPrerequisitesPanel');
@@ -250,9 +263,6 @@
                     return;
                 }
 
-                // Mark that we're in automated registration flow
-                isAutomatedRegistration = true;
-
                 // Select the appropriate radio button
                 const radioButtonId = choice === 'ja'
                     ? 'PanelOptInInputLine3-rbAkkoordJa-input'
@@ -312,19 +322,12 @@
                         if (closeButton) {
                             closeButton.click();
                         }
-
-                        isAutomatedRegistration = false;
-                    } else {
-                        isAutomatedRegistration = false;
                     }
-                } else {
-                    isAutomatedRegistration = false;
                 }
             }
 
         } catch (error) {
             console.error('Error in LSP automation:', error);
-            isAutomatedRegistration = false;
         }
     }
 

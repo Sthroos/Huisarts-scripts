@@ -1,6 +1,9 @@
 (function() {
     'use strict';
 
+    // Cross-browser compatibility
+    const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
+
     // Template definitions
     const templates = {
         'CRP aanvragen': {
@@ -8,6 +11,45 @@
         },
         'BVO': {
             action: 'bvo'
+        },
+        'ZN Formulieren': {
+            submenu: {
+                'Liraglutide / Saxenda': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/liraglutide',
+                    P: 'Liraglutide (Saxenda) voorgeschreven, ZN formulier gemaakt en gemaild naar de apotheek.'
+                },
+                'Naltrexon / Bupropion': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/naltrexon-bupropion',
+                    P: 'Naltrexon/bupropion voorgeschreven, ZN formulier gemaakt en gemaild naar de apotheek.'
+                },
+                'GLP-1 agonist met insuline': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/glp-1-agonist-met-insuline',
+                    P: 'GLP-1 agonist voorgeschreven (met insuline), ZN formulier gemaakt en gemaild naar de apotheek.'
+                },
+                'Tirzepatide (Mounjaro) met insuline': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/lixisenatide-tirzepatide-met-insuline',
+                    P: 'Tirzepatide (Mounjaro) voorgeschreven (met insuline), ZN formulier gemaakt en gemaild naar de apotheek.'
+                },
+                'GLP-1 agonist zonder insuline': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/glp-1-agonist-zonder-insuline',
+                    P: 'GLP-1 agonist voorgeschreven (zonder insuline), ZN formulier gemaakt en gemaild naar de apotheek.'
+                },
+                'Tirzepatide (Mounjaro) zonder insuline': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/lixisenatide-tirzepatide-zonder-insuline',
+                    P: 'Tirzepatide (Mounjaro) voorgeschreven (zonder insuline), ZN formulier gemaakt en gemaild naar de apotheek.'
+                },
+                'Obesitas (liraglutide)': {
+                    action: 'zneller',
+                    znellerUrl: 'https://www.zneller.nl/formulier/liraglutide',
+                    P: 'Liraglutide voorgeschreven voor obesitas, ZN formulier gemaakt en gemaild naar de apotheek.'
+                }
+            }
         },
         'PMDD': {
             P: 'Patiënt geadviseerd een vervolgafspraak op het spreekuur te maken via Praat met de Dokter; mag zelf een moment inplannen.'
@@ -68,14 +110,12 @@
     function extractBSN() {
         let topBar = null;
 
-        // Try parent window
         try {
             if (window.parent && window.parent.document) {
                 topBar = window.parent.document.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
             }
         } catch(e) {}
 
-        // Try top window
         if (!topBar) {
             try {
                 if (window.top && window.top.document) {
@@ -84,7 +124,6 @@
             } catch(e) {}
         }
 
-        // Try current document
         if (!topBar) {
             topBar = document.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
         }
@@ -97,17 +136,13 @@
             }
         }
 
-        // Fallback: search entire page text
         const searchWindows = [window.parent, window.top, window];
-
         for (let i = 0; i < searchWindows.length; i++) {
             try {
                 const win = searchWindows[i];
                 if (!win || !win.document || !win.document.body) continue;
-
                 const pageText = win.document.body.innerText;
                 const bsnMatch = pageText.match(/BSN:\s*(\d{9})/);
-
                 if (bsnMatch && bsnMatch[1]) {
                     return bsnMatch[1];
                 }
@@ -115,6 +150,51 @@
         }
 
         return null;
+    }
+
+    // Extract patient data for ZNeller
+    function extractPatientData() {
+        const data = {};
+        const topDoc = window.top.document;
+
+        const patientInfoDiv = topDoc.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
+        if (patientInfoDiv) {
+            const infoText = patientInfoDiv.textContent.trim();
+            const parts = infoText.split('/').map(s => s.trim());
+            if (parts.length >= 3) {
+                data.naam = parts[0];
+                const dobMatch = parts[2].match(/(\d{2}-\d{2}-\d{4})/);
+                if (dobMatch) {
+                    data.geboortedatum = dobMatch[1];
+                }
+            }
+        }
+
+        const addressDiv = topDoc.getElementById('PanelPatientDossierBarCore-lblPersoonAddressInfo');
+        if (addressDiv) {
+            let addressText = addressDiv.textContent.trim().replace(/📋/g, '').trim();
+            const addressParts = addressText.split(',').map(s => s.trim());
+            if (addressParts.length >= 3) {
+                data.straat = addressParts[0];
+                data.postcode = addressParts[1];
+                data.gemeente = addressParts[2];
+            }
+        }
+
+        return data;
+    }
+
+    // Open ZNeller with patient data pre-filled
+    function sendToZNeller(url) {
+        const data = extractPatientData();
+        browserAPI.storage.local.set({
+            'zneller_patient_data': JSON.stringify(data),
+            'zneller_timestamp': Date.now()
+        }).then(() => {
+            window.open(url, '_blank');
+        }).catch(error => {
+            console.error('[ZNeller] Error storing data:', error);
+        });
     }
 
     // Insert text into O, E, or P field
@@ -125,14 +205,12 @@
             return;
         }
 
-        // Add text on new line if field already has content
         if (field.value.trim()) {
             field.value += '\n' + text;
         } else {
             field.value = text;
         }
 
-        // Trigger change event
         field.dispatchEvent(new Event('change', { bubbles: true }));
         field.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -149,11 +227,9 @@
             insertText('contactForm.regelP', template.P);
         }
 
-        // Handle ICPC code if present
         if (template.icpc) {
             const icpcCode = template.icpc;
 
-            // Fill ICPC code field FIRST, before opening popup
             const icpcField = document.getElementById('icpcCodeERegel');
             if (icpcField) {
                 icpcField.value = icpcCode;
@@ -162,40 +238,33 @@
                 icpcField.dispatchEvent(new Event('blur', { bubbles: true }));
             }
 
-            // Wait for ICPC field to be processed, THEN trigger the search popup
             setTimeout(() => {
                 if (typeof popUpERegelICPC === 'function') {
                     popUpERegelICPC();
 
-                    // Poll to find the ICPC iframe after popup opens
                     let attempts = 0;
                     const pollInterval = setInterval(() => {
                         attempts++;
-
                         const icpcFrame = findICPCFrame(window.top);
-
                         if (icpcFrame) {
                             try {
                                 if (icpcFrame.document.readyState === 'complete' &&
                                     typeof icpcFrame.save === 'function') {
-
                                     clearInterval(pollInterval);
                                     icpcFrame.save(icpcCode);
                                 }
-                            } catch (e) {
-                            }
+                            } catch (e) {}
                         }
-
                         if (attempts > 20) {
                             clearInterval(pollInterval);
                         }
-                    }, 300); // Check every 300ms
+                    }, 300);
                 }
             }, 600);
         }
     }
 
-    // CRP action - copy BSN and open POCTConnect
+    // CRP action
     function executeCRPAction() {
         const bsn = extractBSN();
 
@@ -204,11 +273,9 @@
             return;
         }
 
-        // Copy BSN to clipboard
         try {
             navigator.clipboard.writeText(bsn);
 
-            // Show confirmation
             const notification = document.createElement('div');
             notification.textContent = 'BSN gekopieerd!';
             notification.style.cssText = `
@@ -224,13 +291,7 @@
                 box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             `;
             document.body.appendChild(notification);
-
-            // Remove notification after 2 seconds
-            setTimeout(() => {
-                notification.remove();
-            }, 2000);
-
-            // Navigate to POCTConnect
+            setTimeout(() => { notification.remove(); }, 2000);
             setTimeout(() => {
                 window.open('https://www.poctconnect.nl/ui/#/order/patient/search', '_blank');
             }, 500);
@@ -242,8 +303,7 @@
 
     // Helper function to find ICPC popup iframe recursively
     function findICPCFrame(win, depth = 0) {
-        if (depth > 5) return null; // Prevent infinite recursion
-
+        if (depth > 5) return null;
         try {
             if (win.location.href.includes('medischdossier.journaal.icpc.m')) {
                 return win;
@@ -252,20 +312,16 @@
                 const result = findICPCFrame(win.frames[i], depth + 1);
                 if (result) return result;
             }
-        } catch (e) {
-            // Cross-origin or access denied - skip this frame
-        }
+        } catch (e) {}
         return null;
     }
 
-    // BVO action - fill fields, open URL, fill ICPC code, and trigger search
+    // BVO action
     function executeBVOAction() {
-        // Fill O, E, and P fields
         insertText('contactForm.regelO', 'Uitstrijkje lege artis afgenomen, geen bijzonderheden a vue');
         insertText('contactForm.regelE', 'Bevolkingsonderzoek baarmoederhalskanker');
         insertText('contactForm.regelP', 'Uitstrijkje wordt opgehaald door koerier, zorgdomein verwijzing gemaakt. Patient krijgt uitslag thuis.');
 
-        // Fill ICPC code FIRST
         const icpcField = document.getElementById('icpcCodeERegel');
         if (icpcField) {
             icpcField.value = 'X49';
@@ -274,58 +330,53 @@
             icpcField.dispatchEvent(new Event('blur', { bubbles: true }));
         }
 
-        // Wait for ICPC field to be processed, THEN trigger the search popup
         setTimeout(() => {
             if (typeof popUpERegelICPC === 'function') {
                 popUpERegelICPC();
 
-                // Poll to find the ICPC iframe after popup opens
                 let attempts = 0;
                 const pollInterval = setInterval(() => {
                     attempts++;
-
                     const icpcFrame = findICPCFrame(window.top);
-
                     if (icpcFrame) {
                         try {
                             if (icpcFrame.document.readyState === 'complete' &&
                                 typeof icpcFrame.save === 'function') {
-
                                 clearInterval(pollInterval);
                                 icpcFrame.save('X49');
-
-                                // Open URL only AFTER save() succeeds
                                 setTimeout(() => {
                                     window.open('https://app.medischelogistiek.nl/#/home', '_blank');
                                 }, 300);
                             }
-                        } catch (e) {
-                        }
+                        } catch (e) {}
                     }
-
                     if (attempts > 20) {
                         clearInterval(pollInterval);
-                        console.error('Gave up waiting for ICPC iframe after 20 attempts');
                     }
-                }, 300); // Check every 300ms
+                }, 300);
             }
         }, 600);
     }
 
+    // Execute ZNeller action: fill P field + open ZNeller
+    function executeZNellerAction(template) {
+        if (template.P) {
+            insertText('contactForm.regelP', template.P);
+        }
+        sendToZNeller(template.znellerUrl);
+    }
+
     // Create styled menu
     function createMenu() {
-        // Find the P field to place button below it
         const pField = document.getElementById('contactForm.regelP');
         if (!pField) {
             return;
         }
 
-        // Check if button already exists
         if (document.getElementById('sjablonenMenuButton')) {
             return;
         }
 
-        // Create menu button
         const menuButton = document.createElement('button');
         menuButton.id = 'sjablonenMenuButton';
         menuButton.type = 'button';
@@ -342,7 +393,6 @@
             font-weight: 500;
         `;
 
-        // Hover effects
         menuButton.addEventListener('mouseenter', () => {
             menuButton.style.backgroundColor = '#45a049';
         });
@@ -350,7 +400,6 @@
             menuButton.style.backgroundColor = '#4CAF50';
         });
 
-        // Create dropdown menu
         const dropdown = document.createElement('div');
         dropdown.id = 'sjablonenDropdown';
         dropdown.style.cssText = `
@@ -364,7 +413,6 @@
             overflow: hidden;
         `;
 
-        // Track the currently visible submenu and its hide-timer globally within this menu
         let activeSubmenu = null;
         let activeSubmenuItem = null;
         let submenuHideTimer = null;
@@ -411,7 +459,6 @@
             `;
             item.textContent = key;
 
-            // Hover effect for non-submenu items
             item.addEventListener('mouseenter', () => {
                 item.style.backgroundColor = '#f5f5f5';
             });
@@ -419,12 +466,9 @@
                 item.style.backgroundColor = 'white';
             });
 
-            // Click handler
             if (template.submenu) {
-                // Add arrow indicator
                 item.textContent = key + ' ›';
 
-                // Create submenu
                 const submenu = document.createElement('div');
                 submenu.className = 'soep-submenu';
                 submenu.style.cssText = `
@@ -459,7 +503,13 @@
 
                     subItem.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        applyTemplate(subTemplate);
+
+                        if (subTemplate.action === 'zneller') {
+                            executeZNellerAction(subTemplate);
+                        } else {
+                            applyTemplate(subTemplate);
+                        }
+
                         dropdown.style.display = 'none';
                         hideActiveSubmenu();
                     });
@@ -467,23 +517,19 @@
                     submenu.appendChild(subItem);
                 });
 
-                // Show this submenu, hide any other that was open
                 item.addEventListener('mouseenter', () => {
                     item.style.backgroundColor = '#f5f5f5';
                     cancelHideTimer();
 
-                    // Close any other open submenu immediately
                     if (activeSubmenu && activeSubmenu !== submenu) {
                         hideActiveSubmenu();
                     }
 
-                    // Position submenu next to the item
                     const rect = item.getBoundingClientRect();
                     const submenuWidth = 250;
                     const windowWidth = window.innerWidth;
                     const windowHeight = window.innerHeight;
 
-                    // Horizontal: prefer right, fall back to left
                     let left;
                     if ((rect.right + 5 + submenuWidth) > windowWidth) {
                         left = rect.left - submenuWidth - 5;
@@ -491,7 +537,6 @@
                         left = rect.right + 5;
                     }
 
-                    // Vertical: align to item top, but clamp so it doesn't go off-screen
                     submenu.style.display = 'block';
                     const submenuHeight = submenu.offsetHeight;
                     let top = rect.top;
@@ -519,7 +564,6 @@
                     scheduleHide(200);
                 });
 
-                // Append submenu to body
                 document.body.appendChild(submenu);
 
             } else if (template.action === 'crp') {
@@ -533,7 +577,6 @@
                     dropdown.style.display = 'none';
                 });
             } else {
-                // Regular template - fill O, E, P fields
                 item.addEventListener('click', () => {
                     applyTemplate(template);
                     dropdown.style.display = 'none';
@@ -543,22 +586,18 @@
             dropdown.appendChild(item);
         });
 
-        // Toggle dropdown
         menuButton.addEventListener('click', (e) => {
             e.stopPropagation();
             const isVisible = dropdown.style.display === 'block';
 
-            // Close any open submenu when toggling
             hideActiveSubmenu();
             dropdown.style.display = isVisible ? 'none' : 'block';
 
             if (!isVisible) {
-                // Position dropdown below button, clamp if it goes off-screen
                 const rect = menuButton.getBoundingClientRect();
                 dropdown.style.top  = (rect.bottom + 5) + 'px';
                 dropdown.style.left = rect.left + 'px';
 
-                // After rendering, check if it clips at the bottom
                 requestAnimationFrame(() => {
                     const ddRect = dropdown.getBoundingClientRect();
                     if (ddRect.bottom > window.innerHeight) {
@@ -569,12 +608,10 @@
             }
         });
 
-        // Close dropdown when clicking outside
         document.addEventListener('click', () => {
             dropdown.style.display = 'none';
         });
 
-        // Insert button after P field
         if (pField.nextSibling) {
             pField.parentNode.insertBefore(menuButton, pField.nextSibling);
         } else {
@@ -582,12 +619,10 @@
         }
 
         document.body.appendChild(dropdown);
-
     }
 
     // Wait for content to load
     function initialize() {
-
         const checkInterval = setInterval(() => {
             if (document.getElementById('contactForm.regelP')) {
                 clearInterval(checkInterval);
@@ -595,13 +630,11 @@
             }
         }, 500);
 
-        // Stop checking after 10 seconds
         setTimeout(() => {
             clearInterval(checkInterval);
         }, 10000);
     }
 
-    // Start when page loads
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {

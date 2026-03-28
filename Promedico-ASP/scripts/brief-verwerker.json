@@ -1,0 +1,6 @@
+{
+  "id": "briefVerwerker",
+  "name": "Brief Verwerker",
+  "description": "Extraheert automatisch SOEP-velden uit binnenkomende brieven (HAP, specialisten)",
+  "enabled": true
+}

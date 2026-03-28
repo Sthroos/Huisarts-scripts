@@ -11,13 +11,18 @@
         { id: '175',             code: 'V2',   label: 'Visite regulier 20 min en langer',   color: '#0275d8', hover: '#025aa5', type: 'contact'   },
         { id: '307',             code: 'VITK', label: 'Intensieve zorg overdag',            color: '#9b59b6', hover: '#7d3c98', type: 'contact'   },
         // ── Handelingen (stapelen altijd) ──────────────────────────────────────
-        { id: '1063', code: 'CRP',  pmCode: 'CRPCAS', label: 'Materiaalkosten CRP-sneltest',       color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
-        { id: '283',  code: 'MMSE',               label: 'Cognitieve functietest (MMSE)',      color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
-        { id: '265',  code: 'DIP',                label: 'Materiaalkosten dipslides',          color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
-        { id: '267',  code: 'STI',                label: 'Materiaalkosten vloeibaar stikstof', color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
-        { id: '285',  code: 'CHI',                label: 'Chirurgie',                          color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
-        { id: '296',  code: 'INJ',  pmCode: 'COR',    label: 'Therapeutische injectie (Cyriax)',   color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
-        { id: '279',  code: 'ECG',                label: 'ECG-diagnostiek',                    color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '1063',              code: 'CRP',  pmCode: 'CRPCAS', label: 'Materiaalkosten CRP-sneltest',                                    color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
+        { id: '283',               code: 'MMSE',                   label: 'Cognitieve functietest (MMSE)',                                    color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '265',               code: 'DIP',                    label: 'Materiaalkosten dipslides',                                        color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
+        { id: '267',               code: 'STI',                    label: 'Materiaalkosten vloeibaar stikstof',                               color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
+        { id: '285',               code: 'CHI',                    label: 'Chirurgie',                                                        color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '296',               code: 'INJ',  pmCode: 'COR',    label: 'Therapeutische injectie (Cyriax)',                                 color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '279',               code: 'ECG',                    label: 'ECG-diagnostiek',                                                  color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '253',               code: 'BVO',  pmCode: 'BCU',    label: 'Uitstrijkje (BCU)',                                                color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
+        { id: '266',               code: 'GLUC', pmCode: 'BSS',    label: 'Materiaalkosten teststrips bloedsuikerbepaling diabetespatiënten', color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
+        { id: '315',               code: 'IUD',                    label: 'IUD/implantatiestaafje aanbrengen of verwijderen',                 color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '297',               code: 'OOG',  pmCode: 'OOGB',   label: 'Oogboring',                                                        color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
+        { id: '653259001796612',   code: 'SPEC',                   label: 'Meedenkadvies medisch specialistische zorg',                       color: '#9b59b6', hover: '#7d3c98', type: 'handeling' },
     ];
 
     const HANDELING_CODES = new Set([
@@ -27,15 +32,16 @@
         'COM', 'IUD', 'POFA', 'PACT', 'PACV', 'EUT', 'GHMO', 'GHVZ', 'VIDK',
     ]);
 
-    const PENDING_DELETES_KEY = 'pmh_pending_deletes';
-    const PENDING_SKIP_ID_KEY = 'pmh_pending_skip_id';
+    // Sleutel voor het nieuwe contacttype dat toegevoegd is (te bewaren, niet verwijderen)
+    const PENDING_SKIP_CODE_KEY = 'pmh_pending_skip_code';
+    // Vlag zodat we weten dat we actief aan het opruimen zijn
+    const PENDING_CLEANUP_KEY  = 'pmh_pending_cleanup';
 
     function isPageReady(iframeDoc) {
         if (!iframeDoc.contactform) return false;
         const token = iframeDoc.querySelector('input[name="r_token"]');
         if (!token || !token.value) return false;
         if (!iframeDoc.getElementById('Script_Verrichting toevoegen')) return false;
-        if (!iframeDoc.querySelector('.verrichting-quick-buttons')) return false;
         return true;
     }
 
@@ -54,37 +60,29 @@
     }
 
     function checkPendingDeletes(iframeDoc, iframeWin) {
-        const raw = sessionStorage.getItem(PENDING_DELETES_KEY);
-        if (!raw) return;
-
+        if (!sessionStorage.getItem(PENDING_CLEANUP_KEY)) return;
         if (!isPageReady(iframeDoc)) return;
-
-        let queue;
-        try { queue = JSON.parse(raw); } catch(e) { sessionStorage.removeItem(PENDING_DELETES_KEY); return; }
-        if (!queue.length) { sessionStorage.removeItem(PENDING_DELETES_KEY); return; }
 
         const deleteVerrichtingFn = iframeWin.deleteContactVerrichting;
         if (typeof deleteVerrichtingFn !== 'function') return;
 
-        const skipId = sessionStorage.getItem(PENDING_SKIP_ID_KEY);
+        const skipCode = sessionStorage.getItem(PENDING_SKIP_CODE_KEY) || '';
         const huidige = getHuidigeVerrichtingen(iframeDoc);
-        const aanwezigeIds = new Set(huidige.map(v => v.verrichtingId));
-        const nogTeVerwijderen = queue.filter(id => aanwezigeIds.has(id) && id !== skipId);
 
-        if (!nogTeVerwijderen.length) {
-            sessionStorage.removeItem(PENDING_DELETES_KEY);
-            sessionStorage.removeItem(PENDING_SKIP_ID_KEY);
+        // Verwijder één contacttype dat niet de nieuwe keuze is en geen handeling is
+        const teVerwijderen = huidige.find(v =>
+            v.code !== skipCode && !HANDELING_CODES.has(v.code)
+        );
+
+        if (!teVerwijderen) {
+            // Klaar — alles opgeruimd
+            sessionStorage.removeItem(PENDING_CLEANUP_KEY);
+            sessionStorage.removeItem(PENDING_SKIP_CODE_KEY);
             return;
         }
 
-        const [first, ...rest] = nogTeVerwijderen;
-        if (rest.length) {
-            sessionStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(rest));
-        } else {
-            sessionStorage.removeItem(PENDING_DELETES_KEY);
-            sessionStorage.removeItem(PENDING_SKIP_ID_KEY);
-        }
-        deleteVerrichtingFn(first);
+        // Verwijder één per keer; na herlaad pakt de interval de volgende
+        deleteVerrichtingFn(teVerwijderen.verrichtingId);
     }
 
     function handleVerrichtingClick(verrichting, iframeDoc, iframeWin) {
@@ -93,13 +91,11 @@
 
         if (verrichting.type === 'contact') {
             const huidige = getHuidigeVerrichtingen(iframeDoc);
-            const teVerwijderen = huidige
-                .filter(({ code }) => !HANDELING_CODES.has(code))
-                .map(({ verrichtingId }) => verrichtingId);
-
-            if (teVerwijderen.length) {
-                sessionStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(teVerwijderen));
-                sessionStorage.setItem(PENDING_SKIP_ID_KEY, verrichting.id);
+            const erZijnContacttypen = huidige.some(({ code }) => !HANDELING_CODES.has(code));
+            if (erZijnContacttypen) {
+                // Sla de code van het nieuwe contacttype op als "niet verwijderen"
+                sessionStorage.setItem(PENDING_SKIP_CODE_KEY, verrichting.code);
+                sessionStorage.setItem(PENDING_CLEANUP_KEY, '1');
             }
         }
 
@@ -115,12 +111,12 @@
             ? '\n(vervangt bestaand contacttype)'
             : '\n(wordt opgestapeld)');
         btn.style.cssText = `
-            height: 24px; padding: 0 6px; margin: 0 2px;
+            height: 20px; padding: 0 5px; margin: 0 2px;
             background-color: ${verrichting.color}; color: white;
             border: 1px solid ${verrichting.color}; border-radius: 3px;
             cursor: pointer; font-family: Arial, sans-serif;
-            font-size: 12px; font-weight: bold;
-            line-height: 24px; vertical-align: middle; white-space: nowrap;
+            font-size: 11px; font-weight: bold;
+            line-height: 20px; vertical-align: middle; white-space: nowrap;
         `;
         btn.addEventListener('mouseenter', () => { btn.style.backgroundColor = verrichting.hover; btn.style.borderColor = verrichting.hover; });
         btn.addEventListener('mouseleave', () => { btn.style.backgroundColor = verrichting.color; btn.style.borderColor = verrichting.color; });
@@ -144,16 +140,25 @@
 
         const container = document.createElement('div');
         container.className = 'verrichting-quick-buttons';
-        container.style.cssText = 'margin-bottom: 6px; white-space: nowrap;';
+        container.style.cssText = 'margin-bottom: 6px;';
 
-        const label = document.createElement('span');
-        label.textContent = 'Snel: ';
-        label.style.cssText = 'font-size: 11px; color: #555; margin-right: 4px; vertical-align: middle; font-family: Arial, sans-serif;';
-        container.appendChild(label);
+        const maakRij = (type, labelTekst) => {
+            const rij = document.createElement('div');
+            rij.style.cssText = 'white-space: nowrap; margin-bottom: 3px; display: flex; align-items: center;';
+            const lbl = document.createElement('span');
+            lbl.textContent = labelTekst;
+            lbl.style.cssText = 'font-size: 11px; color: #555; margin-right: 4px; font-family: Arial, sans-serif; min-width: 68px; flex-shrink: 0;';
+            rij.appendChild(lbl);
+            const knoppen = document.createElement('span');
+            VERRICHTINGEN.filter(v => v.type === type).forEach(v => {
+                knoppen.appendChild(createVerrichtingButton(v, iframeDoc, iframeWin));
+            });
+            rij.appendChild(knoppen);
+            return rij;
+        };
 
-        VERRICHTINGEN.forEach(v => {
-            container.appendChild(createVerrichtingButton(v, iframeDoc, iframeWin));
-        });
+        container.appendChild(maakRij('contact',     'Consult:'));
+        container.appendChild(maakRij('handeling',   'Verrichting:'));
 
         headerTd.insertBefore(container, verrichtingHeader);
         return true;

@@ -111,86 +111,75 @@
         }
     }
 
-    // Fill the specialisme field and click Via ZorgDomein
+    // Wacht via MutationObserver op een element in een document.
+    // Roept callback(element) aan zodra het verschijnt, of onError() na timeout.
+    function waitForElementInDoc(doc, selector, callback, onError, timeout = 10000) {
+        // Al aanwezig?
+        const existing = doc.getElementById(selector.replace('#', ''));
+        if (existing) { callback(existing); return; }
+
+        let timer;
+        const observer = new MutationObserver(() => {
+            const el = doc.querySelector(selector);
+            if (!el) return;
+            observer.disconnect();
+            clearTimeout(timer);
+            callback(el);
+        });
+        observer.observe(doc.body || doc.documentElement, { childList: true, subtree: true });
+        timer = setTimeout(() => {
+            observer.disconnect();
+            if (onError) onError();
+        }, timeout);
+    }
+
+    // Fill the specialisme field and click Via ZorgDomein.
+    // Gebruikt MutationObserver zodat de flow werkt ongeacht serversnelheid.
     function fillSpecialismeAndClickZorgDomein(specialisme, callback) {
-        
-        // WAIT for the field to appear (polling with timeout)
-        let attempts = 0;
-        const maxAttempts = 20; // 20 * 250ms = 5 seconds max
-        
-        const waitForField = setInterval(() => {
-            attempts++;
-            
-            // GET FRESH IFRAME AND DOCUMENT ON EACH ATTEMPT!
-            const iframe = getContentIframe();
-            if (!iframe || !iframe.contentDocument) {
-                if (attempts >= maxAttempts) {
-                    clearInterval(waitForField);
-                    console.log('[ZD Menu] ERROR: iframe not available after', maxAttempts, 'attempts!');
-                }
-                return;
-            }
-            
-            const doc = iframe.contentDocument;
-            const specMnemField = doc.getElementById('specMnem');
-                        
-            if (specMnemField) {
-                clearInterval(waitForField);
-                
-                // OVERRIDE disableScreen - var declaratie zodat ook lokale scope-lookups werken
-                const overrideScript = doc.createElement('script');
-                overrideScript.textContent = `
-                    var disableScreen = function() {
-                        console.log('[ZD Override] disableScreen called but suppressed');
-                        return true;
-                    };
-                    var enableScreen = function() {
-                        console.log('[ZD Override] enableScreen called but suppressed');
-                        return true;
-                    };
-                    window.disableScreen = disableScreen;
-                    window.enableScreen = enableScreen;
-                `;
-                doc.head.appendChild(overrideScript);
-                overrideScript.remove();
-        
-                // Alleen de waarde invullen - GEEN change/blur events of parseSpecialisme()
-                // want die triggeren ongewenst de brief-sjabloonkeuze navigatie
+        // Na de "Verwijzen" klik laadt het iframe een nieuwe pagina.
+        // We luisteren naar het iframe load-event zodat we zeker het nieuwe document observeren.
+        const iframe = getContentIframe();
+        if (!iframe) {
+            console.log('[ZD Menu] ERROR: iframe niet gevonden');
+            return;
+        }
+
+        function proceedWithDoc(doc) {
+            // Override disableScreen zodat de flow niet geblokkeerd wordt
+            const overrideScript = doc.createElement('script');
+            overrideScript.textContent = `
+                var disableScreen = function() { return true; };
+                var enableScreen  = function() { return true; };
+                window.disableScreen = disableScreen;
+                window.enableScreen  = enableScreen;
+            `;
+            doc.head.appendChild(overrideScript);
+            overrideScript.remove();
+
+            // Wacht op specMnem via MutationObserver
+            waitForElementInDoc(doc, '#specMnem', (specMnemField) => {
+                console.log('[ZD Menu] specMnem gevonden, specialisme invullen:', specialisme);
+
+                // Alleen value + input event - geen change/blur (triggert brief-sjabloonkeuze)
                 specMnemField.value = specialisme;
                 specMnemField.dispatchEvent(new Event('input', { bubbles: true }));
 
-                // Nu de "Via ZorgDomein" button triggeren
-                // Strategie: lees onclick-string uit, strip disableScreen() eruit, eval het
-                // Dit is robuuster dan button.click() (vermijdt de disableScreen TypeError)
-                setTimeout(() => {
+                // Wacht op "Via ZorgDomein" knop via MutationObserver
+                waitForElementInDoc(doc, '#action_via\ zorgDomein', (button) => {
+                    console.log('[ZD Menu] Via ZorgDomein knop gevonden, klikken');
+
                     const script2 = doc.createElement('script');
                     script2.textContent = `
-                        // Override disableScreen als top-level var én window property
-                        var disableScreen = function() {
-                            console.log('[ZD Override] disableScreen suppressed (script2)');
-                            return true;
-                        };
-                        var enableScreen = function() { return true; };
+                        var disableScreen = function() { return true; };
+                        var enableScreen  = function() { return true; };
                         window.disableScreen = disableScreen;
-                        window.enableScreen = enableScreen;
-
+                        window.enableScreen  = enableScreen;
                         (function() {
                             var button = document.getElementById('action_via zorgDomein');
-                            if (!button) {
-                                console.log('[ZD Menu Script] ERROR: Via ZorgDomein button niet gevonden!');
-                                return;
-                            }
-                            // Haal onclick-string op en verwijder alle disableScreen()-aanroepen
-                            var onclickStr = button.getAttribute('onclick') || '';
-                            console.log('[ZD Menu Script] onclick:', onclickStr.substring(0, 100));
-                            // Roep koppelNaarZorgDomeinNaValidatieSpecialisme direct aan
-                            // als dat in de onclick staat - negeer de rest (disableScreen etc.)
+                            if (!button) { console.log('[ZD] Via ZorgDomein niet gevonden'); return; }
                             if (typeof koppelNaarZorgDomeinNaValidatieSpecialisme === 'function') {
-                                console.log('[ZD Menu Script] Calling koppelNaarZorgDomeinNaValidatieSpecialisme');
                                 koppelNaarZorgDomeinNaValidatieSpecialisme();
                             } else {
-                                // Fallback: button.click() - disableScreen is al overridden als var
-                                console.log('[ZD Menu Script] Fallback: button.click()');
                                 button.click();
                             }
                         })();
@@ -198,52 +187,80 @@
                     doc.head.appendChild(script2);
                     script2.remove();
 
-                    setTimeout(() => {
-                        clickScriptZorgDomein(callback);
-                    }, 500);
-                }, 400);
-                
-            } else if (attempts >= maxAttempts) {
-                clearInterval(waitForField);
-                console.log('[ZD Menu] ERROR: specMnemField not found after', maxAttempts, 'attempts!');
+                    // Wacht op Script_ZorgDomein in het (opnieuw geladen) iframe
+                    clickScriptZorgDomein(callback);
+
+                }, () => {
+                    console.log('[ZD Menu] ERROR: Via ZorgDomein knop niet gevonden binnen timeout');
+                });
+
+            }, () => {
+                console.log('[ZD Menu] ERROR: specMnem niet gevonden binnen timeout');
+            });
+        }
+
+        // Als het iframe al geladen is met de juiste pagina, direct doorgaan.
+        // Anders wachten op het load-event (na de Verwijzen-klik).
+        try {
+            const currentDoc = iframe.contentDocument;
+            if (currentDoc && currentDoc.getElementById('specMnem')) {
+                proceedWithDoc(currentDoc);
+            } else {
+                iframe.addEventListener('load', function onLoad() {
+                    iframe.removeEventListener('load', onLoad);
+                    proceedWithDoc(iframe.contentDocument);
+                });
             }
-        }, 250); // Check every 250ms
+        } catch(e) {
+            // Cross-origin fout (mag niet voorkomen), fallback naar load-event
+            iframe.addEventListener('load', function onLoad() {
+                iframe.removeEventListener('load', onLoad);
+                proceedWithDoc(iframe.contentDocument);
+            });
+        }
     }
 
- // Click the Script_ZorgDomein button - wacht op URL-change naar koppeling/zorgdomein
+    // Wacht via MutationObserver op Script_ZorgDomein knop in het iframe.
+    // Het iframe laadt opnieuw na de "Via ZorgDomein" klik, dus opnieuw load-event gebruiken.
     function clickScriptZorgDomein(callback) {
-        let attempts = 0;
-        const maxAttempts = 40; // 40 * 250ms = 10 seconden (ruimer voor trage pc's)
+        const iframe = getContentIframe();
+        if (!iframe) {
+            console.log('[ZD] ERROR: iframe niet gevonden voor Script_ZorgDomein stap');
+            return;
+        }
 
-        const poll = setInterval(() => {
-            attempts++;
-
-            const iframe = getContentIframe();
-            if (!iframe || !iframe.contentDocument) {
-                if (attempts >= maxAttempts) {
-                    clearInterval(poll);
-                    console.log('[ZD] ERROR: iframe weg na Via ZorgDomein klik');
-                }
-                return;
-            }
-
-            const doc = iframe.contentDocument;
+        function waitForButton(doc) {
             const url = doc.location?.href || '';
-            const zorgDomeinButton = doc.getElementById('Script_ZorgDomein');
+            console.log('[ZD] Wacht op Script_ZorgDomein in:', url);
 
-            if (zorgDomeinButton) {
-                clearInterval(poll);
-                console.log('[ZD] Script_ZorgDomein gevonden op:', url);
-                zorgDomeinButton.click();
+            waitForElementInDoc(doc, '#Script_ZorgDomein', (btn) => {
+                console.log('[ZD] Script_ZorgDomein gevonden, klikken');
+                btn.click();
                 if (callback) callback();
-            } else if (attempts >= maxAttempts) {
-                clearInterval(poll);
-                console.log('[ZD] ERROR: Script_ZorgDomein niet gevonden na', maxAttempts, 'pogingen. Laatste URL:', url);
-                console.log('[ZD] All inputs/buttons:', 
+            }, () => {
+                console.log('[ZD] ERROR: Script_ZorgDomein niet gevonden binnen timeout. URL:', url);
+                console.log('[ZD] Beschikbare knoppen:',
                     [...doc.querySelectorAll('input[type=submit],button,td.actie')]
                     .map(e => `${e.tagName} id="${e.id}" text="${e.textContent.trim().slice(0,30)}"`));
+            });
+        }
+
+        try {
+            const currentDoc = iframe.contentDocument;
+            if (currentDoc && currentDoc.getElementById('Script_ZorgDomein')) {
+                waitForButton(currentDoc);
+            } else {
+                iframe.addEventListener('load', function onLoad() {
+                    iframe.removeEventListener('load', onLoad);
+                    waitForButton(iframe.contentDocument);
+                });
             }
-        }, 250);
+        } catch(e) {
+            iframe.addEventListener('load', function onLoad() {
+                iframe.removeEventListener('load', onLoad);
+                waitForButton(iframe.contentDocument);
+            });
+        }
     }
 
     // Create the Zorgdomein button

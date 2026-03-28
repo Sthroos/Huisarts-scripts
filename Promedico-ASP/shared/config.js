@@ -136,6 +136,14 @@ const SCRIPT_CONFIG = [
     injectMode: 'main_world'
   },
   {
+    id: 'briefVerwerker',
+    name: 'Brief Verwerker',
+    description: 'Extraheert automatisch SOEP-velden uit binnenkomende brieven (HAP, specialisten)',
+    enabled: true,
+    scriptFile: 'scripts/brief-verwerker.js',
+    urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+  },
+  {
     id: 'verrichtingQuickButtons',
     name: 'Verrichting Quick Buttons',
     description: 'Snel verrichtingen toevoegen via knoppen op het declaratiescherm',

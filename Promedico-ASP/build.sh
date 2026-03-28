@@ -3,23 +3,25 @@
 # Promedico ASP Helper - Build Script
 #
 # GEBRUIK:
-#   ./build.sh                        # bouwt alle targets (firefox, firefox-dev, chrome)
-#   ./build.sh firefox                # stabiele Firefox build (voor release)
+#   ./build.sh                        # bouwt alle targets (firefox, firefox-unlisted, firefox-dev, chrome)
+#   ./build.sh firefox                # stabiele Firefox build ZONDER update_url (voor AMO listed)
+#   ./build.sh firefox-unlisted       # Firefox build MET update_url (voor GitHub/zelfhosting)
 #   ./build.sh firefox-dev            # debug Firefox build (voor lokaal testen via zip)
 #   ./build.sh chrome                 # Chrome/Edge build (voor release + unpacked testen)
 #   ./build.sh all                    # zelfde als geen argument
 #
 # MAPPENSTRUCTUUR:
-#   shared/         → gedeelde bestanden (config, popup, loader, icons, scripts)
+#   shared/         → gedeelde bestanden (config, popup, icons, scripts)
 #   firefox/        → Firefox-specifiek (manifest MV2, content.js, background.js, updates.json)
-#   chrome/         → Chrome-specifiek (manifest MV3, content.js, background.js, shim.js)
+#   chrome/         → Chrome-specifiek (manifest MV3, content.js, background.js)
 #   scripts/        → alle userscripts (gedeeld)
 #
 # OUTPUT:
-#   dist/firefox/       → input voor release.sh (AMO signing)
-#   dist/firefox-dev/   → voor lokaal testen in Firefox Developer
-#   dist/firefox-dev.zip → kant-en-klaar voor installatie
-#   dist/chrome/        → unpacked laden in Chrome/Edge, of input voor release.sh
+#   dist/firefox/           → AMO listed signing (zonder update_url)
+#   dist/firefox-unlisted/  → AMO unlisted signing (met update_url, voor GitHub distributie)
+#   dist/firefox-dev/       → voor lokaal testen in Firefox Developer
+#   dist/firefox-dev.zip    → kant-en-klaar voor installatie
+#   dist/chrome/            → unpacked laden in Chrome/Edge, of input voor release.sh
 
 set -e
 
@@ -32,10 +34,10 @@ NC='\033[0m'
 TARGET=${1:-"all"}
 BUILD_DIR="dist"
 
-VALID_TARGETS=("all" "firefox" "firefox-dev" "chrome")
+VALID_TARGETS=("all" "firefox" "firefox-unlisted" "firefox-dev" "chrome")
 if [[ ! " ${VALID_TARGETS[@]} " =~ " $TARGET " ]]; then
     echo -e "${RED}Onbekend target: $TARGET${NC}"
-    echo "Gebruik: ./build.sh [all|firefox|firefox-dev|chrome]"
+    echo "Gebruik: ./build.sh [all|firefox|firefox-unlisted|firefox-dev|chrome]"
     exit 1
 fi
 
@@ -53,7 +55,6 @@ copy_shared() {
     cp shared/config.js   "$OUT/"
     cp shared/popup.html  "$OUT/"
     cp shared/popup.js    "$OUT/"
-    cp shared/loader.js   "$OUT/"
     cp shared/icons/*     "$OUT/icons/"
     cp scripts/*.js       "$OUT/scripts/"
     cp scripts/*.json     "$OUT/scripts/"
@@ -69,15 +70,32 @@ copy_browser_files() {
     cp "$BROWSER_DIR/content.js"     "$OUT/"
 
     # Optionele bestanden
-    [ -f "$BROWSER_DIR/shim.js" ]                  && cp "$BROWSER_DIR/shim.js"                  "$OUT/" || true
     [ -f "$BROWSER_DIR/storage-bridge-client.js" ] && cp "$BROWSER_DIR/storage-bridge-client.js" "$OUT/" || true
     [ -f "$BROWSER_DIR/updates.json" ]             && cp "$BROWSER_DIR/updates.json"             "$OUT/" || true
 }
 
-# ─── TARGET: firefox (stabiel, voor AMO release) ──────────────────────────────
+# ─── TARGET: firefox (listed — voor AMO, zonder update_url) ───────────────────
 build_firefox() {
-    echo -e "${GREEN}► firefox${NC}  (stabiel — voor release)"
+    echo -e "${GREEN}► firefox${NC}  (listed — voor AMO, zonder update_url)"
     local OUT="$BUILD_DIR/firefox"
+    copy_shared "$OUT"
+    copy_browser_files "firefox" "$OUT"
+    # Zorg dat update_url er NIET in zit (AMO-vereiste voor listed extensies)
+    python3 - "$OUT/manifest.json" << 'PYEOF'
+import json, sys
+path = sys.argv[1]
+m = json.load(open(path))
+m['browser_specific_settings']['gecko'].pop('update_url', None)
+json.dump(m, open(path, 'w'), indent=2, ensure_ascii=False)
+PYEOF
+    echo -e "  ${GREEN}✓${NC} $OUT/"
+}
+
+# ─── TARGET: firefox-unlisted (voor GitHub distributie) ───────────────────────
+# Manifest wordt ongewijzigd gekopieerd — update_url staat al in firefox/manifest.json
+build_firefox_unlisted() {
+    echo -e "${GREEN}► firefox-unlisted${NC}  (unlisted — voor GitHub, met update_url)"
+    local OUT="$BUILD_DIR/firefox-unlisted"
     copy_shared "$OUT"
     copy_browser_files "firefox" "$OUT"
     echo -e "  ${GREEN}✓${NC} $OUT/"
@@ -100,7 +118,7 @@ path = sys.argv[1]
 m = json.load(open(path))
 m['name'] = m['name'] + ' [DEV]'
 m['browser_specific_settings']['gecko']['id'] = 'promedico-helper-dev@degrotedokter'
-del m['browser_specific_settings']['gecko']['update_url']
+m['browser_specific_settings']['gecko'].pop('update_url', None)
 json.dump(m, open(path, 'w'), indent=2, ensure_ascii=False)
 PYEOF
 
@@ -127,12 +145,15 @@ mkdir -p "$BUILD_DIR"
 case "$TARGET" in
     firefox)
         build_firefox ;;
+    firefox-unlisted)
+        build_firefox_unlisted ;;
     firefox-dev)
         build_firefox_dev ;;
     chrome)
         build_chrome ;;
     all)
         build_firefox
+        build_firefox_unlisted
         build_firefox_dev
         build_chrome
         ;;
@@ -143,8 +164,9 @@ echo -e "${GREEN}✓ Build klaar!${NC}"
 echo ""
 
 # Overzicht
-[[ "$TARGET" == "all" || "$TARGET" == "firefox"     ]] && echo -e "  ${GREEN}Firefox stabiel:${NC}  $BUILD_DIR/firefox/" || true
-[[ "$TARGET" == "all" || "$TARGET" == "firefox-dev" ]] && echo -e "  ${BLUE}Firefox debug:${NC}    $BUILD_DIR/firefox-dev/   +   $BUILD_DIR/firefox-dev.zip" || true
-[[ "$TARGET" == "all" || "$TARGET" == "chrome"      ]] && echo -e "  ${GREEN}Chrome/Edge:${NC}      $BUILD_DIR/chrome/" || true
+[[ "$TARGET" == "all" || "$TARGET" == "firefox"          ]] && echo -e "  ${GREEN}Firefox listed:${NC}    $BUILD_DIR/firefox/           (AMO, geen update_url)" || true
+[[ "$TARGET" == "all" || "$TARGET" == "firefox-unlisted" ]] && echo -e "  ${GREEN}Firefox unlisted:${NC}  $BUILD_DIR/firefox-unlisted/  (GitHub, met update_url)" || true
+[[ "$TARGET" == "all" || "$TARGET" == "firefox-dev"      ]] && echo -e "  ${BLUE}Firefox debug:${NC}     $BUILD_DIR/firefox-dev/   +   $BUILD_DIR/firefox-dev.zip" || true
+[[ "$TARGET" == "all" || "$TARGET" == "chrome"           ]] && echo -e "  ${GREEN}Chrome/Edge:${NC}       $BUILD_DIR/chrome/" || true
 echo ""
 exit 0

@@ -20,17 +20,20 @@ _api.runtime.onInstalled.addListener(() => {
   console.log('[Promedico Helper] Installed - version', _api.runtime.getManifest().version);
 });
 
-// Toon DEV badge in ontwikkelaarsmodus of tijdelijke installatie
-_api.management.getSelf().then(info => {
-  const isDev = info.installType === 'development' || info.installType === 'temporary';
-  if (isDev) {
-    const _actionApi = _api.action || _api.browserAction;
-    if (_actionApi) {
-      _actionApi.setBadgeText({ text: 'DEV' });
-      _actionApi.setBadgeBackgroundColor({ color: '#cc0000' });
-    }
+// Toon DEV badge als extensie lokaal/tijdelijk is geladen of een dev-build is
+// NB: Firefox AMO voegt update_url niet automatisch toe, vandaar de naamcheck
+// - Firefox dev/GitHub: naam bevat '[DEV]' (toegevoegd door build.sh) → DEV badge
+// - Chrome/Firefox store: heeft update_url → geen DEV badge
+// - Lokaal unpacked: geen update_url → DEV badge
+const _manifest = _api.runtime.getManifest();
+const _isDev = _manifest.name.includes('[DEV]') || !_manifest.update_url;
+if (_isDev) {
+  const _actionApi = _api.action || _api.browserAction;
+  if (_actionApi) {
+    _actionApi.setBadgeText({ text: 'DEV' });
+    _actionApi.setBadgeBackgroundColor({ color: '#cc0000' });
   }
-});
+}
 
 // Berichtenhandler voor content scripts en popup
 _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -44,17 +47,4 @@ _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message.type === 'injectScript') {
-    const tabId = sender.tab.id;
-    if (_api.scripting) {
-      _api.scripting.executeScript({
-        target: { tabId },
-        files: [message.file]
-      }).catch(err => console.error('Injection failed:', err));
-    } else {
-      _api.tabs.executeScript(tabId, { file: message.file })
-        .catch(err => console.error('Injection failed:', err));
-    }
-    return false;
-  }
 });
