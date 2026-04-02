@@ -166,34 +166,6 @@ Verwerkt alle openstaande herhaalrecepten automatisch één voor één.
 
 ---
 
-## 9. Inschrijven en MEDOVD Import
-
-Dit script bevat meerdere functies:
-
-### 9a. Extra menu-items (Patiënt-menu)
-
-Voegt twee items toe aan het Patiënt-menu: **MEDOVD import** en **Nieuwe patiënt**.
-
-### 9b. Favorieten-menu
-
-Voegt een aanpasbaar **★ Favorieten**-menu toe aan de navigatiebalk. Aanpassen via **✎ Bewerken** onderaan het menu. In andere menu's verschijnt een ★-sterretje om items toe te voegen.
-
-### 9c. Menu openen met hover
-
-Het hoofdmenu opent automatisch bij hoveren en sluit na ±0,6 seconden.
-
-### 9d. MEDOVD Import drag & drop
-
-Sleep een `.edi`-bestand én een `.zip`-bestand tegelijk naar de MEDOVD-importpagina — het script plaatst ze in de juiste velden en klikt op *Bestand inlezen*.
-
-### 9e. Patiëntformulier automatisch invullen
-
-Knop **Informatie vullen** op de patiëntgegevens-pagina. Vult het formulier automatisch in op basis van geplakte tekst.
-
-> **Let op:** De naam *"E.A. Westerbeek"* is hardcoded als huisarts-selectie — aanpassen naar jouw naam.
-
----
-
 ## 9. Brief Verwerker
 
 **Waar te vinden:** Werkt automatisch op de **Berichten verwerkingspagina** (Werklijst → Berichten → bericht verwerken).
@@ -247,7 +219,35 @@ Plaatst automatisch de initialen van de ingelogde gebruiker in het S-veld zodra 
 
 ---
 
-## 11. Meetwaarden Highlights (2 regels)
+## 11. Inschrijven en MEDOVD Import
+
+Dit script bevat meerdere functies:
+
+### 11a. Extra menu-items (Patiënt-menu)
+
+Voegt twee items toe aan het Patiënt-menu: **MEDOVD import** en **Nieuwe patiënt**.
+
+### 11b. Favorieten-menu
+
+Voegt een aanpasbaar **★ Favorieten**-menu toe aan de navigatiebalk. Aanpassen via **✎ Bewerken** onderaan het menu. In andere menu's verschijnt een ★-sterretje om items toe te voegen.
+
+### 11c. Menu openen met hover
+
+Het hoofdmenu opent automatisch bij hoveren en sluit na ±0,6 seconden.
+
+### 11d. MEDOVD Import drag & drop
+
+Sleep een `.edi`-bestand én een `.zip`-bestand tegelijk naar de MEDOVD-importpagina — het script plaatst ze in de juiste velden en klikt op *Bestand inlezen*.
+
+### 11e. Patiëntformulier automatisch invullen
+
+Knop **Informatie vullen** op de patiëntgegevens-pagina. Vult het formulier automatisch in op basis van geplakte tekst.
+
+> **Let op:** De naam *"E.A. Westerbeek"* is hardcoded als huisarts-selectie — aanpassen naar jouw naam.
+
+---
+
+## 12. Meetwaarden Highlights (2 regels)
 
 **Waar te vinden:** Werkt automatisch op pagina's met meetwaarden bij **onderzoek uitvoeren**.
 
@@ -264,7 +264,7 @@ Bij patiënten van 75 jaar of ouder ook: Aanwijzingen kwetsbaarheid (ouderenzorg
 
 ---
 
-## 12. Copy Phone, Email, BSN, Address
+## 13. Copy Phone, Email, BSN, Address
 
 **Waar te vinden:** In de **patiëntbalk** bovenaan het scherm.
 
@@ -273,7 +273,7 @@ Voegt **📋-kopieerknopjes** toe naast geboortedatum, telefoonnummer(s), e-mail
 
 ---
 
-## 13. LSP-instellingen
+## 14. LSP-instellingen
 
 **Waar te vinden:** Via de **Opt-in**-knop in de patiëntbalk.
 
@@ -282,7 +282,7 @@ Automatiseert LSP-toestemming via een dialoog met drie knoppen: **Ja**, **Nee** 
 
 ---
 
-## 14. P veld herinneringen
+## 15. P veld herinneringen
 
 **Waar te vinden:** Werkt automatisch in het **P-veld** van het SOEP-formulier.
 
@@ -295,7 +295,7 @@ Toont een gele pop-up herinnering bij bepaalde trefwoorden:
 
 ---
 
-## 15. Promedico Crash Recovery
+## 16. Promedico Crash Recovery
 
 **Waar te vinden:** Rode knop **💥 Consult Invoeren Na Crash** rechtsbovenin het SOEP-formulier.
 
@@ -304,7 +304,7 @@ Plak eerder getypte SOEP-tekst in het popup-veld en klik **Invoegen** — het sc
 
 ---
 
-## 16. SOEP Measurements
+## 17. SOEP Measurements
 
 **Waar te vinden:** Inklapbaar paneel **📊 Metingen** bovenaan het SOEP-formulier.
 
@@ -313,7 +313,7 @@ Meetwaardenpaneel voor gewicht, lengte, RR, pols, saturatie en temperatuur. BMI 
 
 ---
 
-## 17. SOEP Sjablonen
+## 18. SOEP Sjablonen
 
 **Waar te vinden:** Groene knop **Sjablonen** naast het P-veld.
 
@@ -330,7 +330,7 @@ Meetwaardenpaneel voor gewicht, lengte, RR, pols, saturatie en temperatuur. BMI 
 
 ---
 
-## 18. Verrichting Quick Buttons
+## 19. Verrichting Quick Buttons
 
 **Waar te vinden:** Boven de sectie *Verrichtingen* in het **declaratiescherm**.
 
@@ -342,7 +342,7 @@ Meetwaardenpaneel voor gewicht, lengte, RR, pols, saturatie en temperatuur. BMI 
 
 ---
 
-## 19. Zneller Formulieren
+## 20. Zneller Formulieren
 
 **Waar te vinden:** Werkt automatisch in het **P-veld** van het SOEP-formulier.
 
@@ -358,7 +358,7 @@ Klik op de link in de balloon → zneller.nl opent met patiëntgegevens automati
 
 ---
 
-## 20. Zorgdomein Quick Menu
+## 21. Zorgdomein Quick Menu
 
 **Waar te vinden:** Knop **Zorgdomein** in de actiebalk van het Journaal/consult-scherm.
 
@@ -373,7 +373,7 @@ Navigeert direct naar een specifieke ZorgDomein-verwijzingspagina. Beschikbare c
 
 ### Configuratie-aandachtspunten (***aan te passen per praktijk***)
 
-- **Script 9e:** De naam *"E.A. Westerbeek"* is hardcoded als huisarts-selectie
+- **Script 11e:** De naam *"E.A. Westerbeek"* is hardcoded als huisarts-selectie
 - **Script 20:** ZorgDomein-URL's zijn gekoppeld aan specifieke aanbieders
 
 ### Aan/uitzetten van scripts
