@@ -38,6 +38,7 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 | E-consult Template Responses | Vaste antwoordteksten voor e-consulten |
 | Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow |
 | Inschrijven en MEDOVD Import | Favorieten menu + inschrijven/MEDOVD automatisering |
+| Brief Verwerker | Extraheert automatisch SOEP-velden uit binnenkomende brieven (HAP, specialisten) |
 | Initialen in S-veld | Plaatst automatisch je initialen in het S-veld bij het openen van een consult |
 | Meetwaarden Highlights (2 regels) | Twee-regelweergave bij meetwaarden in ketenzorg |
 | Copy Phone, Email, BSN, Address | Kopieerknopjes voor patientgegevens |
