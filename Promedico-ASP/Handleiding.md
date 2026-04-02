@@ -14,18 +14,19 @@ Deze handleiding beschrijft alle scripts van de Promedico ASP Helper extensie. E
 6. [Verplaats en Verberg Delen](#6-verplaats-en-verberg-delen)
 7. [E-consult Template Responses](#7-e-consult-template-responses)
 8. [Herhaalrecepten Verwerken](#8-herhaalrecepten-verwerken)
-9. [Initialen in S-veld](#9-initialen-in-s-veld)
-10. [Inschrijven en MEDOVD Import](#10-inschrijven-en-medovd-import)
-11. [Meetwaarden Highlights (2 regels)](#11-meetwaarden-highlights-2-regels)
-12. [Copy Phone, Email, BSN, Address](#12-copy-phone-email-bsn-address)
-13. [LSP-instellingen](#13-lsp-instellingen)
-14. [P veld herinneringen](#14-p-veld-herinneringen)
-15. [Promedico Crash Recovery](#15-promedico-crash-recovery)
-16. [SOEP Measurements](#16-soep-measurements)
-17. [SOEP Sjablonen](#17-soep-sjablonen)
-18. [Verrichting Quick Buttons](#18-verrichting-quick-buttons)
-19. [Zneller Formulieren](#19-zneller-formulieren)
-20. [Zorgdomein Quick Menu](#20-zorgdomein-quick-menu)
+9. [Brief Verwerker](#9-brief-verwerker)
+10. [Initialen in S-veld](#10-initialen-in-s-veld)
+11. [Inschrijven en MEDOVD Import](#11-inschrijven-en-medovd-import)
+12. [Meetwaarden Highlights (2 regels)](#12-meetwaarden-highlights-2-regels)
+13. [Copy Phone, Email, BSN, Address](#13-copy-phone-email-bsn-address)
+14. [LSP-instellingen](#14-lsp-instellingen)
+15. [P veld herinneringen](#15-p-veld-herinneringen)
+16. [Promedico Crash Recovery](#16-promedico-crash-recovery)
+17. [SOEP Measurements](#17-soep-measurements)
+18. [SOEP Sjablonen](#18-soep-sjablonen)
+19. [Verrichting Quick Buttons](#19-verrichting-quick-buttons)
+20. [Zneller Formulieren](#20-zneller-formulieren)
+21. [Zorgdomein Quick Menu](#21-zorgdomein-quick-menu)
 
 ---
 
@@ -62,19 +63,19 @@ Zoekt automatisch naar berichten die als spam worden beschouwd en verwijdert ze 
 4. Promedico toont zijn eigen bevestigingsdialoog — klik op OK om te verwijderen
 5. Als er geen spam gevonden wordt, verschijnt een melding *"Geen spam berichten gevonden."*
 
-> **Let op:** Controleer of de spam-criteria overeenkomen met jouw praktijksituatie. De script verwijdert alle berichten die aan de bovenstaande criteria voldoen.
+> **Let op:** Controleer of de spam-criteria overeenkomen met jouw praktijksituatie. Het script verwijdert alle berichten die aan de bovenstaande criteria voldoen.
 
 ---
 
 ## 3. Auto-check MEDOVD & Auto-download
 
-**Waar te vinden:** Werkt automatisch op de pagina voor uitschrijving/dossieroverdracht
+**Waar te vinden:** Werkt automatisch op de pagina voor uitschrijving/dossieroverdracht.
 
 **Wat het doet:**
 Dit script doet twee dingen automatisch zodra de betreffende pagina wordt geopend:
 
 **A. Checkbox automatisch aanvinken:**
-Het veld *"Verhuisbericht patiënt"* wordt automatisch aangevinkt als dit nog niet het geval is. Dit voorkomt dat je vergeet dit vakje aan te kruisen bij het uitschrijven van een patiënt.
+Het veld *"Verhuisbericht patiënt"* wordt automatisch aangevinkt als dit nog niet het geval is.
 
 **B. Automatisch downloaden:**
 Als er downloadlinks aanwezig zijn op de pagina (MEDOVD-bestand, correspondentie-ZIP of patiëntdossier-PDF), worden deze automatisch gedownload. De bestandsnamen worden opgebouwd als:
@@ -83,7 +84,7 @@ Als er downloadlinks aanwezig zijn op de pagina (MEDOVD-bestand, correspondentie
 - `[patiëntnummer]_[datum]_Correspondentie.zip`
 - `[patiëntnummer]_[datum]_Patientdossier.pdf`
 
-Meerdere bestanden worden met een seconde tussenpauze na elkaar gedownload om de browser niet te overbelasten.
+Meerdere bestanden worden met een seconde tussenpauze na elkaar gedownload.
 
 ---
 
@@ -92,7 +93,7 @@ Meerdere bestanden worden met een seconde tussenpauze na elkaar gedownload om de
 **Waar te vinden:** Verschijnt automatisch in het **Journaal**-formulier, op de regel met *Contactsoort* en *Contactdatum*.
 
 **Wat het doet:**
-Voegt vier gekleurde snelknoppen toe waarmee je de contactsoort met één klik instelt, zonder de dropdown te hoeven openen:
+Voegt vier gekleurde snelknoppen toe waarmee je de contactsoort met één klik instelt:
 
 | Knop | Kleur | Contactsoort |
 |------|-------|--------------|
@@ -101,9 +102,6 @@ Voegt vier gekleurde snelknoppen toe waarmee je de contactsoort met één klik i
 | **T** | Oranje | T - telefonisch contact |
 | **V** | Rood | V - visite |
 
-**Hoe het werkt:**
-- Klik op de gewenste knop → de dropdown wordt automatisch ingesteld op de juiste waarde
-
 ---
 
 ## 5. Correspondentie Upload
@@ -111,45 +109,36 @@ Voegt vier gekleurde snelknoppen toe waarmee je de contactsoort met één klik i
 **Waar te vinden:** Werkt op de **Correspondentie**-pagina van een patiënt (Medisch Dossier → Correspondentie).
 
 **Wat het doet:**
-Maakt het mogelijk om een document te uploaden naar de correspondentie via **drag & drop** — sleep een bestand vanuit Windows Verkenner (of een andere file browser) direct naar het Promedico-scherm.
+Maakt het mogelijk om een document te uploaden via **drag & drop** — sleep een bestand vanuit Windows Verkenner direct naar het Promedico-scherm.
 
 **Hoe het werkt:**
 1. Open de Correspondentie-pagina van een patiënt
-2. Sleep een bestand (bijv. een PDF of brief) vanuit Verkenner naar het browservenster
-3. Er verschijnt een blauwe stippelrand als de drop-zone actief is
-4. Het bestand wordt automatisch verwerkt:
-   - De upload-wizard wordt automatisch geopend
-   - Het bestand wordt in het uploadformulier geplaatst
-   - De *Verder*-knop wordt automatisch geklikt
-   - Op de beschrijvingspagina wordt het veld **Omschrijving** automatisch gevuld met de bestandsnaam (zonder extensie)
+2. Sleep een bestand naar het browservenster
+3. De upload-wizard wordt automatisch geopend, het bestand geplaatst, en de *Verder*-knop geklikt
+4. Het veld **Omschrijving** wordt automatisch gevuld met de bestandsnaam (zonder extensie)
 5. Controleer de omschrijving, vul de afzender in en klik zelf op Opslaan
 
-> **Let op:** Slechts één bestand tegelijk; bij meerdere bestanden tegelijk verschijnt een waarschuwing.
+> **Let op:** Slechts één bestand tegelijk.
 
 ---
 
 ## 6. Verplaats en Verberg Delen
 
-**Waar te vinden:** Werkt automatisch op het **Journaal/SOEP**-formulier, in het gedeelte met de sectie *Delen*.
+**Waar te vinden:** Werkt automatisch op het **Journaal/SOEP**-formulier.
 
 **Wat het doet:**
-Standaard staat de sectie *Delen* (voor gedeelde contacten) prominent in het formulier. Dit script:
-
-1. **Verplaatst** de sectie *Delen* zodat die ná de sectie *Episode* staat in plaats van er tussenin
+1. **Verplaatst** de sectie *Delen* zodat die ná de sectie *Episode* staat
 2. **Klapt de sectie in** — de inhoud is standaard verborgen
-3. Maakt de sectie **klikbaar**: klik op de *Delen*-koptekst om de inhoud in of uit te klappen (met een ▼-pijltje als indicator)
-
-**Waarom handig:**
-De *Delen*-sectie is zelden relevant bij normale consulten en stond visueel in de weg. Met dit script staat hij uit het zicht maar is hij nog steeds bereikbaar wanneer nodig.
+3. Maakt de sectie **klikbaar** om in of uit te klappen (met een ▼-pijltje)
 
 ---
 
 ## 7. E-consult Template Responses
 
-**Waar te vinden:** Op de **E-consult**-pagina (Journaal/E-consult), naast het *Reactie(P)*-veld. Er verschijnt een blauwe knop **📝 Sjablonen**.
+**Waar te vinden:** Op de **E-consult**-pagina, naast het *Reactie(P)*-veld. Er verschijnt een blauwe knop **📝 Sjablonen**.
 
 **Wat het doet:**
-Voegt een knop toe waarmee je kant-en-klare antwoordingteksten kunt invoegen in het reactieveld van een e-consult. Je naam (zoals ingelogd in Promedico) wordt automatisch als ondertekening toegevoegd.
+Voegt kant-en-klare antwoordteksten in het reactieveld van een e-consult. Je naam wordt automatisch als ondertekening toegevoegd.
 
 **Beschikbare sjablonen:**
 
@@ -163,317 +152,193 @@ Voegt een knop toe waarmee je kant-en-klare antwoordingteksten kunt invoegen in 
 | Onvoldoende informatie | Verzoek om aanvullende informatie |
 | --- Eigen tekst --- | Leeg veld voor volledig eigen tekst |
 
-**Hoe het werkt:**
-1. Open een e-consult dat beantwoord moet worden
-2. Klik op de **📝 Sjablonen**-knop naast het reactieveld
-3. Kies het gewenste sjabloon uit het dropdown-menu
-4. De tekst wordt ingevoegd in het Reactie-veld, aangevuld met jouw naam
-5. Pas de tekst eventueel handmatig aan en sla op
-
 ---
 
 ## 8. Herhaalrecepten Verwerken
 
-**Waar te vinden:** Op de **Werklijst → Recept**-pagina (receptaanvragen). Er verschijnt een blauwe knop **⚡ Alles automatisch verwerken** naast de koptekst *Te beoordelen recept aanvragen*.
+**Waar te vinden:** Op de **Werklijst → Recept**-pagina. Er verschijnt een blauwe knop **⚡ Alles automatisch verwerken**.
 
 **Wat het doet:**
-Verwerkt alle openstaande herhaalrecepten automatisch één voor één, zonder dat je voor elk recept handmatig door de twee stappen hoeft te klikken.
+Verwerkt alle openstaande herhaalrecepten automatisch één voor één.
 
-**Hoe het werkt:**
-1. Ga naar Werklijst → Recept
-2. Klik op **⚡ Alles automatisch verwerken**
-3. Het script doorloopt elk recept automatisch:
-   - Stap 1: klikt op *Verwerken* in de werklijst
-   - Stap 2: wacht tot het herhalingsoverzicht geladen is
-   - Stap 3: klikt op de *Verwerken*-knop in het herhalingsoverzicht
-   - Keert terug naar de werklijst en herhaalt dit voor het volgende recept
-4. Onderin het scherm verschijnt een statusbalk die bijhoudt hoeveel recepten verwerkt zijn
-5. Als alle recepten klaar zijn: *"Klaar! X recept(en) verwerkt"*
-
-> **Let op:** Het script verwerkt recepten zonder beoordeling. Gebruik dit alleen als je de recepten al hebt bekeken en ze allemaal goedgekeurd wil verwerken.
+> **Let op:** Het script verwerkt recepten zonder beoordeling. Gebruik dit alleen als je de recepten al hebt bekeken.
 > **Let op:** Dit script staat standaard uit, hij werkt nog niet.
 
 ---
 
-## 9. Initialen in S-veld
-
-**Waar te vinden:** Werkt automatisch in het **S-veld** (Subjectief) van het SOEP-formulier tijdens een consult.
-
-**Wat het doet:**
-Plaatst automatisch je initialen vooraan in het S-veld zodra een consult wordt geopend. De initialen worden afgeleid van de naam waarmee je bent ingelogd in Promedico.
-
-**Voorbeelden:**
-- Sebastiaan Roos → `SR: `
-- Eline Westerbeek van Eerten → `EWE: ` (tussenvoegsel *van* wordt overgeslagen)
-
-**Hoe het werkt:**
-- Als het S-veld **leeg** is: de initialen worden vooraan geplaatst, je kunt direct verder typen
-- Als het S-veld **al tekst bevat**: de initialen worden op een nieuwe regel achteraan toegevoegd
-- Als de initialen er al in staan: het script doet niets (geen dubbele toevoeging)
-
-> **Let op:** Het script leest de ingelogde gebruikersnaam automatisch uit Promedico via de "Aangemeld als"-tekst in de bovenbalk. Tussenvoegels (van, de, den, der, het, 't, op, ten, etc.) worden automatisch genegeerd bij het berekenen van de initialen.
-
----
-
-## 10. Inschrijven en MEDOVD Import
+## 9. Inschrijven en MEDOVD Import
 
 Dit script bevat meerdere functies:
 
-### 10a. Extra menu-items (Patiënt-menu)
+### 9a. Extra menu-items (Patiënt-menu)
 
-**Waar te vinden:** Hoofdmenu → **Patiënt**-submenu.
+Voegt twee items toe aan het Patiënt-menu: **MEDOVD import** en **Nieuwe patiënt**.
 
-Voegt twee extra items toe aan het Patiënt-menu:
+### 9b. Favorieten-menu
 
-- **MEDOVD import** — opent direct het scherm voor het importeren van een MEDOVD-dossier
-- **Nieuwe patiënt** — opent direct het inschrijfformulier voor een nieuwe patiënt
+Voegt een aanpasbaar **★ Favorieten**-menu toe aan de navigatiebalk. Aanpassen via **✎ Bewerken** onderaan het menu. In andere menu's verschijnt een ★-sterretje om items toe te voegen.
 
-### 10b. Favorieten-menu
+### 9c. Menu openen met hover
 
-**Waar te vinden:** Helemaal links in de navigatiebalk, als eerste menu-item: **★ Favorieten**.
+Het hoofdmenu opent automatisch bij hoveren en sluit na ±0,6 seconden.
 
-**Wat het doet:**
-Voegt een aanpasbaar favorietenmenu toe aan de navigatiebalk, zodat je de menu-items die je het meest gebruikt met één klik bereikt.
+### 9d. MEDOVD Import drag & drop
 
-**Standaard favorieten:**
-Medisch Dossier (Zoeken, Overzicht, Uitslagen, Medicatie, Correspondentie), Patiëntgegevens, Assistenten Intake, Agenda (Berichten, E-consult, Recept), MEDOVD import, Nieuwe patiënt.
+Sleep een `.edi`-bestand én een `.zip`-bestand tegelijk naar de MEDOVD-importpagina — het script plaatst ze in de juiste velden en klikt op *Bestand inlezen*.
 
-**Favorieten aanpassen:**
-1. Open het Favorieten-menu
-2. Klik op **✎ Bewerken** onderaan het menu
-3. In het bewerkvenster kun je:
-   - Items **verslepen** om de volgorde aan te passen (sleep aan het ⠿-icoontje)
-   - Items **verwijderen** via het ✕-icoon
-   - Nieuwe items **toevoegen** via de dropdown onderaan
-4. Klik **Opslaan** om de wijzigingen op te slaan
+### 9e. Patiëntformulier automatisch invullen
 
-**Ster-icoontjes:**
-In alle andere menu's verschijnt een ★-sterretje naast elk menu-item als je erover hovert. Klik op het sterretje om een item direct toe te voegen aan of te verwijderen uit je favorieten. Een oranje ster = al een favoriet.
+Knop **Informatie vullen** op de patiëntgegevens-pagina. Vult het formulier automatisch in op basis van geplakte tekst.
 
-### 10c. Menu openen met hover
+> **Let op:** De naam *"E.A. Westerbeek"* is hardcoded als huisarts-selectie — aanpassen naar jouw naam.
 
-Het hoofdmenu opent nu automatisch als je met de muis over de menuknop beweegt (in plaats van klikken). Het menu sluit automatisch na ±0,6 seconden als de muis het menu verlaat.
+---
 
-### 10d. MEDOVD Import drag & drop
+## 9. Brief Verwerker
 
-**Waar te vinden:** Op de **MEDOVD Import**-pagina (Patiënt → MEDOVD import).
+**Waar te vinden:** Werkt automatisch op de **Berichten verwerkingspagina** (Werklijst → Berichten → bericht verwerken).
 
 **Wat het doet:**
-Maakt het mogelijk om een EDI-bestand én een ZIP-bestand tegelijk in te slepen naar de MEDOVD-importpagina. Sleep beide bestanden tegelijk op het scherm — het script plaatst ze automatisch in de juiste invoervelden en klikt op *Bestand inlezen*.
+Extraheert automatisch de relevante SOEP-velden uit binnenkomende brieven en vult deze in op de verwerkingspagina van Promedico. Dit elimineert het handmatig kopiëren en plakken van tekst uit brieven naar de juiste velden.
 
-Er verschijnt een groene stippelrand als de drop-zone actief is. Verwacht formaat: één `.edi`-bestand en één `.zip`-bestand.
+**Ondersteunde brieftypen:**
 
-### 10e. Patiëntformulier automatisch invullen
-
-**Waar te vinden:** Op de pagina **Patiëntgegevens bewerken**. Er verschijnt een knop **Informatie vullen** naast de *Terug*-knop.
-
-**Wat het doet:**
-Vult het inschrijfformulier automatisch in op basis van geplakte tekst (bijv. uit een inschrijfverzoek per e-mail of een standaardformat).
+| Brieftype | Omschrijving |
+|-----------|-------------|
+| **HAP-waarneming** (medvry31) | Vrije brief met (S)/(O)/(E)/(P)-structuur |
+| **Specialistenbrief** (medspe31) | Ziekenhuisbrieven, bijv. kinderarts, internist |
+| **Diëtist/podotherapeut** (medvry10/medspe10) | Paramedische brieven |
+| **Vrije specialistenbrief** | Brieven zonder vaste SOEP-structuur — volledige tekst als toelichting |
 
 **Hoe het werkt:**
-1. Klik op **Informatie vullen**
-2. Plak de patiëntgegevens in het tekstveld dat verschijnt
-3. Het script herkent velden als Achternaam, Voorletters, Voornamen, Tussenvoegsel, Meisjesnaam, Naam volgorde, Geboortedatum, Geboorteplaats, Geslacht, BSN, Telefoonnummer, E-mail, Beroep, Type ID bewijs, ID bewijs nummer
-4. Ingevulde velden: het script meldt hoeveel velden zijn gevuld
+1. Open een bericht via Werklijst → Berichten en klik op *Verwerken*
+2. Het script detecteert automatisch het brieftype en extraheert de inhoud
+3. Een preview-venster verschijnt met de gevonden velden (Onderwerp, S, O, E, ICPC, P)
+4. Controleer de preview en klik op **Invoegen** om de velden automatisch in te vullen
+5. De ICPC-code wordt karakter voor karakter ingetypt zodat de GWT-omschrijving-lookup correct triggert
+6. Klik daarna zelf op *Opslaan* om de verwerking af te ronden
 
-> **Let op:** Het script is nu geconfigureerd om bij het veld *Huisarts* automatisch te zoeken naar ***"E.A. Westerbeek"*** — dit is de naam van de huisarts waarvoor dit script oorspronkelijk gebouwd is. Pas dit aan in de code als jouw naam anders is. ***
+**Extra functies:**
+- Bij een **bekende patiënt** (geen modal) start het script automatisch zonder tussenkomst
+- De *Terug*-knop wordt automatisch herkend om de observer correct op te ruimen bij annuleren
+
+> **Let op:** Het script werkt op de verwerkingspagina, niet op de berichtenlijst zelf. Zorg dat je op de juiste pagina bent (verwerkingspagina met de velden Onderwerp, S, O, E, P) voordat je op Invoegen klikt.
+
+---
+
+## 10. Initialen in S-veld
+
+**Waar te vinden:** Werkt automatisch in het **S-veld** (Subjectief) van het SOEP-formulier.
+
+**Wat het doet:**
+Plaatst automatisch de initialen van de ingelogde gebruiker in het S-veld zodra het formulier geladen is. De initialen worden berekend uit de volledige naam zoals Promedico die toont bij *"Aangemeld als ..."*. Tussenvoegsels zoals *van*, *de*, *den* worden overgeslagen.
+
+**Voorbeelden:**
+
+| Naam | Initialen | Resultaat in S-veld |
+|------|-----------|---------------------|
+| Sebastiaan Roos | SR | `SR: ` |
+| Eline Westerbeek van Eerten | EWE | `EWE: ` |
+
+**Gedrag:**
+- S-veld **leeg**: initialen worden vooraan geplaatst
+- S-veld heeft al **tekst**: initialen worden op een nieuwe regel achteraan toegevoegd
+- Initialen al aanwezig: niets wordt toegevoegd
 
 ---
 
 ## 11. Meetwaarden Highlights (2 regels)
 
-**Waar te vinden:** Werkt automatisch op pagina's met meetwaarden als je klikt op **onderzoek uitvoeren** in het consultscherm.
+**Waar te vinden:** Werkt automatisch op pagina's met meetwaarden bij **onderzoek uitvoeren**.
 
 **Wat het doet:**
-Markeert bepaalde meetwaarden in **rood en vetgedrukt** die verplicht zijn voor ketenzorg, en breidt de tekst uit met een toelichting. Dit helpt om bij het invullen van een ketenzorg-consult niets te vergeten.
+Markeert verplichte ketenzorg-meetwaarden in **rood en vetgedrukt**:
 
-**Gemarkeerde meetwaarden (altijd):**
-- Systolische bloeddruk *(Vereist voor ketenzorg)*
-- Diastolische bloeddruk *(Vereist voor ketenzorg)*
-- Lichaamsbeweging vlgs norm gezond bewegn *(Vereist voor ketenzorg)*
-- Roken (inclusief vapen) *(Vereist voor ketenzorg)*
-- Aantal ernstige longaanvallen in 12 mnd *(Vereist voor ketenzorg)*
-- Inhalatietechniek *(Vereist voor ketenzorg — met herinnering over CCQ of MRC)*
+- Systolische en diastolische bloeddruk
+- Lichaamsbeweging vlgs norm gezond bewegn
+- Roken (inclusief vapen)
+- Aantal ernstige longaanvallen in 12 mnd
+- Inhalatietechniek
 
-**Gemarkeerd alleen bij patiënten van 75 jaar of ouder:**
-- Aanwijzingen kwetsbaarheid (ouderenzorg) — inclusief herinnering om ICPC A49.01 of A05 in de episodelijst te zetten als de patiënt kwetsbaar is
+Bij patiënten van 75 jaar of ouder ook: Aanwijzingen kwetsbaarheid (ouderenzorg).
 
 ---
 
 ## 12. Copy Phone, Email, BSN, Address
 
-**Waar te vinden:** Verschijnt automatisch in de **patiëntbalk** bovenaan het scherm, naast de betreffende gegevens.
+**Waar te vinden:** In de **patiëntbalk** bovenaan het scherm.
 
 **Wat het doet:**
-Voegt kleine **📋-kopieerknopjes** toe naast telefoonnummer, e-mailadres, BSN, adres en geboortedatum in de patiëntbalk. Klik op een knopje om de waarde naar het klembord te kopiëren — het knopje verandert even in ✓ ter bevestiging.
-
-**Toegevoegde kopieerknopjes:**
-
-| Gegevens | Waar |
-|----------|------|
-| Geboortedatum | Naast de datum in de patiëntinfo |
-| Telefoonnummer(s) | Naast elk telefoonnummer (ook mobiel) |
-| E-mailadres | Naast het e-mailicoontje |
-| BSN | Naast het BSN-nummer |
-| Adres | Onderaan het adresblok |
+Voegt **📋-kopieerknopjes** toe naast geboortedatum, telefoonnummer(s), e-mailadres, BSN en adres. Klik om de waarde naar het klembord te kopiëren — het knopje verandert even in ✓.
 
 ---
 
 ## 13. LSP-instellingen
 
-**Waar te vinden:** Werkt op de **patiëntbalk** bovenaan het scherm, via de **Opt-in**-knop (de knop die LSP-toestemming regelt).
+**Waar te vinden:** Via de **Opt-in**-knop in de patiëntbalk.
 
 **Wat het doet:**
-Automatiseert het registreren van LSP-toestemming (Landelijk Schakelpunt). Normaal zijn meerdere kliks en popup-dialogen nodig; dit script vereenvoudigt dat.
-
-**Hoe het werkt:**
-
-Bij een grijze Opt-in-knop (patiënt heeft nog geen LSP-instelling):
-
-1. Klik op de **Opt-in**-knop in de patiëntbalk
-2. **Als de patiënt niet voldoet aan de vereisten** (bijv. ontbrekende gegevens): het script sluit automatisch de popup en navigeert naar de patiëntgegevens-pagina zodat je de ontbrekende informatie kunt aanvullen
-3. **Als de patiënt wel voldoet**: er verschijnt een duidelijke dialoog met drie knoppen:
-   - **Ja** — registreert de patiënt als *akkoord* met LSP-deelname
-   - **Nee** — registreert de patiënt als *niet akkoord*
-   - **Annuleren** — sluit de dialoog zonder actie
-4. Na klikken op Ja of Nee: het script selecteert automatisch de juiste radioknop, klikt op *Opslaan*, wacht op bevestiging, en sluit de popup
-
-> **Let op:** Dit script werkt alleen bij grijze Opt-in-knoppen (nieuwe registraties). Bij reeds ingestelde toestemming (groene of rode knop) doet het script niets.
+Automatiseert LSP-toestemming via een dialoog met drie knoppen: **Ja**, **Nee** en **Annuleren**. Werkt alleen bij grijze Opt-in-knoppen (nieuwe registraties).
 
 ---
 
 ## 14. P veld herinneringen
 
-**Waar te vinden:** Werkt automatisch in het **P-veld** (Plan) van het SOEP-formulier tijdens een consult.
+**Waar te vinden:** Werkt automatisch in het **P-veld** van het SOEP-formulier.
 
 **Wat het doet:**
-Toont een gele pop-up herinnering als je bepaalde trefwoorden typt in het P-veld.
-
-**Huidige trigger:**
+Toont een gele pop-up herinnering bij bepaalde trefwoorden:
 
 | Trefwoord | Herinnering |
 |-----------|-------------|
 | `copd` | *"Hoort deze patient in ketenzorg?"* |
 
-De herinnering verschijnt als een kleine gele balloon onder het P-veld en verdwijnt automatisch na 5 seconden. Je kunt er ook overheen bewegen om hem langer zichtbaar te houden.
-
-> **Uitbreiden:** Wil je meer trefwoorden en herinneringen toevoegen, dan is dat eenvoudig in de broncode van dit script te doen.
-
 ---
 
 ## 15. Promedico Crash Recovery
 
-**Waar te vinden:** Verschijnt als een rode knop **💥 Consult Invoeren Na Crash** rechtsbovenin het SOEP-formulier tijdens een consult.
+**Waar te vinden:** Rode knop **💥 Consult Invoeren Na Crash** rechtsbovenin het SOEP-formulier.
 
 **Wat het doet:**
-Als Promedico crasht of niet bereikbaar is, maar je weet wel welke patient je voor je hebt, kun je met dit script de getypte SOEP-tekst alsnog snel invoeren.
-
-**Hoe het werkt:**
-1. Open het consult opnieuw na de crash
-2. Klik op de rode knop **💥 Consult Invoeren Na Crash**
-3. Er opent een popup met een groot tekstveld
-4. Plak de SOEP-tekst in het veld. Ondersteunde formaten:
-   - Met enters: `S:/ tekst` op aparte regels
-   - Op één regel: `S: tekst O: tekst E: tekst P: tekst`
-   - Scheidingstekens S, O, E en P gevolgd door `:`, `/` of `;`
-5. Optioneel: voeg bovenaan **BSN:**, **Geboortedatum:** en **Naam:** toe — het script controleert dan of de gegevens overeenkomen met de open patiënt
-6. Klik op **Invoegen** → de tekst wordt per veld in S, O, E en P geplaatst
-7. Bij een BSN- of geboortedatum-mismatch vraagt het script om bevestiging
+Plak eerder getypte SOEP-tekst in het popup-veld en klik **Invoegen** — het script verdeelt de tekst automatisch over S, O, E en P.
 
 ---
 
 ## 16. SOEP Measurements
 
-**Waar te vinden:** Verschijnt automatisch als een inklapbaar paneel **📊 Metingen** bovenaan het SOEP-formulier, vlak boven de S-regel.
+**Waar te vinden:** Inklapbaar paneel **📊 Metingen** bovenaan het SOEP-formulier.
 
 **Wat het doet:**
-Voegt een meetwaardenpaneel toe aan het SOEP-formulier waarmee je metingen kunt invoeren die direct worden opgeslagen in het Promedico-meetsysteem. Tegelijkertijd worden de ingevoerde waarden automatisch als tekstregel aan het O-veld toegevoegd.
-
-**Beschikbare meetvelden:**
-
-| Veld | Eenheid | Geldig bereik |
-|------|---------|---------------|
-| Gewicht | kg | 0,5 – 500 |
-| Lengte | cm | 20 – 250 |
-| RR Systolisch | mmHg | 40 – 300 |
-| RR Diastolisch | mmHg | 20 – 200 |
-| Pols | /min | 20 – 300 |
-| Saturatie | % | 50 – 100 |
-| Temperatuur | °C | 30 – 45 |
-
-**BMI** wordt automatisch berekend en weergegeven als gewicht én lengte zijn ingevuld.
-
-**Hoe het werkt:**
-1. Klik op het **📊 Metingen**-paneel om het open te klappen
-2. Vul de gewenste waarden in; elk veld toont ✓ of ✗ bij validatie
-3. Klik op **💾 Nu metingen opslaan** om direct op te slaan, *of*
-4. Klik gewoon op **Opslaan** of **Verder** in het SOEP-formulier — het script onderschept dit en slaat eerst de metingen op
-5. Na opslaan wordt het O-veld automatisch aangevuld met een samenvattingsregel
+Meetwaardenpaneel voor gewicht, lengte, RR, pols, saturatie en temperatuur. BMI wordt automatisch berekend. Na opslaan wordt het O-veld aangevuld met een samenvattingsregel.
 
 ---
 
 ## 17. SOEP Sjablonen
 
-**Waar te vinden:** Verschijnt als een groene knop **Sjablonen** naast het P-veld in het SOEP-formulier.
-
-**Wat het doet:**
-Voegt een dropdown-menu toe met veelgebruikte SOEP-tekstsjablonen die met één klik in de O-, E- en P-velden worden ingevoegd.
+**Waar te vinden:** Groene knop **Sjablonen** naast het P-veld.
 
 **Beschikbare sjablonen:**
 
 | Sjabloon | Actie |
 |----------|-------|
-| **CRP aanvragen** | Kopieert het BSN naar klembord en opent POCTConnect |
-| **BVO** | Vult O, E en P in voor uitstrijkje, stelt ICPC X49 in |
-| **PMDD** | Vult P in met tekst over vervolgafspraak via Praat met de Dokter |
-| **Pijn → Pcm** | Vult P in met paracetamol-advies |
-| **Pijn → NSAID** | Vult P in met ibuprofen-advies inclusief contra-indicaties |
-| **Pijn → Tramadol** | Vult P in met tramadol-tekst inclusief bijwerkingen |
-| **ECG → Normaal** | Vult O in met normaal ECG-beschrijving |
-| **ECG → Ischemie** | Vult O in met ECG-afwijking |
-| **ECG → Ritme** | Vult O in met boezemfibrilleren-beschrijving |
-| **ECG → Bundeltak** | Vult O in met LBTB-beschrijving |
-| **UWI → Normale urine** | Vult O en P in: geen afwijkingen |
-| **UWI → Urineweginfectie** | Vult O en P in met behandeladvies + ICPC U71 |
-| **UWI → Op dip gezet** | Vult O en P in: dipslide ingezet |
-| **UWI → Op kweek gestuurd** | Vult P in: urine naar kweek gestuurd |
+| **CRP aanvragen** | Kopieert BSN + opent POCTConnect |
+| **BVO** | Vult O/E/P in voor uitstrijkje + ICPC X49 + Medische Logistiek |
+| **PMDD** | Vult P in met vervolgafspraak-tekst |
+| **Pijn → Pcm / NSAID / Tramadol** | Vult P in met pijnadvies |
+| **ECG → Normaal / Ischemie / Ritme / Bundeltak** | Vult O in met ECG-beschrijving |
+| **UWI → Normaal / Infectie / Dip / Kweek** | Vult O en P in + eventueel ICPC U71 |
 
 ---
 
 ## 18. Verrichting Quick Buttons
 
-**Waar te vinden:** Verschijnt automatisch boven de sectie *Verrichtingen horende bij dit contact* in het **declaratiescherm** van een consult.
+**Waar te vinden:** Boven de sectie *Verrichtingen* in het **declaratiescherm**.
 
-**Wat het doet:**
-Voegt een rij snelknoppen toe waarmee je veelgebruikte verrichtingen met één klik kunt toevoegen.
+**Contacttype-knoppen** (vervangen huidig type): C, C2, CP, C2P, V, V2, VITK
 
-**Twee typen knoppen:**
+**Handeling-knoppen** (stapelen): CRP, MMSE, DIP, STI, CHI, INJ, ECG
 
-**Contacttype-knoppen** (groen/blauw/paars) — vervangen het huidige contacttype:
-
-| Code | Omschrijving |
-|------|-------------|
-| C | Consult regulier 5–20 min |
-| C2 | Consult regulier 20 min en langer |
-| CP | Consult passant 5–20 min |
-| C2P | Consult passant 20 min en langer |
-| V | Visite regulier korter dan 20 min |
-| V2 | Visite regulier 20 min en langer |
-| VITK | Intensieve zorg overdag |
-
-**Handeling-knoppen** (oranje/bruin) — worden gestapeld op het bestaande contacttype:
-
-| Code | Omschrijving |
-|------|-------------|
-| CRP | Materiaalkosten CRP-sneltest |
-| MMSE | Cognitieve functietest (MMSE) |
-| DIP | Materiaalkosten dipslides |
-| STI | Materiaalkosten vloeibaar stikstof |
-| CHI | Chirurgie |
-| INJ | Therapeutische injectie (Cyriax) |
-| ECG | ECG-diagnostiek |
-
-> **Let op:** Het vervangen van het contacttype is vooralsnog niet 100% betrouwbaar — let altijd op wat je doet.
+> **Let op:** Het vervangen van het contacttype is vooralsnog niet 100% betrouwbaar.
 
 ---
 
@@ -481,30 +346,26 @@ Voegt een rij snelknoppen toe waarmee je veelgebruikte verrichtingen met één k
 
 **Waar te vinden:** Werkt automatisch in het **P-veld** van het SOEP-formulier.
 
-**Wat het doet:**
-Herkent medicijnen die een ZN-formulier vereisen en toont een herinnering met een directe link naar het juiste formulier op zneller.nl. Patiëntgegevens worden automatisch ingevuld.
-
 **Triggers:**
 
-| Trefwoord in P-veld | Formulier |
-|---------------------|-----------|
+| Trefwoord | Formulier |
+|-----------|-----------|
 | `liraglutide` of `saxenda` | Liraglutide-formulier |
 | `naltrexon` of `bupropion` | Naltrexon/Bupropion-formulier |
 | `exenatide`, `dulaglutide` of `semaglutide` | GLP-1 agonist formulier |
+
+Klik op de link in de balloon → zneller.nl opent met patiëntgegevens automatisch ingevuld.
 
 ---
 
 ## 20. Zorgdomein Quick Menu
 
-**Waar te vinden:** Verschijnt als een extra knop **Zorgdomein** in de actiebalk van het **Journaal/consult**-scherm.
+**Waar te vinden:** Knop **Zorgdomein** in de actiebalk van het Journaal/consult-scherm.
 
 **Wat het doet:**
-Voegt een uitgebreid menu toe waarmee je direct vanuit Promedico naar een specifieke ZorgDomein-verwijzingspagina kunt navigeren.
+Navigeert direct naar een specifieke ZorgDomein-verwijzingspagina. Beschikbare categorieën: Diagnostiek, Paramedische zorg, Meedenkadvies/Verwijzen (alle specialismen), Aanvullende zorg, GGZ, Jeugdzorg, Verpleging, Verblijf, SCEN, Hulpmiddelen.
 
-**Beschikbare categorieën:**
-Diagnostiek, Paramedische zorg, Meedenkadvies/Verwijzen (alle specialismen), Aanvullende zorg, Geestelijke gezondheidszorg, Jeugdzorg, Verpleging en verzorging, Verblijf en wonen, SCEN arts aanvragen, Hulpmiddelen.
-
-> **Let op:** De ZorgDomein-links zijn momenteel geconfigureerd voor Saltro en Meander ziekenhuis. Pas de URL's in de broncode aan voor jouw eigen ZorgDomein-contracten.
+> **Let op:** De ZorgDomein-URL's zijn geconfigureerd voor Saltro en Meander ziekenhuis — aanpassen voor jouw regio.
 
 ---
 
@@ -512,9 +373,9 @@ Diagnostiek, Paramedische zorg, Meedenkadvies/Verwijzen (alle specialismen), Aan
 
 ### Configuratie-aandachtspunten (***aan te passen per praktijk***)
 
-- **Script 10e (Patiëntformulier invullen):** De naam *"E.A. Westerbeek"* hardcoded als huisarts-selectie — aanpassen naar jouw naam
-- **Script 20 (Zorgdomein):** De ZorgDomein-URL's zijn nu nog gekoppeld aan specifieke aanbieders — controleer of de URL's overeenkomen met jouw regio
+- **Script 9e:** De naam *"E.A. Westerbeek"* is hardcoded als huisarts-selectie
+- **Script 20:** ZorgDomein-URL's zijn gekoppeld aan specifieke aanbieders
 
 ### Aan/uitzetten van scripts
 
-Klik op het extensie-icoon (rechtsbovenin de browser) om de popup te openen. Elk script heeft een eigen schakelaar. Wijzigingen gaan direct in.
+Klik op het extensie-icoon rechtsbovenin de browser. Elk script heeft een eigen schakelaar. Wijzigingen gaan direct in.
