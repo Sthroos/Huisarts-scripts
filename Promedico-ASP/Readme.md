@@ -15,7 +15,7 @@ Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor hu
 2. Klik op **Toevoegen aan Chrome**
 
 ### Edge
-1. Ga naar [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/promedico-asp-helper/knhpdlkbbcnkdgifckaaboleenbiolgo) 
+1. Ga naar [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/promedico-asp-helper/knhpdlkbbcnkdgifckaaboleenbiolgo)
 2. Klik op **Ophalen**
 
 > **Let op:** Na een update wordt de extensie automatisch bijgewerkt via de betreffende store.
@@ -38,8 +38,9 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 | E-consult Template Responses | Vaste antwoordteksten voor e-consulten |
 | Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow |
 | Inschrijven en MEDOVD Import | Favorieten menu + inschrijven/MEDOVD automatisering |
+| Initialen in S-veld | Plaatst automatisch je initialen in het S-veld bij het openen van een consult |
 | Meetwaarden Highlights (2 regels) | Twee-regelweergave bij meetwaarden in ketenzorg |
-| Copy Phone, Email, BSN, Address | Kopieerknopjes voor patiëntgegevens |
+| Copy Phone, Email, BSN, Address | Kopieerknopjes voor patientgegevens |
 | LSP-instellingen | Snelle toegang tot LSP-instellingen |
 | P veld herinneringen | Automatische herinnering popup bij teksten in het P-veld |
 | Promedico Crash Recovery | Snel consultteksten terugplaatsen en invoeren na een crash |
@@ -51,32 +52,31 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 
 ---
 
-## Mappenstructuur (voor ontwikkelaars / build log referentie)
+## Mappenstructuur (voor ontwikkelaars)
 
 ```
 Promedico-ASP/
-├── shared/          # Gedeelde bestanden (config, popup, loader, icons)
-│   ├── config.js    # Scriptconfiguratie en GitHub-updater instellingen
+├── shared/          # Gedeelde bestanden (config, popup, icons)
+│   ├── config.js    # Scriptconfiguratie
 │   ├── popup.html   # Popup UI
 │   ├── popup.js     # Popup logica
-│   ├── loader.js    # Gedeelde loader
 │   └── icons/
 ├── firefox/         # Firefox MV2 specifiek
 │   ├── manifest.json
-│   ├── content.js   # Inline shim (toegestaan in MV2)
+│   ├── content.js
 │   ├── background.js
 │   └── updates.json
 ├── chrome/          # Chrome/Edge MV3 specifiek
 │   ├── manifest.json
-│   ├── content.js   # Shim via apart bestand (CSP vereiste)
-│   ├── background.js
+│   ├── content.js
+│   └── background.js
 ├── scripts/         # Alle userscripts (gedeeld voor beide browsers)
 │   ├── *.js
-│   └── *.json       # Metadata per script (naam, ID, URL-patronen)
+│   └── *.json       # Metadata per script
 ├── dist/            # Gegenereerd door build.sh, niet committen
 ├── build.sh         # Bouwt Firefox en Chrome distributies
-├── release.sh       # Versie bumpen, AMO signing, GitHub push
-└── .env             # AMO credentials (nooit committen!)
+├── release.sh       # Versie bumpen, signing, store publishing
+└── .env             # Credentials (nooit committen!)
 ```
 
 ---
@@ -86,8 +86,6 @@ Promedico-ASP/
 ### Vereisten
 
 ```bash
-# Node.js (voor web-ext)
-# Installeer web-ext globaal
 npm install -g web-ext
 ```
 
@@ -97,33 +95,31 @@ npm install -g web-ext
 ```bash
 cd Promedico-ASP
 ./build.sh firefox-dev
-# Installeer dist/firefox-dev.zip in Firefox Developer Edition:
-# about:debugging → Tandwiel icon → Tijdelijke extensie laden → dist/firefox-dev.zip
+# Installeer dist/firefox-dev.zip in Firefox Developer Edition
 ```
 
 **Chrome/Edge:**
 ```bash
 ./build.sh chrome
-# Laad dist/chrome/ als unpacked extensie:
-# chrome://extensions → Ontwikkelaarsmodus aan → Uitgepakte extensie laden → dist/chrome/
+# Laad dist/chrome/ als unpacked extensie via chrome://extensions
 ```
 
 ### Werken aan scripts
 
-Scripts staan in `scripts/`. Elk script heeft een bijbehorend `.json` bestand met metadata:
+Scripts staan in `scripts/`. Na een wijziging: `./build.sh all` en herlaad de extensie.
 
-```json
+Toevoegen aan `shared/config.js`:
+
+```javascript
 {
-  "id": "mijnScript",
-  "name": "Mijn Script",
-  "description": "Wat het doet",
-  "enabled": true,
-  "scriptFile": "scripts/mijn-script.js",
-  "urlPatterns": ["https://www.promedico-asp.nl/promedico/*"]
+  id: 'mijnScript',
+  name: 'Mijn Script',
+  description: 'Wat het doet',
+  enabled: true,
+  scriptFile: 'scripts/mijn-script.js',
+  urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
 }
 ```
-
-Na een wijziging: `./build.sh all` en herlaad de extensie in de browser.
 
 ---
 
@@ -131,28 +127,24 @@ Na een wijziging: `./build.sh all` en herlaad de extensie in de browser.
 
 ### Vereisten
 
-Maak een `.env` bestand aan in `Promedico-ASP/` (nooit commit!):
+Maak een `.env` bestand aan in `Promedico-ASP/` (nooit committen):
 
 ```bash
+# Firefox AMO
 AMO_API_KEY=user:12345:678
-AMO_API_SECRET=abcdef1234567890abcdef1234567890
-```
+AMO_API_SECRET=abcdef1234567890
 
-AMO credentials zijn te vinden op [addons.mozilla.org/developers](https://addons.mozilla.org/nl/developers/) → API-sleutels.
+# Microsoft Edge
+EDGE_CLIENT_ID=...
+EDGE_API_KEY=...
+EDGE_PRODUCT_ID=8240d2b7-663e-4802-b204-f46d0b48ef23
 
-Maak een `.gitignore` bestand aan in `Promedico-ASP/`:
-
-```bash
-dist/
-web-ext-artifacts/
-.env
-node_modules/
-
-# Wel committen: Promedico-Helper-*.xpi en Promedico-Helper-*.zip
-*.xpi
-*.zip
-!Promedico-Helper-Scripts.xpi
-!Promedico-Helper-Chrome.zip
+# Chrome Web Store
+CHROME_CLIENT_ID=...
+CHROME_CLIENT_SECRET=...
+CHROME_REFRESH_TOKEN=...
+CHROME_PUBLISHER_ID=...
+CHROME_EXTENSION_ID=ahlcoanebdplegdafjdlohmaegkfjijf
 ```
 
 ### Release uitvoeren
@@ -162,32 +154,25 @@ cd Promedico-ASP
 ./release.sh 1.9 "Beschrijving van de wijzigingen"
 ```
 
-Dit doet automatisch:
+Dit doet automatisch (deels parallel):
 1. Versienummer bijwerken in beide manifests
 2. `./build.sh all` uitvoeren
-3. Firefox XPI signeren via AMO (`web-ext sign`)
-4. `updates.json` bijwerken met nieuwe versie en SHA256 hash
-5. `Promedico-Helper-Chrome.zip` aanmaken
+3. Chrome/Edge ZIP publiceren via API
+4. Firefox unlisted XPI signeren via AMO
+5. `updates.json` bijwerken voor testpc auto-updates
 6. Alles committen en pushen naar GitHub
 
 ### Na de release
 
-**Firefox:** Wordt automatisch aangeboden aan bestaande gebruikers via de `update_url` in het manifest.
+**Firefox listed:** Upload `dist/firefox.zip` handmatig via [addons.mozilla.org/developers](https://addons.mozilla.org/nl/developers/).
 
-**Chrome/Edge:** Upload de nieuwe versie handmatig via de respectievelijke store-consoles:
-- Chrome Web Store: [chromewebstore.google.com/u/0/developer/dashboard](https://chromewebstore.google.com/u/0/developer/dashboard)
-- Edge Add-ons: [partner.microsoft.com/dashboard](https://partner.microsoft.com/dashboard)
+**Chrome/Edge:** Worden automatisch gepubliceerd via de API.
 
 ---
 
 ## Bijdragen
 
-Wijzigingen in gedeelde bestanden (`shared/`, `scripts/`) werken automatisch voor beide browsers. Browser-specifieke fixes gaan in `firefox/` of `chrome/`.
-
 ```bash
-# Wijziging maken
-# Testen met ./build.sh all
-# Dan committen vanuit Huisarts-scripts/ (repo root):
 cd ..
 git add .
 git commit -m "Beschrijving"
