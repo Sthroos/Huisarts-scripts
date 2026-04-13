@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Promedico ASP Helper – Installatie</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      max-width: 620px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: #1565c0;
+      color: #fff;
+      padding: 28px 32px 22px;
+    }
+    .card-header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .card-header p  { font-size: 14px; opacity: 0.85; }
+
+    .progress-bar { height: 4px; background: rgba(255,255,255,0.25); margin-top: 16px; }
+    .progress-fill { height: 100%; background: #fff; transition: width 0.4s ease; }
+
+    .step { display: none; padding: 32px; }
+    .step.active { display: block; }
+    .step h2 { font-size: 17px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
+    .step .subtitle { font-size: 13px; color: #666; margin-bottom: 22px; line-height: 1.5; }
+
+    /* Keuze-kaarten — gebruikt voor regio, BVO én CRP */
+    .choice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .choice-grid.single-col {
+      grid-template-columns: 1fr;
+    }
+    .choice-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 14px 16px 14px 42px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .choice-card:hover { border-color: #1565c0; background: #f5f9ff; }
+    .choice-card.selected { border-color: #1565c0; background: #e8f0fe; }
+
+    /* Radio-cirkel links in de kaart */
+    .choice-card .radio {
+      position: absolute;
+      left: 14px;
+      top: 18px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+      background: #fff;
+      transition: all 0.15s;
+    }
+    .choice-card.selected .radio { border-color: #1565c0; background: #1565c0; }
+    .choice-card.selected .radio::after {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #fff;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .choice-card .choice-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: #1a1a1a;
+      margin-bottom: 3px;
+    }
+    .choice-card .choice-desc {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.4;
+    }
+    .choice-card .choice-example {
+      font-size: 11px;
+      color: #888;
+      margin-top: 6px;
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    /* Navigatie */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px 28px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .step-indicator { font-size: 12px; color: #999; }
+    .nav-buttons { display: flex; gap: 10px; }
+    .btn {
+      padding: 9px 22px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary { background: #f0f0f0; color: #444; }
+    .btn-secondary:hover { background: #e0e0e0; }
+    .btn-primary { background: #1565c0; color: #fff; }
+    .btn-primary:hover { background: #1251a3; }
+    .btn-primary:disabled { background: #b0bec5; cursor: not-allowed; }
+
+    /* Klaar-pagina */
+    .done-icon { text-align: center; font-size: 48px; margin-bottom: 12px; }
+    .done-list {
+      background: #f5f9ff;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 18px;
+    }
+    .done-list ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .done-list li {
+      font-size: 13px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .done-list li::before { content: '✓'; color: #1565c0; font-weight: bold; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <h1>Promedico ASP Helper</h1>
+    <p>Stel de extensie in voor jouw praktijk — duurt minder dan een minuut.</p>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:25%"></div>
+    </div>
+  </div>
+
+  <div class="steps">
+
+    <!-- Stap 1: Regio -->
+    <div class="step active" id="step1">
+      <h2>Stap 1 — Regio</h2>
+      <p class="subtitle">Kies de regio die het best bij jouw praktijk past. Dit bepaalt welke Zorgdomein-verwijzingen in het snelmenu staan.</p>
+      <div class="choice-grid" id="profileGrid">
+        <!-- Dynamisch gevuld door onboarding.js -->
+      </div>
+    </div>
+
+    <!-- Stap 2: BVO -->
+    <div class="step" id="step2">
+      <h2>Stap 2 — BVO uitstrijkje</h2>
+      <p class="subtitle">Hoe wordt het uitstrijkje verwerkt bij jullie? Dit bepaalt de tekst in het P-veld van het BVO-sjabloon.</p>
+      <div class="choice-grid single-col">
+
+        <div class="choice-card" data-group="bvo" data-value="koerier">
+          <div class="radio"></div>
+          <div class="choice-name">Koerier haalt uitstrijkje op</div>
+          <div class="choice-desc">Het monster wordt opgehaald, geen actie nodig voor de patiënt.</div>
+          <div class="choice-example">"Uitstrijkje wordt opgehaald door koerier, zorgdomein verwijzing gemaakt. Patiënt krijgt uitslag thuis."</div>
+        </div>
+
+        <div class="choice-card" data-group="bvo" data-value="zelf">
+          <div class="radio"></div>
+          <div class="choice-name">Patiënt brengt zelf in of andere werkwijze</div>
+          <div class="choice-desc">Geen koerier — P-veld zonder koerier-tekst.</div>
+          <div class="choice-example">"Uitstrijkje afgenomen, zorgdomein verwijzing gemaakt. Patiënt krijgt uitslag thuis."</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Stap 3: CRP -->
+    <div class="step" id="step3">
+      <h2>Stap 3 — CRP sneltest</h2>
+      <p class="subtitle">Hoe wordt een CRP aangevraagd bij jullie?</p>
+      <div class="choice-grid single-col">
+
+        <div class="choice-card" data-group="crp" data-value="poct">
+          <div class="radio"></div>
+          <div class="choice-name">POCT Connect (digitale aanvraag)</div>
+          <div class="choice-desc">Kopieert het BSN automatisch en opent poctconnect.nl. Vereist een POCT Connect abonnement.</div>
+        </div>
+
+        <div class="choice-card" data-group="crp" data-value="handmatig">
+          <div class="radio"></div>
+          <div class="choice-name">Handmatige invoer in O-veld</div>
+          <div class="choice-desc">Plaatst een invulregel in het O-veld. Je typt de uitslag zelf in.</div>
+          <div class="choice-example">"CRP geprikt, uitslag: … mg/L"</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Stap 4: Klaar -->
+    <div class="step" id="step4">
+      <h2>Alles ingesteld!</h2>
+      <p class="subtitle">Je kunt nu aan de slag. De instellingen zijn opgeslagen en gelden direct.</p>
+      <div class="done-icon">✅</div>
+      <div class="done-list">
+        <ul id="doneList"></ul>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+
+  <div class="nav">
+    <span class="step-indicator" id="stepIndicator">Stap 1 van 3</span>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" id="btnBack" style="display:none">Vorige</button>
+      <button class="btn btn-primary" id="btnNext">Volgende →</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="profiles.js"></script>
+<script src="onboarding.js"></script>
+</body>
+</html>
