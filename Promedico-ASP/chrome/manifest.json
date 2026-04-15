@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Promedico ASP Helper",
-  "version": "2.0.3",
+  "version": "2.1",
   "description": "Automation scripts for Promedico ASP",
   "icons": {
     "48": "icons/icon-48.png",
@@ -11,8 +11,7 @@
   "permissions": [
     "storage",
     "clipboardWrite",
-    "tabs",
-    "scripting"
+    "tabs"
   ],
   "host_permissions": [
     "https://www.promedico-asp.nl/*",

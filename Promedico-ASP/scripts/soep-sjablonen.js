@@ -3,11 +3,8 @@
 
     // Cross-browser compatibility
     const browserAPI = (typeof browser !== 'undefined') ? browser : (typeof chrome !== 'undefined' ? chrome : null);
-    if (!browserAPI) return; // niet in extension context (bijv. ICPC-popup frame)
+    if (!browserAPI) return;
 
-    // Instellingen worden door content.js in window.__pmhSettings gezet vóór dit script laadt.
-    // Zo hoeft dit main-world script geen async storage-call te doen.
-    // Settings via data-attribuut (CSP-safe voor Chrome en Firefox)
     const _settings = (() => {
         try {
             const d = document.documentElement.dataset.pmhSettings;
@@ -19,7 +16,6 @@
         };
     })();
 
-    // Template definitions
     const templates = {
         'CRP aanvragen': {
             action: 'crp'
@@ -127,7 +123,30 @@
                     P: 'Urinekweek niet beoordeelbaar (mengflora). Advies: bij aanhoudende klachten opnieuw urine inleveren — middenstraalsurine, ochtendurine.'
                 }
             }
-        }
+        },
+        'Klachten': {
+            submenu: {
+                'Koorts kind': {
+                    P: 'Koorts bij kind, geen alarmsignalen. Uitleg gegeven: blijven drinken, dunne kleding, paracetamol alleen bij pijn. Thuisarts.nl meegegeven. Terugkomen bij alarmsignalen of >5 dagen koorts.'
+                },
+                'Keelpijn waarvoor AB': {
+                    O: 'Keelonderzoek: erytheem, exsudaat, pijnlijke cervicale lymfeklieren.',
+                    P: 'Klinisch beeld passend bij bacteriële tonsillitis. Feneticilline 3dd 500 mg 7 dagen voorgeschreven. Paracetamol bij pijn geadviseerd. Terugkomen bij verergering, benauwdheid of geen verbetering na 3 dagen.'
+                },
+                'Verstuikte enkel': {
+                    O: 'Enkel: zwelling, drukpijn, geen botpijn Ottawa-criteria, geen crepitaties. Röntgenfoto niet geïndiceerd.',
+                    P: 'Verstuikte enkel, Ottawa-criteria negatief. RICE-advies gegeven (rust, ijs, compressie, elevatie), drukverband geadviseerd. Paracetamol/NSAID bij pijn. Terugkomen bij uitblijven verbetering.'
+                },
+                'Rugpijn': {
+                    O: 'Rug: geen rode vlaggen, geen neurologische uitval, geen pijn bij palpatie wervelkolom.',
+                    P: 'Lage rugpijn, geen rode vlaggen. Bewegingsadvies gegeven, thuisarts.nl meegegeven. NSAID voorgeschreven. Terugkomen bij neurologische uitval of geen verbetering binnen 4 weken.'
+                },
+                'Tekenbeet': {
+                    O: 'Tekenbeet. Teek >24 uur vastgezeten.',
+                    P: 'Tekenbeet >24 uur. Kans op Lyme 2–3%. Patiënt geïnformeerd over opties: preventieve AB of afwachten. Keuze patiënt:'
+                },
+            }
+        },
     };
 
     // Function to extract BSN from patient info bar
@@ -211,9 +230,10 @@
     // Open ZNeller with patient data pre-filled
     function sendToZNeller(url) {
         const data = extractPatientData();
+        // Sla op in storage met expires_at (TTL 60s). Nooit langer bewaard.
         browserAPI.storage.local.set({
             'zneller_patient_data': JSON.stringify(data),
-            'zneller_timestamp': Date.now()
+            'zneller_expires_at': Date.now() + 60000
         }).then(() => {
             window.open(url, '_blank');
         }).catch(error => {

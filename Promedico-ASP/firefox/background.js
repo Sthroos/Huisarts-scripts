@@ -11,7 +11,7 @@ if (typeof importScripts !== 'undefined') {
   }
 }
 
-// Controleer of onboarding gedaan is — zo niet, open onboarding tab
+// Controleer of onboarding gedaan is
 function checkOnboarding() {
   _api.storage.local.get(['onboardingDone']).then(result => {
     if (!result.onboardingDone) {
@@ -33,7 +33,7 @@ _api.runtime.onInstalled.addListener(() => {
   checkOnboarding();
 });
 
-// Toon DEV badge als extensie lokaal/tijdelijk is geladen of een dev-build is
+// DEV badge
 const _manifest = _api.runtime.getManifest();
 const _isDev = _manifest.name.includes('[DEV]');
 if (_isDev) {
@@ -44,12 +44,11 @@ if (_isDev) {
   }
 }
 
-// Berichtenhandler voor content scripts en popup
+// Berichtenhandler
 _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
   if (message.type === 'getSettings') {
     _api.storage.local.get().then(settings => {
-      // Zorg dat activeMenuFile altijd overeenkomt met het actieve profiel.
-      // Als het profiel gewijzigd is maar activeMenuFile nog oud is, corrigeer dit.
       if (settings.activeProfile && typeof PROFILES !== 'undefined') {
         const profiel = PROFILES[settings.activeProfile];
         if (profiel && profiel.menuFile && settings.activeMenuFile !== profiel.menuFile) {
@@ -67,9 +66,19 @@ _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Popup vraagt om onboarding opnieuw te openen (via "Wijzig profiel" knop)
   if (message.type === 'openOnboarding') {
     _api.tabs.create({ url: _api.runtime.getURL('onboarding.html') });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // Tab sluit: wis patiëntgerelateerde storage keys
+  if (message.type === 'promedico_tab_unloading') {
+    _api.storage.local.remove([
+      'zneller_patient_data',
+      'zneller_expires_at',
+    ]).catch(() => {});
+    // Correspondentie zit in sessionStorage van de tab zelf — die verdwijnt automatisch
     sendResponse({ ok: true });
     return true;
   }

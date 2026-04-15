@@ -8,7 +8,6 @@
   let _requestId = 0;
   const _pending = {};
 
-  // Luister naar antwoorden van de content script
   window.addEventListener('message', function(event) {
     if (event.source !== window) return;
     if (!event.data || event.data.source !== 'promedico-extension') return;
@@ -33,7 +32,6 @@
         method,
         args
       }, '*');
-      // Timeout na 5 seconden
       setTimeout(() => {
         if (_pending[requestId]) {
           delete _pending[requestId];
@@ -43,40 +41,30 @@
     });
   }
 
-  // Overschrijf/maak chrome.storage.local beschikbaar in page context
   if (typeof window.chrome === 'undefined') window.chrome = {};
   if (typeof window.chrome.storage === 'undefined') window.chrome.storage = {};
 
   window.chrome.storage.local = {
     get: function(keys, callback) {
       const p = storageCall('storage.local.get', keys);
-      if (callback) {
-        p.then(callback).catch(() => callback({}));
-        return;
-      }
+      if (callback) { p.then(callback).catch(() => callback({})); return; }
       return p;
     },
     set: function(items, callback) {
       const p = storageCall('storage.local.set', items);
-      if (callback) {
-        p.then(() => callback()).catch(() => callback());
-        return;
-      }
+      if (callback) { p.then(() => callback()).catch(() => callback()); return; }
       return p;
     },
     remove: function(keys, callback) {
       const p = storageCall('storage.local.remove', keys);
-      if (callback) {
-        p.then(() => callback()).catch(() => callback());
-        return;
-      }
+      if (callback) { p.then(() => callback()).catch(() => callback()); return; }
       return p;
     }
   };
 
-  // Zorg dat 'browser' ook werkt (voor scripts die browserAPI pattern gebruiken)
-  if (typeof window.browser === 'undefined') {
-    window.browser = { storage: window.chrome.storage };
+  if (typeof window.browser === 'undefined') window.browser = {};
+  if (typeof window.browser.storage === 'undefined') {
+    window.browser.storage = window.chrome.storage;
   }
 
   console.log('[Promedico Helper] Storage bridge client geïnstalleerd');

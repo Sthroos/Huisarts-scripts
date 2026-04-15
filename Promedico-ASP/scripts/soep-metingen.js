@@ -50,8 +50,7 @@
         { id: 'glucose', label: 'Glucose', unit: 'mmol/L', placeholder: 'mmol/L', min: 1, max: 40,  decimals: 1 }
     ];
 
-    const STORAGE_KEY  = 'promedico_measurements';
-    const PATIENT_KEY  = 'promedico_patient_id';
+    // Geen STORAGE_KEY/PATIENT_KEY meer — alles in-memory, nooit in sessionStorage
 
     let measurementValues = {};
     let _submitting = false;
@@ -84,27 +83,27 @@
     // =============================================================================
     // STORAGE
     // =============================================================================
-    function sg(k)     { try { return sessionStorage.getItem(k); } catch(e) { return null; } }
-    function ss(k, v)  { try { sessionStorage.setItem(k, v); } catch(e) {} }
-    function sr(k)     { try { sessionStorage.removeItem(k); } catch(e) {} }
-
-    function saveMeasurements(obj)  { ss(STORAGE_KEY, JSON.stringify(obj)); }
-    function loadMeasurements()     { try { return JSON.parse(sg(STORAGE_KEY) || '{}'); } catch(e) { return {}; } }
-    function clearMeasurements()    { measurementValues = {}; sr(STORAGE_KEY); }
+    // ── In-memory opslag — nooit sessionStorage of localStorage ──────────────
+    // saveMeasurements: werkt de module-variabele bij (geen externe opslag)
+    // loadMeasurements: geeft altijd de huidige in-memory waarden terug
+    // clearMeasurements: reset de module-variabele
+    function saveMeasurements(obj)  { measurementValues = obj || {}; }
+    function loadMeasurements()     { return measurementValues; }
+    function clearMeasurements()    { measurementValues = {}; }
 
     // =============================================================================
     // PATIENT ID
     // =============================================================================
+    // Patiënt-ID altijd live uit de DOM lezen — nooit opslaan in sessionStorage.
+    // Voorkomt dat een stale ID van patiënt A wordt gebruikt bij patiënt B na dossierwissel.
     function getPatientId() {
-        const stored = sg(PATIENT_KEY);
-        if (stored) return stored;
-        // Try to extract from URL or page
+        // Probeer URL-parameter
         const params = new URLSearchParams(window.location.search);
         const fromUrl = params.get('patientId') || params.get('patient.id');
-        if (fromUrl) { ss(PATIENT_KEY, fromUrl); return fromUrl; }
-        // Try from page content
+        if (fromUrl) return fromUrl;
+        // Probeer vanuit pagina-inhoud (GWT injectie)
         const match = document.body.innerHTML.match(/callSetSelectedPatientId\(['"]([^'"]+)['"]\)/);
-        if (match) { ss(PATIENT_KEY, match[1]); return match[1]; }
+        if (match) return match[1];
         return null;
     }
 
@@ -120,7 +119,9 @@
     // VALIDATION
     // =============================================================================
     function validateMeasurement(id, value) {
-        const m = MEASUREMENTS.find(x => x.id === id);
+        // glucose_nuchter en glucose_nn gebruiken de 'glucose' definitie in MEASUREMENTS
+        const lookupId = (id === 'glucose_nuchter' || id === 'glucose_nn') ? 'glucose' : id;
+        const m = MEASUREMENTS.find(x => x.id === lookupId);
         if (!m) return { valid: false, error: 'Onbekende meting' };
         const num = parseFloat(value);
         if (isNaN(num)) return { valid: false, error: 'Geen geldig getal' };
@@ -860,8 +861,8 @@
     // INITIALIZATION
     // =============================================================================
     async function init() {
-        getPatientId();
-        measurementValues = loadMeasurements();
+        // measurementValues is al {} bij module-start (in-memory, nooit opgeslagen)
+        // getPatientId() wordt pas aangeroepen op het moment van submit (altijd live)
 
         if (!isSOEPPage()) return;
 

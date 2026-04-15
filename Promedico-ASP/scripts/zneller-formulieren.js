@@ -120,18 +120,11 @@
 
         function sendToZNeller(url) {
             const data = extractPatientData();
-            
-            // Store in browser storage (works cross-domain within extension)
+            // Sla op in storage met expires_at (TTL 60s). Nooit langer bewaard.
             browserAPI.storage.local.set({
                 'zneller_patient_data': JSON.stringify(data),
-                'zneller_timestamp': Date.now()
+                'zneller_expires_at': Date.now() + 60000
             }).then(() => {
-                
-                // Verify storage
-                return browserAPI.storage.local.get(['zneller_patient_data']);
-            }).then(result => {
-                
-                // Open ZNeller in new tab
                 window.open(url, '_blank');
             }).catch(error => {
                 console.error('[ZNeller] Error storing data:', error);
@@ -316,21 +309,19 @@
         
         function fillForm() {
             
-            // Get data from browser storage
-            browserAPI.storage.local.get(['zneller_patient_data', 'zneller_timestamp']).then(result => {
+            // Haal patiëntdata op — check expires_at (TTL 60s)
+            browserAPI.storage.local.get(['zneller_patient_data', 'zneller_expires_at']).then(result => {
                 const dataStr = result.zneller_patient_data;
-                const timestamp = result.zneller_timestamp;
-                
-                if (!dataStr) {
+                const expiresAt = result.zneller_expires_at;
+
+                if (!dataStr) return;
+
+                // Verlopen data direct wissen
+                if (expiresAt && Date.now() > expiresAt) {
+                    browserAPI.storage.local.remove(['zneller_patient_data', 'zneller_expires_at']);
                     return;
                 }
-                
-                // Check if data is not too old (5 minutes)
-                if (timestamp && (Date.now() - timestamp > 5 * 60 * 1000)) {
-                    browserAPI.storage.local.remove(['zneller_patient_data', 'zneller_timestamp']);
-                    return;
-                }
-                
+
                 try {
                     const data = JSON.parse(dataStr);
                     
@@ -388,9 +379,8 @@
                                 }
                             }, 500);
                             
-                            // Clear the stored data after successful fill
-                            browserAPI.storage.local.remove(['zneller_patient_data', 'zneller_timestamp']).then(() => {
-                            });
+                            // Wis patiëntdata direct na succesvolle invulling
+                            browserAPI.storage.local.remove(['zneller_patient_data', 'zneller_expires_at']).catch(() => {});
                         }
                     }, 100);
                     

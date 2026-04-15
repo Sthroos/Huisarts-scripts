@@ -21,7 +21,7 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
     const { requestId, method, args } = event.data;
 
     let promise;
-    if (method === 'storage.local.get')    promise = _api.storage.local.get(args[0]);
+    if (method === 'storage.local.get')         promise = _api.storage.local.get(args[0]);
     else if (method === 'storage.local.set')    promise = _api.storage.local.set(args[0]);
     else if (method === 'storage.local.remove') promise = _api.storage.local.remove(args[0]);
     else return;
@@ -101,6 +101,16 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
     s.onload = function() { console.log('[Promedico Helper] Loaded:', name); this.remove(); if (callback) callback(); };
     s.onerror = function() { console.error('[Promedico Helper] Failed:', name); this.remove(); if (callback) callback(); };
     (document.head || document.documentElement).appendChild(s);
+  }
+
+  // ── Tab-sluiting cleanup ────────────────────────────────────────────────────
+  // Als het Promedico-tabblad sluit of navigeert weg, wis dan alle
+  // patiëntdata (zneller-buffer, upload-buffer) uit het background-geheugen.
+  // Dit vangt het geval op dat een workflow wordt afgebroken zonder voltooiing.
+  if (window.location.hostname.includes('promedico-asp.nl')) {
+    window.addEventListener('beforeunload', () => {
+      _api.runtime.sendMessage({ type: 'promedico_tab_unloading' }).catch(() => {});
+    });
   }
 
 })();

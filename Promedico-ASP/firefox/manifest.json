@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Promedico ASP Helper",
-  "version": "2.0.3",
+  "version": "2.1",
   "description": "Automation scripts for Promedico ASP",
   "browser_specific_settings": {
     "gecko": {

@@ -1,13 +1,10 @@
 (function() {
     'use strict';
 
-
-
     // ============================================================================
     // CONFIGURATION - EASILY EDITABLE TEMPLATES
     // ============================================================================
 
-    // Templates als object met submenu-structuur — zelfde patroon als soep-sjablonen.js
     const TEMPLATES = {
         'Antwoord': {
             submenu: {
@@ -26,6 +23,14 @@
                 'Onvoldoende info': {
                     rol: 'assistente',
                     text: `{aanhef}\n\nOm uw vraag goed te kunnen beantwoorden heb ik wat meer informatie nodig. Zou u onderstaande vragen willen beantwoorden via een reactie op dit bericht?\n\n- Wat is precies uw klacht?\n- Hoe lang heeft u deze klacht?\n- Wat heeft u zelf al gedaan?\n- Wat verlangt u van uw zorgverlener/praktijk?\n\nIk hoor graag van u.\n\nMet vriendelijke groet,`
+                },
+                'Afspraak nav e-consult': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nNaar aanleiding van dit e-consult acht ik het noodzakelijk om een afspraak te maken om bij mij langs te komen in de praktijk.\n\nU kunt voor het maken van een afspraak gebruik maken van de functie "afspraken" in dit portaal.\n\nMet vriendelijke groet,`
+                },
+                'Doorverwijzen HAP': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nOp basis van uw klachten adviseer ik u om vandaag contact op te nemen met de huisartsenpost. De huisartsenpost is bereikbaar via het landelijke nummer 0900-1010 (lokaal tarief). Zij kunnen u verder helpen en indien nodig een afspraak inplannen.\n\nMet vriendelijke groet,`
                 },
             }
         },
@@ -81,12 +86,36 @@
                 },
             }
         },
+        'Klachten': {
+            submenu: {
+                'Koorts bij kind': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nIk heb naar de klachten gekeken. De klachten zijn vervelend maar lijken niet ernstig. Koorts komt meestal door een onschuldige infectie en gaat na enkele dagen vanzelf over.\n\nZorg dat uw kind blijft drinken om uitdroging te voorkomen. Aandringen om te eten is niet nodig. Voldoende rust is belangrijk, maar in bed blijven hoeft niet. Dunne kleding helpt het lichaam de warmte kwijt te raken. Bij koude rillingen mag u uw kind tijdelijk extra toedekken. Het is normaal dat de temperatuur 's avonds iets hoger is.\n\nBij koorts hoeft u geen paracetamol te geven. U kunt paracetamol wel geven als uw kind ergens pijn van heeft. Kijk voor de maximale dosering op de verpakking of op: https://www.thuisarts.nl/pijn/ik-wil-mijn-kind-pijnstiller-geven\n\nMeer informatie: https://www.thuisarts.nl/koorts-bij-kinderen/mijn-kind-heeft-koorts\n\nNeem direct contact op als uw kind:\n- Suf is of niet makkelijk wakker te krijgen\n- Ontroostbaar huilt of kreunt\n- Een grauwe of vlekkerige huidskleur heeft of blauwe lippen\n- Rode of donkere vlekjes of stipjes op de huid heeft\n- Steeds zieker wordt\n- Pijn aan de nek heeft of erge hoofdpijn\n- Moeite heeft met ademhalen\n- Kwijlt\n- Meerdere keren per uur overgeeft\n- Veel minder drinkt dan normaal of een halve dag niet plast\n\nNeem ook contact op als uw kind:\n- Na een aantal koortsvrije dagen opnieuw koorts krijgt\n- Langer dan 5 dagen koorts heeft\n- Dikke, warme of rode gewrichten heeft\n\nNeem ook contact op als u zich ernstig zorgen maakt.\n\nMet vriendelijke groet,`
+                },
+                'Keelpijn waarvoor AB': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nIk heb naar uw klachten gekeken. Meestal gaat een keelontsteking binnen 10 dagen vanzelf over. Maar omdat de klachten heftig zijn en de kans groter is dat het om een bacteriële infectie gaat, schrijf ik een antibioticakuur voor. Het gaat om een 7-daagse kuur feneticilline (3 keer per dag 500 mg innemen).\n\nMeer informatie over dit medicijn: https://www.apotheek.nl/medicijnen/feneticilline\n\nBij een pijnlijke keel helpt het om iets kouds te drinken of op een ijsblokje te zuigen. U kunt ook 3 keer per dag 2 tabletten paracetamol van 500 mg innemen.\n\nMeer informatie: https://www.thuisarts.nl/keelpijn/ik-heb-keelpijn\n\nNeem contact op als u:\n- Benauwd wordt of een piepende ademhaling krijgt\n- Uw mond nauwelijks meer kunt openen\n- Slijm of drinken helemaal niet meer kunt doorslikken\n- Gaat kwijlen\n- Ernstige pijn aan één kant van uw hoofd krijgt\n- Langer dan 3 dagen koorts heeft\n- Keelpijn die langer duurt dan 10 dagen\n\nMet vriendelijke groet,`
+                },
+                'Verstuikte enkel': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nIk heb naar uw klachten gekeken. Dit past het beste bij een verstuikte enkel. De kans dat er iets gebroken is, is erg klein. Een verstuikte enkel geneest bijna altijd vanzelf, ook als de enkelbanden zijn gescheurd. De enkel kan een paar maanden gevoelig of een beetje dik blijven.\n\nAdvies:\n- Koel de enkel direct: gebruik een ice-pack of doe ijsklontjes in een plastic zak gewikkeld in een theedoek. Koel minimaal 10 minuten.\n- Breng daarna een drukverband aan om de zwelling te beperken (verkrijgbaar bij drogist of apotheek, 8 cm breed).\n- Hoe u een drukverband aanlegt ziet u hier: https://www.youtube.com/watch?v=QSqsEe1krJE\n\nVoor de pijn kunt u maximaal 3 keer per dag 2 tabletten paracetamol van 500 mg innemen. Als paracetamol onvoldoende helpt kunt u ibuprofen, diclofenac of naproxen nemen. Wees voorzichtig met deze middelen als u een verminderde nierfunctie of maagklachten heeft. Kijk voor de dosering op de verpakking.\n\nMeer informatie: https://www.sportzorg.nl/sportblessures/verzwikte-of-verstuikte-enkel\n\nMet vriendelijke groet,`
+                },
+                'Verstuikte enkel (kind)': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nDe pijn wordt vaak veroorzaakt door de zwelling. Ik adviseer de enkel goed te koelen en daarna een drukverband aan te brengen. Dit gaat de zwelling tegen en geeft het gewricht rust.\n\nKoelen: gebruik een ice-pack of doe ijsklontjes in een plastic zak gewikkeld in een theedoek. Koel minimaal 10 minuten.\n\nDrukverband aanbrengen: kijk hoe dat moet in dit filmpje: https://www.youtube.com/watch?v=QSqsEe1krJE\nEen drukverband is verkrijgbaar bij de drogist of apotheek. Gebruik voor de enkel een drukverband van 8 cm breed. Is dit te groot voor de enkel van uw kind, gebruik dan een drukverband van 6 cm breed.\n\nVoor de pijn mag u uw kind paracetamol geven. Als paracetamol onvoldoende helpt mag uw kind ibuprofen nemen. Paracetamol en ibuprofen mogen niet tegelijk worden gebruikt. Kijk voor de maximale dosering op de verpakking: https://www.thuisarts.nl/pijn/ik-wil-mijn-kind-pijnstiller-geven\n\nMet vriendelijke groet,`
+                },
+                'Rugpijn': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nIk heb naar uw klachten gekeken. Het lijkt er niet op dat er iets beschadigd is of dat het om een hernia gaat. Vaak komt rugpijn door een verkeerde beweging, stress of overbelasting. De klachten zijn vervelend maar zullen meestal binnen een maand vanzelf verdwijnen.\n\nHet is belangrijk dat u blijft bewegen. Kijk voor meer informatie en oefeningen op: https://www.thuisarts.nl/lage-rugpijn/ik-heb-pijn-onderin-rug\n\nOm de pijn te verminderen schrijf ik een recept voor diclofenac. Neem 2 tot 3 keer per dag 1 tablet van 50 mg. Wees voorzichtig met diclofenac als u een verminderde nierfunctie of maagklachten heeft. Meer informatie: https://www.apotheek.nl/medicijnen/diclofenac\n\nDaarnaast kunt u maximaal 3 keer per dag 2 tabletten paracetamol van 500 mg nemen. Ibuprofen werkt vergelijkbaar met diclofenac: u mag 3 keer per dag 400 mg innemen naast de paracetamol. Bij veel pijn en geen maagklachten of zuurbranden mag u een paar dagen 4 keer per dag 400 mg nemen.\n\nNeem direct contact op als u geen gevoel meer heeft bij de penis/vagina of anus, of minder kracht in de benen heeft (niet meer goed op hakken of tenen kunnen staan). Neem ook contact op als er binnen 4 weken geen verbetering optreedt.\n\nMet vriendelijke groet,`
+                },
+                'Tekenbeet': {
+                    rol: 'arts',
+                    text: `{aanhef}\n\nIk heb naar uw tekenbeet gekeken. De teek heeft langer dan 24 uur vastgezeten. Dit betekent dat u twee keuzes heeft:\n\n1. Preventief een antibioticakuur gebruiken\n2. Afwachten\n\nHet heeft op dit moment geen zin om een bloedonderzoek te laten doen, omdat de test nu niet kan aantonen of de teek u heeft besmet. De kans dat u de ziekte van Lyme krijgt is 2 tot 3%.\n\nEen antibioticakuur kan bijwerkingen geven en uit onderzoek is nog niet helemaal duidelijk of een preventieve kuur de ziekte van Lyme voorkomt. Als u afwacht en toch tekenen van de ziekte van Lyme krijgt, kunt u alsnog antibiotica gebruiken om de ziekte te behandelen.\n\nMeer informatie: https://www.thuisarts.nl/tekenbeet/ik-heb-tekenbeet (zie kopje 'Teek langer dan 24 uur op de huid')\n\nIk hoor graag of u wilt afwachten of wilt starten met de preventieve antibioticakuur.\n\nMet vriendelijke groet,`
+                },
+            }
+        },
         'Afspraken': {
             submenu: {
-                'Afspraak maken nav e-consult': {
-                    rol: 'assistente',
-                    text: `{aanhef}\n\nNaar aanleiding van dit e-consult acht ik het noodzakelijk om een afspraak te maken om bij mij langs te komen in de praktijk.\n\nU kunt voor het maken van een afspraak gebruik maken van de functie "afspraken" in dit portaal.\n\nMet vriendelijke groet,`
-                },
                 'Bloedprikken afspraak': {
                     rol: 'assistente',
                     text: `{aanhef}\n\nU kunt een afspraak maken voor bloedprikken via onze assistente of online via de website. Nuchter verschijnen is niet nodig, tenzij anders aangegeven.\n\nMet vriendelijke groet,`
@@ -107,27 +136,22 @@
     // USER NAME EXTRACTION
     // ============================================================================
 
-    // Haal gebruikersnaam op uit het top-level frame (GWT topbar).
-    // Geeft naam terug in formaat "S.T. Roos" (voornaamletters achternaam).
     function getCurrentUserName() {
         try {
-            // Probeer window.top — staat in de GWT-app boven het iframe
             const wins = [window, window.top];
             for (const w of wins) {
                 try {
-                    // "Aangemeld als S.T. Roos " → "S.T. Roos"
                     const aangemeld = w.document.querySelector('.GEM3CPJDGMC');
                     if (aangemeld) {
                         const m = aangemeld.textContent.trim().match(/Aangemeld als\s+(.+)/);
                         if (m) return m[1].trim();
                     }
-                    // Fallback: arts-label "Roos, S.T." → omzetten naar "S.T. Roos"
                     const artsLabel = w.document.getElementById('PanelPatientDossierBarCore-lblPatientArtsInfo');
                     if (artsLabel) {
-                        const raw = artsLabel.textContent.trim(); // bijv. "Roos, S.T."
+                        const raw = artsLabel.textContent.trim();
                         const parts = raw.split(',');
                         if (parts.length === 2) {
-                            return parts[1].trim() + ' ' + parts[0].trim(); // "S.T. Roos"
+                            return parts[1].trim() + ' ' + parts[0].trim();
                         }
                         return raw;
                     }
@@ -137,7 +161,6 @@
         return '';
     }
 
-    // Bouw handtekening op basis van rol (arts/assistente/poh)
     function getSignature(rol) {
         const naam = getCurrentUserName();
         const rolTekst = {
@@ -148,8 +171,6 @@
         return naam ? naam + ', ' + rolTekst : rolTekst;
     }
 
-    // Haal aanhef op uit topbar: "Man" → "geachte heer", "Vrouw" → "geachte mevrouw"
-    // Volledige zin: "Beste heer Roos," of "Beste mevrouw Roos,"
     function getAanhef() {
         try {
             const wins = [window, window.top];
@@ -158,18 +179,16 @@
                     const bar = w.document.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
                     if (!bar) continue;
                     const tekst = bar.textContent;
-
-                    // Geslacht staat als "/ Man /" of "/ Vrouw /"
                     if (/\/\s*Man\s*\//.test(tekst))   return 'Beste heer,';
                     if (/\/\s*Vrouw\s*\//.test(tekst)) return 'Beste mevrouw,';
                 } catch(e) {}
             }
         } catch(e) {}
-        return 'Beste,'; // fallback als geslacht niet bepaalbaar
+        return 'Beste,';
     }
 
     // ============================================================================
-    // DROPDOWN + SUBMENU — exact zelfde patroon als soep-sjablonen.js
+    // DROPDOWN + SUBMENU
     // ============================================================================
 
     function insertEcTemplate(template, reactieTextarea) {
@@ -313,7 +332,6 @@
 
         doc.body.appendChild(dropdown);
 
-        // Toon dropdown, positie onder knop met overflow-correctie
         button.addEventListener('click', (e) => {
             e.stopPropagation();
             const isVisible = dropdown.style.display === 'block';
@@ -335,7 +353,6 @@
             }
         });
 
-        // Sluit bij klik buiten
         doc.addEventListener('click', (e) => {
             if (!dropdown.contains(e.target) && e.target !== button) {
                 dropdown.style.display = 'none';
@@ -349,18 +366,14 @@
     // ============================================================================
 
     function injectTemplateButton() {
-        // E-consult frame herkennen: heeft contactForm.regelP maar GEEN contactForm.regelO
-        // (gewone consulten hebben beide; e-consult heeft alleen P als "Reactie(P)")
         const reactieTextarea = document.getElementById('contactForm.regelP');
         if (!reactieTextarea) return false;
 
         const oField = document.getElementById('contactForm.regelO');
         if (oField) return false; // gewoon consult — soep-sjablonen.js handelt dit af
 
-        // Al aanwezig?
         if (document.getElementById('ec-sjablonen-btn')) return true;
 
-        // Maak groene knop — zelfde stijl als soep-sjablonen
         const btn = document.createElement('button');
         btn.id   = 'ec-sjablonen-btn';
         btn.type = 'button';
@@ -380,10 +393,8 @@
         `;
         btn.addEventListener('mouseenter', () => { btn.style.backgroundColor = '#45a049'; });
         btn.addEventListener('mouseleave', () => { btn.style.backgroundColor = '#4CAF50'; });
-        // Click listener wordt gezet door createEcMenu
         createEcMenu(document, btn, reactieTextarea);
 
-        // Plaats direct na de textarea
         if (reactieTextarea.nextSibling) {
             reactieTextarea.parentNode.insertBefore(btn, reactieTextarea.nextSibling);
         } else {
@@ -394,7 +405,7 @@
     }
 
     // ============================================================================
-    // INITIALIZATION AND MONITORING
+    // INITIALIZATION
     // ============================================================================
 
     function initialize() {
@@ -403,16 +414,10 @@
         }, 1000);
     }
 
-    // ============================================================================
-    // START SCRIPT
-    // ============================================================================
-
-    // Wait for page to load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {
         initialize();
     }
-
 
 })();

@@ -1,12 +1,8 @@
 (function() {
     'use strict';
 
-    // ─── Gebruikersnaam uitlezen uit de Promedico top-bar ───────────────────
-    // Promedico toont "Aangemeld als Voornaam Achternaam" in .GEM3CPJDGMC.
-    // We zoeken in top/parent want dit script draait in een iframe.
     function getUserName() {
         const searchWindows = [window.top, window.parent, window];
-
         for (const win of searchWindows) {
             try {
                 if (!win || !win.document) continue;
@@ -20,10 +16,6 @@
         return null;
     }
 
-    // ─── Initialen berekenen uit een volledige naam ───────────────────────────
-    // "Sebastiaan Roos"             → "SR"
-    // "Eline Westerbeek van Eerten" → "EWE"  (tussenvoegsel 'van' wordt overgeslagen)
-    // Tussenvoegels (van, de, den, der, het, 't, op, ten, te, ver) worden genegeerd.
     const TUSSENVOEGSELS = new Set([
         'van', 'de', 'den', 'der', 'het', 't', 'op', 'ten', 'te', 'ver',
         'aan', 'bij', 'du', 'in', 'uit', 'over', 'onder'
@@ -37,16 +29,15 @@
             .join('');
     }
 
-    // ─── Initialen invoegen in het S-veld ────────────────────────────────────
-    // Wordt achteraan toegevoegd als het veld al tekst bevat,
-    // vooraan als het leeg is — met een spatie erachter.
     function voegInitialenToe(sVeld, initialen) {
         const prefix = initialen + ': ';
+        // Ruimere check zonder spatie: Promedico gooit de trailing spatie weg bij
+        // opslaan/herladen waardoor "SR: " terugkomt als "SR:" — dan zou de smalle
+        // check falen en de initialen opnieuw worden toegevoegd.
+        const aanwezigheidsCheck = initialen + ':';
         const huidigeWaarde = sVeld.value;
 
-        // Voorkom dubbele toevoeging als het al begint of eindigt met de initialen
-        if (huidigeWaarde.includes(prefix)) {
-            console.log('[Initialen S-veld] Initialen al aanwezig, overgeslagen');
+        if (huidigeWaarde.includes(aanwezigheidsCheck)) {
             return;
         }
 
@@ -56,54 +47,57 @@
             sVeld.value = huidigeWaarde + '\n' + prefix;
         }
 
-        // GWT events triggeren zodat Promedico de wijziging registreert
         sVeld.dispatchEvent(new Event('input',  { bubbles: true }));
         sVeld.dispatchEvent(new Event('change', { bubbles: true }));
-
-        // Cursor naar het einde zetten zodat de gebruiker direct kan typen
         sVeld.setSelectionRange(sVeld.value.length, sVeld.value.length);
         sVeld.focus();
-
-        console.log('[Initialen S-veld] Toegevoegd:', prefix);
     }
 
-    // ─── Initialisatie ────────────────────────────────────────────────────────
     function initialize() {
         const sVeld = document.getElementById('contactForm.regelS');
-        if (!sVeld) return;
+        if (!sVeld) { return; }
 
-        // Voorkom dubbele initialisatie
-        if (sVeld.dataset.initialenGekoppeld) return;
-        sVeld.dataset.initialenGekoppeld = '1';
-
-        // Gebruikersnaam ophalen en initialen berekenen
         const naam = getUserName();
-        if (!naam) {
-            console.warn('[Initialen S-veld] Kon gebruikersnaam niet uitlezen uit Promedico');
-            return;
-        }
+        if (!naam) { return; }
 
         const initialen = berekenInitialen(naam);
-        if (!initialen) {
-            console.warn('[Initialen S-veld] Kon initialen niet berekenen uit naam:', naam);
-            return;
-        }
+        if (!initialen) { return; }
 
-        console.log('[Initialen S-veld] Gebruiker:', naam, '→ initialen:', initialen);
+        let vorigeWaarde = null;
+        let stabielCount = 0;
 
-        // Direct toevoegen zodra het veld geladen is
-        voegInitialenToe(sVeld, initialen);
+        const stabilisatieInterval = setInterval(() => {
+            const huidigeWaarde = sVeld.value;
+
+            if (huidigeWaarde === vorigeWaarde) {
+                stabielCount++;
+            } else {
+                stabielCount = 0;
+                vorigeWaarde = huidigeWaarde;
+            }
+
+            if (stabielCount >= 2) {
+                clearInterval(stabilisatieInterval);
+                voegInitialenToe(sVeld, initialen);
+            }
+        }, 150);
+
+        setTimeout(() => {
+            clearInterval(stabilisatieInterval);
+        }, 5000);
     }
 
-    // Poll tot het S-veld beschikbaar is (GWT laadt laat)
+
     const checkInterval = setInterval(() => {
-        if (document.getElementById('contactForm.regelS')) {
+        const veld = document.getElementById('contactForm.regelS');
+        if (veld) {
             clearInterval(checkInterval);
             initialize();
         }
     }, 300);
 
-    // Stop na 15 seconden zodat het script niet eindeloos blijft pollen
-    setTimeout(() => clearInterval(checkInterval), 15000);
+    setTimeout(() => {
+        clearInterval(checkInterval);
+    }, 15000);
 
 })();
