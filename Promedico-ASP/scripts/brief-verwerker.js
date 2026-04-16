@@ -114,7 +114,15 @@
             return true;
         }
 
-        // Normale velden: input + change
+        // Normale velden: beforeinput → waarde zetten → input → change
+        // beforeinput is nodig voor sommige GWT-versies die hiermee de dirty-state bijhouden.
+        el.dispatchEvent(new InputEvent('beforeinput', {
+            inputType: 'insertText',
+            data: waarde,
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+        }));
         if (nativeSetter) nativeSetter.set.call(el, waarde);
         else el.value = waarde;
         el.dispatchEvent(new InputEvent('input', {
@@ -122,8 +130,10 @@
             data: waarde,
             bubbles: true,
             cancelable: true,
+            composed: true,
         }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+        el.blur();
         return true;
     }
 
@@ -507,6 +517,17 @@
         if (extractie.icpc) {
             schrijfNaarVeld(doc, 'ProcessBerichtTopView-txtEpisodeICPC', extractie.icpc);
         }
+
+        // Markeer het formulier als gewijzigd zodat GWT de waarden opslaat bij Afronden.
+        // Zonder deze aanroep denkt Promedico dat er niets gewijzigd is.
+        try {
+            const win = doc.defaultView || doc.parentWindow;
+            if (win && typeof win.setChanged === 'function') {
+                win.setChanged(true);
+            }
+        } catch (e) {
+            console.warn('pmh brief-verwerker: setChanged niet beschikbaar', e);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -675,18 +696,26 @@
         const hoofdDoc = getHoofdDoc();
         if (!hoofdDoc || !hoofdDoc.body) return;
 
-        // Observer wacht tot ZOWEL Display-element ALS btnTerug aanwezig zijn
-        // (Display-elementen staan al in de werklijst-preview, btnTerug pas op verwerkingspagina)
+        // Observer wacht tot ZOWEL een Display-element ALS een procesknop aanwezig zijn.
+        // Display-elementen staan al in de werklijst-preview; de procesknoppen verschijnen
+        // pas op de echte verwerkingspagina — dat is het betrouwbare signaal.
+        // We checken alle bekende knopvarianten zodat ook "AfrondenEnVolgende" en
+        // "AfrondenEnNaarDossier" flows correct getriggerd worden, ook als de patiënt
+        // al bekend is en de zoekmodal helemaal niet verschijnt.
+        const BRIEF_IDS = ['DisplayMedvry31', 'DisplayMedspe31', 'DisplayMedvri10', 'DisplayMedspe10'];
+        const KNOP_IDS  = [
+            'ProcessBerichtTopView-btnTerug',
+            'ProcessBerichtTopView-btnAfronden',
+            'ProcessBerichtTopView-btnAfrondenEnVolgende',
+            'ProcessBerichtTopView-btnAfrondenEnNaarDossier',
+        ];
+
         const pageObserver = new MutationObserver(() => {
             const d = getIframeDoc();
             if (!d) return;
 
-            const heeftBrief = d.getElementById('DisplayMedvry31') ||
-                               d.getElementById('DisplayMedspe31') ||
-                               d.getElementById('DisplayMedvri10') ||
-                               d.getElementById('DisplayMedspe10');
-            const heeftKnop = d.getElementById('ProcessBerichtTopView-btnTerug') ||
-                              d.getElementById('ProcessBerichtTopView-btnAfronden');
+            const heeftBrief = BRIEF_IDS.some(id => d.getElementById(id));
+            const heeftKnop  = KNOP_IDS.some(id => d.getElementById(id));
 
             if (heeftBrief && heeftKnop) {
                 pageObserver.disconnect();

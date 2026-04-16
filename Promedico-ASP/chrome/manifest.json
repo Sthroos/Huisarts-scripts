@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Promedico ASP Helper",
-  "version": "2.1",
+  "version": "2.1.1",
   "description": "Automation scripts for Promedico ASP",
   "icons": {
     "48": "icons/icon-48.png",
