@@ -16,7 +16,7 @@ Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor hu
 2. Klik op **Toevoegen aan Chrome**
 
 ### Edge
-1. Ga naar [Microsoft Edge Add-ons](https://microsoftedgeaddons.microsoft.com) en zoek op **Promedico ASP Helper**
+1. Ga naar [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com) en zoek op **Promedico ASP Helper**
 2. Klik op **Ophalen**
 
 > **Let op:** Na een update wordt de extensie automatisch bijgewerkt via de betreffende store.
