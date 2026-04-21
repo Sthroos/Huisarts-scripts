@@ -68,6 +68,7 @@ copy_shared() {
     cp shared/profiles.js      "$OUT/"
     cp shared/onboarding.html  "$OUT/"
     cp shared/onboarding.js    "$OUT/"
+    cp shared/background.js    "$OUT/"
     cp shared/icons/*          "$OUT/icons/"
     cp scripts/*.js            "$OUT/scripts/"
     cp scripts/*.json          "$OUT/scripts/" 2>/dev/null || true
@@ -80,7 +81,7 @@ copy_browser_files() {
     local OUT=$2
 
     cp "$BROWSER_DIR/manifest.json"  "$OUT/"
-    cp "$BROWSER_DIR/background.js"  "$OUT/"
+
     cp "$BROWSER_DIR/content.js"     "$OUT/"
 
     [ -f "$BROWSER_DIR/storage-bridge-client.js" ] && cp "$BROWSER_DIR/storage-bridge-client.js" "$OUT/" || true

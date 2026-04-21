@@ -137,22 +137,13 @@ function initializePopup() {
   setupEventListeners();
 }
 
-// Controleer of migratie naar nieuwe instelling-selectie nodig is
+// Vangnet: als tabs.create vanuit background niet werkte (bijv. Chrome service worker timeout),
+// opent de popup alsnog de onboarding bij eerste gebruik.
 async function checkMigratie() {
   const result = await _api.storage.local.get(['onboardingDone', 'geselecteerdeInstellingenData']);
   if (result.onboardingDone && !result.geselecteerdeInstellingenData) {
-    // Oude versie: toon melding in popup met knop naar onboarding
-    const bar = document.getElementById('regioBar');
-    if (bar) {
-      bar.style.background = '#fff3e0';
-      bar.style.borderColor = '#ffb74d';
-      bar.innerHTML = '<span style="color:#e65100;font-size:12px;">⚠ Update vereist: selecteer je zorginstellingen</span>' +
-        '<button id="btnNaarOnboarding" style="font-size:11px;padding:3px 8px;border:1px solid #ffb74d;border-radius:4px;background:#fff;cursor:pointer;color:#e65100;">Nu instellen</button>';
-      document.getElementById('btnNaarOnboarding').addEventListener('click', function() {
-        _api.tabs.create({ url: _api.runtime.getURL('onboarding.html') });
-        window.close();
-      });
-    }
+    _api.tabs.create({ url: _api.runtime.getURL('onboarding.html') });
+    window.close();
   }
 }
 

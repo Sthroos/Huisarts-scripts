@@ -14,11 +14,7 @@ if (typeof importScripts !== 'undefined') {
 // Controleer of onboarding gedaan is, of dat migratie nodig is
 function checkOnboarding() {
   _api.storage.local.get(['onboardingDone', 'geselecteerdeInstellingenData']).then(result => {
-    if (!result.onboardingDone) {
-      // Eerste keer installeren
-      _api.tabs.create({ url: _api.runtime.getURL('onboarding.html') });
-    } else if (!result.geselecteerdeInstellingenData) {
-      // Update van oude versie: onboarding gedaan maar nieuwe instellingen-selectie ontbreekt
+    if (!result.onboardingDone || !result.geselecteerdeInstellingenData) {
       _api.tabs.create({ url: _api.runtime.getURL('onboarding.html') });
     }
   });
