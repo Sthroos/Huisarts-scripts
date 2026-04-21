@@ -64,6 +64,7 @@ copy_shared() {
     cp shared/config.js        "$OUT/"
     cp shared/popup.html       "$OUT/"
     cp shared/popup.js         "$OUT/"
+    cp shared/zorgdomein-instellingen.js "$OUT/" 
     cp shared/profiles.js      "$OUT/"
     cp shared/onboarding.html  "$OUT/"
     cp shared/onboarding.js    "$OUT/"
