@@ -364,7 +364,7 @@ update_version "$SCRIPT_DIR/firefox/manifest.json"
 update_version "$SCRIPT_DIR/chrome/manifest.json"
 echo -e "${GREEN}✓${NC} Versie $NEW_VERSION ingesteld"
 
-"$SCRIPT_DIR/build.sh" all
+"$SCRIPT_DIR/build.sh" all "$NEW_VERSION"
 echo -e "${GREEN}✓${NC} Build klaar"
 
 # ─── Stap 2: Chrome/Edge ZIP + publishing (parallel) ─────────────────────────
