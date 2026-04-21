@@ -405,8 +405,68 @@
         }
     }
 
+    // ── Dynamisch menu opbouwen vanuit geselecteerde instellingen ─────────────
+
+    // Bouw het Diagnostiek-submenu: eerst geselecteerde instellingen, dan generieke HCR-items.
+    function bouwDiagnostiekSubmenu(geselecteerdeIds, instellingenData) {
+        const generiek = [
+            { text: 'Röntgen',               code: 'RON', hcrCode: '1ELRON', categoryUrl: 'https://www.zorgdomein.nl/healthcare-request/diagnostics' },
+            { text: 'Echo',                  code: 'ECH', hcrCode: '1ELBEC', categoryUrl: 'https://www.zorgdomein.nl/healthcare-request/diagnostics' },
+            { text: 'Functieonderzoek',      code: 'FUN', hcrCode: '1ELFNC', categoryUrl: 'https://www.zorgdomein.nl/healthcare-request/diagnostics' },
+            { text: 'Endoscopie',            code: 'MDL', hcrCode: '1ELEND', categoryUrl: 'https://www.zorgdomein.nl/healthcare-request/diagnostics' },
+            { text: 'Nucleaire Geneeskunde', code: 'NUC', hcrCode: 'NUCOVE', categoryUrl: 'https://www.zorgdomein.nl/healthcare-request/diagnostics' },
+        ];
+
+        const instellingItems = [];
+        if (instellingenData && geselecteerdeIds && geselecteerdeIds.length) {
+            geselecteerdeIds.forEach(function(id) {
+                const inst = instellingenData[id];
+                if (!inst || !inst.producten || !inst.producten.length) return;
+                instellingItems.push({
+                    text: inst.naam,
+                    code: 'LAB',
+                    submenu: inst.producten.map(function(p) {
+                        return {
+                            text: p.subtext ? p.label + ' \u2013 ' + p.subtext : p.label,
+                            code: 'LAB',
+                            url: p.url
+                        };
+                    })
+                });
+            });
+        }
+
+        return instellingItems.concat(generiek);
+    }
+
+    function bouwMenuItems(geselecteerdeIds, instellingenData) {
+        const basis = (typeof ZORGDOMEIN_MENU_ITEMS_GENERIEK !== 'undefined' && ZORGDOMEIN_MENU_ITEMS_GENERIEK.length)
+            ? ZORGDOMEIN_MENU_ITEMS_GENERIEK
+            : [{ text: '\u26A0 Menu niet geladen \u2014 heropen de pagina', code: 'ERR', url: 'https://www.zorgdomein.nl' }];
+
+        return basis.map(function(item) {
+            if (item.text === 'Diagnostiek') {
+                return Object.assign({}, item, { submenu: bouwDiagnostiekSubmenu(geselecteerdeIds, instellingenData) });
+            }
+            return item;
+        });
+    }
+
+    // Cache: wordt gevuld bij init en herladen bij storage-wijziging.
+    var _cachedMenuItems = null;
+
+    function laadMenuCache(callback) {
+        browserAPI.storage.local.get(['geselecteerdeInstellingen', 'geselecteerdeInstellingenData'], function(result) {
+            const ids = result.geselecteerdeInstellingen || [];
+            const data = result.geselecteerdeInstellingenData || {};
+            console.log('[ZD Menu] geselecteerdeInstellingen:', ids, '| data keys:', Object.keys(data));
+            _cachedMenuItems = bouwMenuItems(ids, data);
+            console.log('[ZD Menu] diagnostiek submenu items:', _cachedMenuItems.find(i => i.text === 'Diagnostiek')?.submenu?.length);
+            if (callback) callback(_cachedMenuItems);
+        });
+    }
+
     // Show the Zorgdomein submenu
-    // Menu-data is al geladen door content.js vóór dit script, als globale variabele.
     function showZorgdomeinMenu() {
         const iframe = getContentIframe();
         if (!iframe || !iframe.contentDocument) return;
@@ -417,76 +477,72 @@
 
         const buttonRect = zorgdomeinButton.getBoundingClientRect();
 
-        // Lees menu-items uit de globale variabele die door het menu-bestand is gezet
-        const items = (typeof ZORGDOMEIN_MENU_ITEMS_EEMLAND !== 'undefined' && ZORGDOMEIN_MENU_ITEMS_EEMLAND.length)
-            ? ZORGDOMEIN_MENU_ITEMS_EEMLAND
-            : (typeof ZORGDOMEIN_MENU_ITEMS_ARNHEM !== 'undefined' && ZORGDOMEIN_MENU_ITEMS_ARNHEM.length)
-                ? ZORGDOMEIN_MENU_ITEMS_ARNHEM
-                : (typeof ZORGDOMEIN_MENU_ITEMS_UTRECHT !== 'undefined' && ZORGDOMEIN_MENU_ITEMS_UTRECHT.length)
-                    ? ZORGDOMEIN_MENU_ITEMS_UTRECHT
-                    : (typeof ZORGDOMEIN_MENU_ITEMS_GENERIEK !== 'undefined' && ZORGDOMEIN_MENU_ITEMS_GENERIEK.length)
-                        ? ZORGDOMEIN_MENU_ITEMS_GENERIEK
-                        : [{ text: '⚠ Menu niet geladen — heropen de pagina', code: 'ERR', url: 'https://www.zorgdomein.nl' }];
+        function renderMenu(items) {
+            const menu = doc.createElement('table');
+            menu.id = 'zorgdomein-menu';
+            menu.cellPadding = '0';
+            menu.cellSpacing = '0';
 
+            const tbody = doc.createElement('tbody');
 
-        const menu = doc.createElement('table');
-        menu.id = 'zorgdomein-menu';
-        menu.cellPadding = '0';
-        menu.cellSpacing = '0';
+            items.forEach(item => {
+                const tr = doc.createElement('tr');
+                const menuItem = createMenuItem(doc, item.text, item.submenu, item.code, item.url, item.hcrCode, item.categoryUrl);
+                tr.appendChild(menuItem);
+                tbody.appendChild(tr);
+            });
 
-        const tbody = doc.createElement('tbody');
+            menu.appendChild(tbody);
 
-        items.forEach(item => {
-            const tr = doc.createElement('tr');
-            const menuItem = createMenuItem(doc, item.text, item.submenu, item.code, item.url, item.hcrCode, item.categoryUrl);
-            tr.appendChild(menuItem);
-            tbody.appendChild(tr);
-        });
+            menu.style.cssText = `
+                position: fixed;
+                left: -9999px;
+                width: 200px;
+                visibility: hidden;
+            `;
+            doc.body.appendChild(menu);
 
-        menu.appendChild(tbody);
+            const actualMenuHeight = menu.offsetHeight;
+            const viewportHeight = doc.defaultView.innerHeight;
+            const spaceBelow = viewportHeight - buttonRect.top - 20;
+            const spaceAbove = buttonRect.bottom - 20;
 
-        menu.style.cssText = `
-            position: fixed;
-            left: -9999px;
-            width: 200px;
-            visibility: hidden;
-        `;
-        doc.body.appendChild(menu);
+            let topPosition = buttonRect.top;
+            let maxHeight = spaceBelow;
 
-        const actualMenuHeight = menu.offsetHeight;
+            if (actualMenuHeight > spaceBelow && spaceAbove > spaceBelow) {
+                topPosition = Math.max(10, buttonRect.bottom - Math.min(actualMenuHeight, spaceAbove));
+                maxHeight = spaceAbove;
+            }
 
-        const viewportHeight = doc.defaultView.innerHeight;
-        const spaceBelow = viewportHeight - buttonRect.top - 20;
-        const spaceAbove = buttonRect.bottom - 20;
+            menu.style.cssText = `
+                position: fixed;
+                left: ${buttonRect.right + 5}px;
+                top: ${topPosition}px;
+                width: 200px;
+                max-height: ${maxHeight}px;
+                overflow-y: auto;
+                background: white;
+                border: 1px solid #ccc;
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+                z-index: 10000;
+                visibility: visible;
+            `;
 
-        let topPosition = buttonRect.top;
-        let maxHeight = spaceBelow;
-
-        if (actualMenuHeight > spaceBelow && spaceAbove > spaceBelow) {
-            topPosition = Math.max(10, buttonRect.bottom - Math.min(actualMenuHeight, spaceAbove));
-            maxHeight = spaceAbove;
+            doc.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target) && !zorgdomeinButton.contains(e.target)) {
+                    menu.remove();
+                    doc.removeEventListener('click', closeMenu);
+                }
+            });
         }
 
-        menu.style.cssText = `
-            position: fixed;
-            left: ${buttonRect.right + 5}px;
-            top: ${topPosition}px;
-            width: 200px;
-            max-height: ${maxHeight}px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-            z-index: 10000;
-            visibility: visible;
-        `;
-
-        doc.addEventListener('click', function closeMenu(e) {
-            if (!menu.contains(e.target) && !zorgdomeinButton.contains(e.target)) {
-                menu.remove();
-                doc.removeEventListener('click', closeMenu);
-            }
-        });
+        // Gebruik cache als beschikbaar, anders direct uit storage laden.
+        if (_cachedMenuItems) {
+            renderMenu(_cachedMenuItems);
+        } else {
+            laadMenuCache(renderMenu);
+        }
     }
 
     // Create a menu item - UPDATED to support sub-submenus
@@ -784,6 +840,9 @@
 
     // Initialize
     function init() {
+        // Laad menu-cache alvast zodat het menu direct beschikbaar is bij eerste klik.
+        laadMenuCache(null);
+
         setInterval(() => {
             if (isOnContactPage()) {
                 createZorgdomeinButton();

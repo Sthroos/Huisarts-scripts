@@ -140,6 +140,56 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+
+    /* Regio-balk */
+    #regioBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #eef4ff;
+      border: 1px solid #c5d8f8;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    #regioBar span { color: #444; }
+    #btnWisselRegio {
+      font-size: 11px;
+      padding: 3px 8px;
+      border: 1px solid #90b4e8;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      color: #1a5bb5;
+    }
+
+    /* Instellingen-balk (export / import / tip) */
+    .settings-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .settings-bar button {
+      flex: 1;
+      padding: 7px 6px;
+      border-radius: 5px;
+      border: 1px solid #d0d0d0;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #333;
+      white-space: nowrap;
+    }
+    .settings-bar button:hover { background: #f0f0f0; }
+    .settings-bar .btn-tip {
+      color: #888;
+      border-color: #e0e0e0;
+      font-weight: 400;
+    }
+    .settings-bar .btn-tip:hover { color: #555; background: #f8f8f8; }
   </style>
 </head>
 <body>
@@ -156,14 +206,22 @@
       </label>
     </div>
     
-    <!-- Scripts will be dynamically inserted here -->
     <div id="scriptsContainer"></div>
   </div>
   
-  <div id="regioBar" style="display:flex;align-items:center;justify-content:space-between;background:#eef4ff;border:1px solid #c5d8f8;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px;">
-    <span style="color:#444;">📍 Regio: <strong id="regioLabel">—</strong></span>
-    <button id="btnWisselRegio" style="font-size:11px;padding:3px 8px;border:1px solid #90b4e8;border-radius:4px;background:#fff;cursor:pointer;color:#1a5bb5;">Wijzig</button>
+  <div id="regioBar">
+    <span>🏥 <strong id="regioLabel">—</strong></span>
+    <button id="btnWisselRegio">Wijzig</button>
   </div>
+
+  <!-- Export / Import / Tip -->
+  <div class="settings-bar">
+    <button id="btnExport">⬇ Exporteer</button>
+    <button id="btnImport">⬆ Importeer</button>
+    <button class="btn-tip" id="btnTip">💬 Mis je iets?</button>
+  </div>
+
+  <div id="status" class="status"></div>
 
   <div class="version-info">
     <div>
@@ -171,10 +229,13 @@
     </div>
     <div style="font-size: 10px; color: #999; margin-top: 5px;" id="installInfo"></div>
   </div>
+
+  <!-- Verborgen file-input voor import -->
+  <input type="file" id="importFileInput" accept=".json" style="display:none">
   
-  <!-- Scripts -->
   <script src="config.js"></script>
   <script src="profiles.js"></script>
+  <script src="zorgdomein-instellingen.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

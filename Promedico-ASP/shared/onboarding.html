@@ -20,7 +20,7 @@
       background: #fff;
       border-radius: 12px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-      max-width: 620px;
+      max-width: 660px;
       width: 100%;
       overflow: hidden;
     }
@@ -36,20 +36,138 @@
     .progress-bar { height: 4px; background: rgba(255,255,255,0.25); margin-top: 16px; }
     .progress-fill { height: 100%; background: #fff; transition: width 0.4s ease; }
 
-    .step { display: none; padding: 32px; }
+    .step { display: none; padding: 28px 32px; }
     .step.active { display: block; }
     .step h2 { font-size: 17px; font-weight: 600; color: #1a1a1a; margin-bottom: 6px; }
-    .step .subtitle { font-size: 13px; color: #666; margin-bottom: 22px; line-height: 1.5; }
+    .step .subtitle { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.5; }
 
-    /* Keuze-kaarten — gebruikt voor regio, BVO én CRP */
-    .choice-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    /* ── Import-banner ── */
+    .import-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f0f7ff;
+      border: 1px solid #c5d8f8;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
       gap: 12px;
     }
-    .choice-grid.single-col {
-      grid-template-columns: 1fr;
+    .import-banner-text { font-size: 13px; color: #444; line-height: 1.4; }
+    .import-banner-text strong { color: #1565c0; }
+    .btn-import-small {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: 1px solid #90b4e8;
+      background: #fff;
+      color: #1565c0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
     }
+    .btn-import-small:hover { background: #e8f0fe; }
+
+    /* ── Instelling-zoekbalk ── */
+    .instelling-search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .instelling-search-row input[type="text"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+    .instelling-search-row input[type="text"]:focus { border-color: #1565c0; }
+    .instelling-search-row select {
+      padding: 8px 10px;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+    }
+    .instelling-search-row select:focus { border-color: #1565c0; }
+
+    /* ── Instelling-lijst ── */
+    .instelling-list {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow-y: auto;
+      max-height: 340px;
+    }
+
+    .instelling-group-header {
+      position: sticky;
+      top: 0;
+      background: #f5f7fa;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      z-index: 1;
+    }
+
+    .instelling-item {
+      display: flex;
+      align-items: center;
+      padding: 9px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      gap: 10px;
+      transition: background 0.1s;
+    }
+    .instelling-item:last-child { border-bottom: none; }
+    .instelling-item:hover { background: #f5f9ff; }
+    .instelling-item.checked { background: #e8f0fe; }
+
+    .instelling-item input[type="checkbox"] {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #1565c0;
+    }
+    .instelling-item-name {
+      font-size: 13px;
+      color: #1a1a1a;
+      font-weight: 500;
+      flex: 1;
+    }
+    .instelling-item-provincie {
+      font-size: 11px;
+      color: #999;
+      flex-shrink: 0;
+    }
+
+    .instelling-empty {
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: #999;
+    }
+
+    .instelling-count {
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+      text-align: right;
+    }
+    .instelling-count strong { color: #1565c0; }
+
+    /* ── Keuze-kaarten (BVO / CRP) ── */
+    .choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .choice-grid.single-col { grid-template-columns: 1fr; }
+
     .choice-card {
       border: 2px solid #e0e0e0;
       border-radius: 8px;
@@ -61,93 +179,70 @@
     .choice-card:hover { border-color: #1565c0; background: #f5f9ff; }
     .choice-card.selected { border-color: #1565c0; background: #e8f0fe; }
 
-    /* Radio-cirkel links in de kaart */
     .choice-card .radio {
-      position: absolute;
-      left: 14px;
-      top: 18px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 2px solid #ccc;
-      background: #fff;
+      position: absolute; left: 14px; top: 18px;
+      width: 18px; height: 18px;
+      border-radius: 50%; border: 2px solid #ccc; background: #fff;
       transition: all 0.15s;
     }
     .choice-card.selected .radio { border-color: #1565c0; background: #1565c0; }
     .choice-card.selected .radio::after {
-      content: '';
-      display: block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #fff;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      content: ''; display: block;
+      width: 6px; height: 6px; border-radius: 50%; background: #fff;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     }
+    .choice-card .choice-name { font-weight: 600; font-size: 14px; color: #1a1a1a; margin-bottom: 3px; }
+    .choice-card .choice-desc { font-size: 12px; color: #666; line-height: 1.4; }
+    .choice-card .choice-example { font-size: 11px; color: #888; margin-top: 6px; font-style: italic; line-height: 1.4; }
 
-    .choice-card .choice-name {
-      font-weight: 600;
-      font-size: 14px;
-      color: #1a1a1a;
-      margin-bottom: 3px;
-    }
-    .choice-card .choice-desc {
-      font-size: 12px;
-      color: #666;
-      line-height: 1.4;
-    }
-    .choice-card .choice-example {
-      font-size: 11px;
-      color: #888;
-      margin-top: 6px;
-      font-style: italic;
-      line-height: 1.4;
-    }
-
-    /* Navigatie */
+    /* ── Navigatie ── */
     .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 32px 28px;
-      border-top: 1px solid #f0f0f0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px 24px; border-top: 1px solid #f0f0f0;
     }
     .step-indicator { font-size: 12px; color: #999; }
     .nav-buttons { display: flex; gap: 10px; }
-    .btn {
-      padding: 9px 22px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
+    .btn { padding: 9px 22px; border-radius: 6px; border: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
     .btn-secondary { background: #f0f0f0; color: #444; }
     .btn-secondary:hover { background: #e0e0e0; }
     .btn-primary { background: #1565c0; color: #fff; }
     .btn-primary:hover { background: #1251a3; }
     .btn-primary:disabled { background: #b0bec5; cursor: not-allowed; }
 
-    /* Klaar-pagina */
+    /* ── Klaar-pagina ── */
     .done-icon { text-align: center; font-size: 48px; margin-bottom: 12px; }
-    .done-list {
-      background: #f5f9ff;
-      border-radius: 8px;
-      padding: 14px 18px;
-      margin-top: 18px;
-    }
+    .done-list { background: #f5f9ff; border-radius: 8px; padding: 14px 18px; margin-top: 18px; }
     .done-list ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-    .done-list li {
-      font-size: 13px;
-      color: #333;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .done-list li { font-size: 13px; color: #333; display: flex; align-items: center; gap: 8px; }
     .done-list li::before { content: '✓'; color: #1565c0; font-weight: bold; flex-shrink: 0; }
+
+    .export-block {
+      margin-top: 20px; border: 1px solid #e0e0e0; border-radius: 8px;
+      padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .export-block-text { font-size: 13px; color: #444; line-height: 1.4; }
+    .export-block-text strong { display: block; color: #1a1a1a; margin-bottom: 2px; }
+    .btn-export {
+      flex-shrink: 0; padding: 8px 16px; border-radius: 6px;
+      border: 1px solid #1565c0; background: #fff; color: #1565c0;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .btn-export:hover { background: #e8f0fe; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: #323232; color: #fff;
+      padding: 10px 20px; border-radius: 6px; font-size: 13px;
+      opacity: 0; transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #2e7d32; }
+    .toast.error   { background: #c62828; }
+
+    #importFileInput { display: none; }
   </style>
 </head>
 <body>
@@ -162,13 +257,36 @@
 
   <div class="steps">
 
-    <!-- Stap 1: Regio -->
+    <!-- Stap 1: Instellingen selecteren -->
     <div class="step active" id="step1">
-      <h2>Stap 1 — Regio</h2>
-      <p class="subtitle">Kies de regio die het best bij jouw praktijk past. Dit bepaalt welke Zorgdomein-verwijzingen in het snelmenu staan.</p>
-      <div class="choice-grid" id="profileGrid">
-        <!-- Dynamisch gevuld door onboarding.js -->
+      <h2>Stap 1 — Zorginstellingen</h2>
+      <p class="subtitle">Vink de zorginstellingen aan waarmee jouw praktijk samenwerkt. Deze verschijnen in het Zorgdomein snelmenu. Je kunt altijd later wijzigen.</p>
+
+      <div class="import-banner">
+        <div class="import-banner-text">
+          <strong>Al eerder ingesteld?</strong>
+          Importeer de instellingen van een andere pc of gebruiker.
+        </div>
+        <button class="btn-import-small" id="btnImport">&#11014; Importeer instellingen</button>
       </div>
+
+      <div class="instelling-search-row">
+        <input type="text" id="instellingZoek" placeholder="Zoek instelling...">
+        <select id="instellingFilter">
+          <option value="">Alle typen</option>
+          <option value="ziekenhuis">Ziekenhuizen</option>
+          <option value="laboratorium">Laboratoria</option>
+          <option value="overig">Overig</option>
+        </select>
+        <select id="provincieFilter">
+          <option value="">Alle provincies</option>
+        </select>
+      </div>
+
+      <div class="instelling-list" id="instellingList">
+        <!-- Dynamisch gevuld -->
+      </div>
+      <div class="instelling-count" id="instellingCount"></div>
     </div>
 
     <!-- Stap 2: BVO -->
@@ -176,21 +294,18 @@
       <h2>Stap 2 — BVO uitstrijkje</h2>
       <p class="subtitle">Hoe wordt het uitstrijkje verwerkt bij jullie? Dit bepaalt de tekst in het P-veld van het BVO-sjabloon.</p>
       <div class="choice-grid single-col">
-
         <div class="choice-card" data-group="bvo" data-value="koerier">
           <div class="radio"></div>
           <div class="choice-name">Koerier haalt uitstrijkje op</div>
           <div class="choice-desc">Het monster wordt opgehaald, geen actie nodig voor de patiënt.</div>
           <div class="choice-example">"Uitstrijkje wordt opgehaald door koerier, zorgdomein verwijzing gemaakt. Patiënt krijgt uitslag thuis."</div>
         </div>
-
         <div class="choice-card" data-group="bvo" data-value="zelf">
           <div class="radio"></div>
           <div class="choice-name">Patiënt brengt zelf in of andere werkwijze</div>
           <div class="choice-desc">Geen koerier — P-veld zonder koerier-tekst.</div>
           <div class="choice-example">"Uitstrijkje afgenomen, zorgdomein verwijzing gemaakt. Patiënt krijgt uitslag thuis."</div>
         </div>
-
       </div>
     </div>
 
@@ -199,20 +314,17 @@
       <h2>Stap 3 — CRP sneltest</h2>
       <p class="subtitle">Hoe wordt een CRP aangevraagd bij jullie?</p>
       <div class="choice-grid single-col">
-
         <div class="choice-card" data-group="crp" data-value="poct">
           <div class="radio"></div>
           <div class="choice-name">POCT Connect (digitale aanvraag)</div>
           <div class="choice-desc">Kopieert het BSN automatisch en opent poctconnect.nl. Vereist een POCT Connect abonnement.</div>
         </div>
-
         <div class="choice-card" data-group="crp" data-value="handmatig">
           <div class="radio"></div>
           <div class="choice-name">Handmatige invoer in O-veld</div>
           <div class="choice-desc">Plaatst een invulregel in het O-veld. Je typt de uitslag zelf in.</div>
           <div class="choice-example">"CRP geprikt, uitslag: … mg/L"</div>
         </div>
-
       </div>
     </div>
 
@@ -220,25 +332,36 @@
     <div class="step" id="step4">
       <h2>Alles ingesteld!</h2>
       <p class="subtitle">Je kunt nu aan de slag. De instellingen zijn opgeslagen en gelden direct.</p>
-      <div class="done-icon">✅</div>
+      <div class="done-icon">&#9989;</div>
       <div class="done-list">
         <ul id="doneList"></ul>
       </div>
+      <div class="export-block">
+        <div class="export-block-text">
+          <strong>Uitrollen naar andere pc's?</strong>
+          Exporteer alle instellingen als bestand. Een collega of praktijkmanager kan dit importeren via de knop op de eerste pagina.
+        </div>
+        <button class="btn-export" id="btnExport">&#11015; Exporteer instellingen</button>
+      </div>
     </div>
 
-  </div><!-- /steps -->
+  </div>
 
   <div class="nav">
     <span class="step-indicator" id="stepIndicator">Stap 1 van 3</span>
     <div class="nav-buttons">
       <button class="btn btn-secondary" id="btnBack" style="display:none">Vorige</button>
-      <button class="btn btn-primary" id="btnNext">Volgende →</button>
+      <button class="btn btn-primary" id="btnNext">Volgende &#8594;</button>
     </div>
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+<input type="file" id="importFileInput" accept=".json">
+
 <script src="config.js"></script>
 <script src="profiles.js"></script>
+<script src="zorgdomein-instellingen.js"></script>
 <script src="onboarding.js"></script>
 </body>
 </html>

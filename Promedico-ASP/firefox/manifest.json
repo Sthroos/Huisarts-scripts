@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Promedico ASP Helper",
-  "version": "2.1.1",
+  "version": "2.2",
   "description": "Automation scripts for Promedico ASP",
   "browser_specific_settings": {
     "gecko": {
@@ -46,6 +46,7 @@
       ],
       "js": [
         "config.js",
+        "zorgdomein-instellingen.js",
         "content.js"
       ],
       "run_at": "document_idle",
@@ -57,6 +58,7 @@
     "config.js",
     "profiles.js",
     "storage-bridge-client.js",
-    "zorgdomein-menus/*.js"
+    "zorgdomein-menus/*.js",
+    "zorgdomein-instellingen.js"
   ]
 }
