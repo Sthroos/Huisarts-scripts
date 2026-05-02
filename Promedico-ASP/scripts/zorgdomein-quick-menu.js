@@ -748,7 +748,9 @@
 
         parentItem.addEventListener('mouseleave', function removeSubmenu() {
             setTimeout(() => {
-                if (!submenu.matches(':hover')) {
+                const allSubmenus = doc.querySelectorAll('[id^="zorgdomein-submenu"]');
+                const mouseOnAnySubmenu = Array.from(allSubmenus).some(sm => sm.matches(':hover'));
+                if (!mouseOnAnySubmenu) {
                     submenu.remove();
                 }
             }, 200);

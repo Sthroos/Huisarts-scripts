@@ -131,8 +131,302 @@
     }
 
     // =============================================================================
-    // URL CLASSIFICATION - alleen SOEP pagina
+    // BEPALING ID VALIDATIE
     // =============================================================================
+    // Zoekt per bepaling via het zoekbepaling-endpoint of het hardcoded ID nog
+    // overeenkomt met wat Promedico teruggeeft. Gebruikt dezelfde aanpak als de
+    // verrichting-cache refresh: POST naar zoekbepaling.m, parse clickBepaling(ID).
+
+    const BEPALING_ZOEKTERMEN = {
+        'gewicht':          'gewicht',
+        'lengte':           'lengte',
+        'bmi':              'body mass',
+        'bovendruk':        'systolische bloeddruk',
+        'onderdruk':        'diastolische bloeddruk',
+        'pols':             'pols',
+        'temperatuur':      'temperatuur',
+        'saturatie':        'saturatie',
+        'crp':              'CRP',
+        'glucose_nuchter':  'glucose nuchter',
+        'glucose_nn':       'glucose',
+    };
+
+    // Verwachte omschrijving — als fragment, hoofdletterongevoelig
+    // Bewust breed gehouden zodat kleine variaties in Promedico-tekst geen valse alarm geven
+    const BEPALING_VERWACHTE_OMSCHRIJVING = {
+        'gewicht':          'gewicht',
+        'lengte':           'lengte',
+        'bmi':              'body mass',
+        'bovendruk':        'systolische bloeddruk',
+        'onderdruk':        'diastolische bloeddruk',
+        'pols':             'pols',
+        'temperatuur':      'temperatuur',
+        'saturatie':        'saturatie',
+        'crp':              'crp',
+        'glucose_nuchter':  'glucose nuchter',
+        'glucose_nn':       'glucose niet nuchter',  // zonder koppelteken, zoals Promedico het schrijft
+    };
+
+    const VALIDATIE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 uur
+    const VALIDATIE_KEY         = 'pmh_bepaling_validatie_ts';
+    const VALIDATIE_FOUT_KEY    = 'pmh_bepaling_validatie_fouten'; // JSON array van fout-namen
+    const ZOEKBEPALING_URL      = '/promedico/medischdossier.meetwaarden.zoekbepaling.m';
+
+    async function maybValideerDagelijks() {
+        const nu     = Date.now();
+        const laatst = parseInt(localStorage.getItem(VALIDATIE_KEY) || '0', 10);
+
+        // Herstel eerder gevonden fouten direct — zonder te wachten op nieuwe validatie
+        var opgeslagenFouten = [];
+        try { opgeslagenFouten = JSON.parse(localStorage.getItem(VALIDATIE_FOUT_KEY) || '[]'); } catch(e) {}
+        if (opgeslagenFouten.length > 0) {
+            setMeasurementFieldsDisabled(opgeslagenFouten);
+        }
+
+        // Valideer opnieuw als 24 uur voorbij zijn
+        if (nu - laatst < VALIDATIE_INTERVAL_MS) return;
+
+        // Schrijf timestamp alvast zodat parallelle iframes het niet dubbel doen
+        localStorage.setItem(VALIDATIE_KEY, String(nu));
+        await validateBepalingIds();
+    }
+
+
+
+    async function zoekBepalingIds(zoekterm) {
+        const body = new URLSearchParams({
+            firsttime: 'false',
+            aub: '',
+            omschrijving: zoekterm,
+        });
+        try {
+            const resp = await fetchWithTimeout(ZOEKBEPALING_URL, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString(),
+            }, CONFIG.FETCH_TIMEOUT_MS);
+            console.log('[SOEP Validatie] POST', zoekterm, '→ HTTP', resp.status, resp.type);
+            if (!resp.ok) {
+                console.warn('[SOEP Validatie] resp niet ok:', resp.status);
+                return [];
+            }
+            const html = await resp.text();
+            console.log('[SOEP Validatie] HTML lengte:', html.length, '| snippet:', html.substring(0, 200));
+
+            // Parse elke <tr onclick="clickBepaling('ID')"> inclusief de omschrijving
+            // De omschrijving staat in de laatste <td> van elke rij
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const resultaten = [];
+            doc.querySelectorAll('tr[onclick*="clickBepaling"]').forEach(function(tr) {
+                const onclick = tr.getAttribute('onclick') || '';
+                const idMatch = onclick.match(/clickBepaling\('([^']+)'\)/);
+                if (!idMatch) return;
+                const tds = tr.querySelectorAll('td');
+                // Structuur: lege td | memo | materiaal | bijzonderheid | omschrijving
+                const omschrijving = tds.length >= 5
+                    ? tds[tds.length - 1].textContent.trim()
+                    : '';
+                resultaten.push({ id: idMatch[1], omschrijving });
+            });
+            console.log('[SOEP Validatie] gevonden resultaten voor "' + zoekterm + '":', resultaten.length, resultaten.slice(0, 3));
+            return resultaten;
+        } catch (e) {
+            console.error('[SOEP Validatie] fetch fout voor "' + zoekterm + '":', e);
+            return [];
+        }
+    }
+
+    async function validateBepalingIds() {
+        const entries = Object.entries(BEPALING_IDS).filter(function(e) {
+            return BEPALING_ZOEKTERMEN[e[0]];
+        });
+        const totaal = entries.length;
+        let teller = 0;
+        const problemen = [];
+
+        for (const [naam, id] of entries) {
+            teller++;
+            const zoekterm = BEPALING_ZOEKTERMEN[naam];
+            const verwachteOmschrijving = BEPALING_VERWACHTE_OMSCHRIJVING[naam];
+
+            // Progress melding
+            showNotification(
+                'Bepaling-IDs controleren... (' + teller + '/' + totaal + ') ' + naam,
+                'info'
+            );
+
+            const resultaten = await zoekBepalingIds(zoekterm);
+            if (resultaten.length === 0) {
+                await new Promise(function(r) { setTimeout(r, 300); });
+                continue; // geen resultaten = stil falen
+            }
+
+            const idStr = String(id);
+            const gevondenRij = resultaten.find(function(r) { return r.id === idStr; });
+
+            if (!gevondenRij) {
+                // ID niet gevonden in zoekresultaten voor deze term
+                const alternatieven = resultaten.slice(0, 2).map(function(r) {
+                    return '"' + r.omschrijving + '" (ID ' + r.id + ')';
+                }).join(', ');
+                problemen.push(naam + ': ID ' + id + ' niet gevonden bij "' + zoekterm + '"'
+                    + (alternatieven ? ' — wel gevonden: ' + alternatieven : ''));
+                console.warn('[SOEP Metingen] ID niet gevonden:', naam, id,
+                    '| resultaten:', resultaten.slice(0, 3));
+            } else if (verwachteOmschrijving) {
+                // ID gevonden — check of omschrijving nog klopt
+                const omschrijvingKlopt = gevondenRij.omschrijving
+                    .toLowerCase()
+                    .includes(verwachteOmschrijving.toLowerCase());
+                if (!omschrijvingKlopt) {
+                    problemen.push(naam + ': ID ' + id + ' wijst nu naar "'
+                        + gevondenRij.omschrijving + '" (verwacht: "' + verwachteOmschrijving + '")');
+                    console.warn('[SOEP Metingen] ID wijst naar verkeerde omschrijving:',
+                        naam, id, '→', gevondenRij.omschrijving);
+                }
+            }
+
+            await new Promise(function(r) { setTimeout(r, 300); });
+        }
+
+        if (problemen.length === 0) {
+            localStorage.setItem(VALIDATIE_FOUT_KEY, '[]');
+            showNotification('✅ Alle bepaling-IDs correct (' + totaal + ' gecontroleerd)', 'success');
+            setMeasurementFieldsDisabled([]);
+        } else {
+            // Welke metingen hebben een probleem?
+            const probleemNamen = problemen.map(function(p) { return p.split(':')[0]; });
+            localStorage.setItem(VALIDATIE_FOUT_KEY, JSON.stringify(probleemNamen));
+            setMeasurementFieldsDisabled(probleemNamen);
+
+            const enkelvoud = problemen.length === 1;
+            showNotification(
+                '⚠️ ' + problemen.length + ' probleem' + (enkelvoud ? '' : 'en')
+                + ' gevonden:\n' + problemen.join('\n'),
+                'warning'
+            );
+            console.warn('[SOEP Metingen] Validatie problemen:', problemen);
+        }
+    }
+
+    // Grijst velden uit waarvan het bepaling-ID niet klopt
+    function setMeasurementFieldsDisabled(foutNamen) {
+        const fout = new Set(foutNamen);
+
+        // ── Eenvoudige velden ──────────────────────────────────────────────────
+        const enkelvoudigeVelden = {
+            'gewicht':     'measurement-gewicht',
+            'lengte':      'measurement-lengte',
+            'bovendruk':   'measurement-bovendruk',
+            'onderdruk':   'measurement-onderdruk',
+            'pols':        'measurement-pols',
+            'temperatuur': 'measurement-temperatuur',
+            'saturatie':   'measurement-saturatie',
+            'crp':         'measurement-crp',
+        };
+
+        // Reset enkelvoudige velden
+        Object.values(enkelvoudigeVelden).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = false;
+            el.style.opacity = '1';
+            el.title = '';
+            var warn = document.getElementById('pmh-warn-' + id);
+            if (warn) warn.remove();
+        });
+
+        // Grijst foute enkelvoudige velden
+        Object.entries(enkelvoudigeVelden).forEach(function(entry) {
+            var naam = entry[0], id = entry[1];
+            if (!fout.has(naam)) return;
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = true;
+            el.style.opacity = '0.4';
+            el.title = '⚠️ Bepaling-ID mogelijk gewijzigd — opslaan uitgeschakeld';
+            if (!document.getElementById('pmh-warn-' + id)) {
+                var warn = document.createElement('span');
+                warn.id = 'pmh-warn-' + id;
+                warn.textContent = '⚠️';
+                warn.title = 'Bepaling-ID gewijzigd';
+                warn.style.marginLeft = '4px';
+                el.parentNode.insertBefore(warn, el.nextSibling);
+            }
+        });
+
+        // ── Glucose: speciale logica ───────────────────────────────────────────
+        var glucoseInput = document.getElementById('measurement-glucose');
+        var glucoseCb    = document.getElementById('glucose-nuchter-cb');
+        var warnId       = 'pmh-warn-glucose';
+        var bestaandWarn = document.getElementById(warnId);
+        if (bestaandWarn) bestaandWarn.remove();
+
+        var nuchterKapot = fout.has('glucose_nuchter');
+        var nnKapot      = fout.has('glucose_nn');
+
+        if (nuchterKapot && nnKapot) {
+            // Beide kapot: heel veld uitschakelen
+            if (glucoseInput) {
+                glucoseInput.disabled = true;
+                glucoseInput.style.opacity = '0.4';
+                glucoseInput.title = '⚠️ Beide glucose-IDs gewijzigd — opslaan uitgeschakeld';
+            }
+            if (glucoseCb) {
+                glucoseCb.disabled = true;
+                glucoseCb.style.opacity = '0.4';
+            }
+            if (glucoseInput) {
+                var warn = document.createElement('span');
+                warn.id = warnId;
+                warn.textContent = '⚠️';
+                warn.title = 'Beide glucose bepaling-IDs gewijzigd';
+                warn.style.marginLeft = '4px';
+                glucoseInput.parentNode.insertBefore(warn, glucoseInput.nextSibling);
+            }
+        } else if (nuchterKapot) {
+            // Nuchter kapot: forceer niet-nuchter (vinkje UIT), vinkje greyed out
+            if (glucoseInput) {
+                glucoseInput.disabled = false;
+                glucoseInput.style.opacity = '1';
+                glucoseInput.title = '';
+            }
+            if (glucoseCb) {
+                glucoseCb.checked  = false;
+                glucoseCb.disabled = true;
+                glucoseCb.style.opacity = '0.4';
+                glucoseCb.title = '⚠️ Glucose nuchter ID gewijzigd — alleen niet-nuchter beschikbaar';
+            }
+        } else if (nnKapot) {
+            // Niet-nuchter kapot: forceer nuchter (vinkje AAN), vinkje greyed out
+            if (glucoseInput) {
+                glucoseInput.disabled = false;
+                glucoseInput.style.opacity = '1';
+                glucoseInput.title = '';
+            }
+            if (glucoseCb) {
+                glucoseCb.checked  = true;
+                glucoseCb.disabled = true;
+                glucoseCb.style.opacity = '0.4';
+                glucoseCb.title = '⚠️ Glucose niet-nuchter ID gewijzigd — alleen nuchter beschikbaar';
+            }
+        } else {
+            // Beide ok: reset
+            if (glucoseInput) {
+                glucoseInput.disabled = false;
+                glucoseInput.style.opacity = '1';
+                glucoseInput.title = '';
+            }
+            if (glucoseCb) {
+                glucoseCb.disabled = false;
+                glucoseCb.style.opacity = '1';
+                glucoseCb.title = '';
+            }
+        }
+    }
+
+
     function isSOEPPage() {
         const href = window.location.href;
         if (href.includes('losseuitslag'))  return false;
@@ -207,6 +501,22 @@
         // Build list: regular measurements + auto-calculated BMI
         const toSubmit = [];
         for (const [id, val] of Object.entries(measurementValues)) {
+            // Glucose: check of het specifieke glucose-type nog beschikbaar is
+            if (id === 'glucose_nuchter' || id === 'glucose_nn') {
+                const cb = document.getElementById('glucose-nuchter-cb');
+                const glucoseInput = document.getElementById('measurement-glucose');
+                if (glucoseInput && glucoseInput.disabled) continue; // beiden kapot
+                // Als vinkje geforceerd is, gebruik alleen het type dat het vinkje aangeeft
+                if (cb && cb.disabled) {
+                    const geforceerd = cb.checked ? 'glucose_nuchter' : 'glucose_nn';
+                    if (id !== geforceerd) continue;
+                }
+            } else {
+                // Sla gewone velden over die uitgeschakeld zijn
+                const inputEl = document.getElementById('measurement-' + id);
+                if (inputEl && inputEl.disabled) continue;
+            }
+
             const v = validateMeasurement(id, val);
             if (v.valid) toSubmit.push({ id, value: v.cleanValue });
         }
@@ -381,7 +691,7 @@
     function createPanel() {
         const panel = document.createElement('div');
         panel.id = 'soep-measurements-panel';
-        panel.style.cssText = 'margin: 10px 0; width: 100%; box-sizing: border-box;';
+        panel.style.cssText = 'margin: 10px 0; width: 100%; max-width: 680px; box-sizing: border-box;';
 
         // Helper: maak een standaard invoercel
         function makeField(m) {
@@ -409,11 +719,11 @@
         // W  = totale celbreedte
         // LW = labelbreedte (vast, rechts uitgelijnd)
         // IW = inputbreedte
-        const W  = 155;   // px totaal per cel
-        const LW = 68;    // px label
+        const W  = 130;   // px totaal per cel (was 155)
+        const LW = 58;    // px label (was 68)
         const IW = 56;    // px input
 
-        const rowStyle  = 'display:flex; align-items:center; gap:0; margin-bottom:5px;';
+        const rowStyle  = 'display:flex; align-items:center; gap:0; margin-bottom:5px; padding-left:4px;';
         const cellStyle = `display:inline-flex; align-items:center; gap:4px; width:${W}px; flex-shrink:0;`;
         const lblStyle  = `font-size:12px; color:#333; width:${LW}px; text-align:right; flex-shrink:0; white-space:nowrap;`;
         const inpStyle  = `width:${IW}px; padding:3px 4px; border:1px solid #ccc; border-radius:3px; font-size:13px; box-sizing:border-box; flex-shrink:0;`;
@@ -449,13 +759,14 @@
         const rij2 = `<div style="${rowStyle}">
             ${mkField({id:'temperatuur', label:'Temp.', placeholder:'°C'})}
             ${mkField({id:'crp',        label:'CRP',   placeholder:'mg/L'})}
+            <div style="width:${W}px; flex-shrink:0;"></div>
             <div style="display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
                 <label for="measurement-glucose" style="${lblStyle}">Glucose:</label>
                 <input type="text" id="measurement-glucose" data-measurement-id="glucose"
                        placeholder="mmol/L"
                        style="${inpStyle}" />
                 <span id="validation-glucose" style="${valStyle}"></span>
-                <label style="display:inline-flex; align-items:center; gap:3px; font-size:12px; color:#555; cursor:pointer; margin-left:2px; white-space:nowrap;">
+                <label style="display:inline-flex; align-items:center; gap:2px; font-size:12px; color:#555; cursor:pointer; margin-left:1px; white-space:nowrap;">
                     <input type="checkbox" id="glucose-nuchter-cb" style="margin:0; cursor:pointer;" />
                     nuchter
                 </label>
@@ -502,6 +813,12 @@
                         border:none; border-radius:3px; cursor:pointer; font-size:12px;">
                         🗑️ Wissen
                     </button>
+                    <button id="measurements-validate" type="button" style="
+                        padding:4px 12px; background:#6c757d; color:white;
+                        border:none; border-radius:3px; cursor:pointer; font-size:12px;"
+                        title="Controleer of de bepaling-IDs nog correct zijn in Promedico">
+                        🔍 Valideer IDs
+                    </button>
                     <span style="font-size:11px; color:#666;">
                         💡 Automatisch opgeslagen bij Opslaan/Verder klikken
                     </span>
@@ -531,6 +848,11 @@
             clearMeasurements();
             updatePanelUI();
             showNotification('Metingen gewist', 'info');
+        });
+
+        panel.querySelector('#measurements-validate').addEventListener('click', () => {
+            showNotification('Bepaling-IDs worden gecontroleerd...', 'info');
+            validateBepalingIds();
         });
 
         // Bloeddruk apart: één gecombineerd vinkje voor sys+dia samen
@@ -861,9 +1183,6 @@
     // INITIALIZATION
     // =============================================================================
     async function init() {
-        // measurementValues is al {} bij module-start (in-memory, nooit opgeslagen)
-        // getPatientId() wordt pas aangeroepen op het moment van submit (altijd live)
-
         if (!isSOEPPage()) return;
 
         await pollUntil(
@@ -873,6 +1192,9 @@
         );
 
         startFormAndButtonWatcher();
+
+        // Valideer bepaling-IDs dagelijks op de achtergrond
+        setTimeout(maybValideerDagelijks, 2000);
 
         // Short poll for buttons that appear after load
         let count = 0;
