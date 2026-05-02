@@ -69,29 +69,32 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 
 ```
 Promedico-ASP/
-├── shared/          # Gedeelde bestanden (config, popup, loader, icons)
-│   ├── config.js    # Scriptconfiguratie en GitHub-updater instellingen
-│   ├── popup.html   # Popup UI
-│   ├── popup.js     # Popup logica
-│   ├── loader.js    # Gedeelde loader
+├── shared/                      # Gedeelde bestanden (voor alle browsers)
+│   ├── config.js                # Scriptconfiguratie (welke scripts, URL-patronen)
+│   ├── popup.html               # Popup UI
+│   ├── popup.js                 # Popup logica
+│   ├── background.js            # Service worker / achtergrondscript
+│   ├── storage-bridge-client.js # Cross-browser storage abstractie
+│   ├── onboarding.html          # Onboarding wizard UI
+│   ├── onboarding.js            # Onboarding logica
+│   ├── profiles.js              # Gebruikersprofielen
+│   ├── zorgdomein-instellingen.js # Zorginstellingen voor Zorgdomein menu
 │   └── icons/
-├── firefox/         # Firefox MV2 specifiek
+├── firefox/                     # Firefox MV2 specifiek
 │   ├── manifest.json
-│   ├── content.js   # Inline shim (toegestaan in MV2)
-│   ├── background.js
-│   └── updates.json
-├── chrome/          # Chrome/Edge MV3 specifiek
+│   ├── content.js
+│   ├── storage-bridge-client.js
+│   └── updates.json             # Auto-update manifest voor unlisted versie
+├── chrome/                      # Chrome/Edge MV3 specifiek
 │   ├── manifest.json
-│   ├── content.js   # Shim via apart bestand (CSP vereiste)
-│   ├── background.js
-│   └── shim.js      # Page-context shim voor cross-browser compatibiliteit
-├── scripts/         # Alle userscripts (gedeeld voor beide browsers)
-│   ├── *.js
-│   └── *.json       # Metadata per script (naam, ID, URL-patronen)
-├── dist/            # Gegenereerd door build.sh, niet committen
-├── build.sh         # Bouwt Firefox en Chrome distributies
-├── release.sh       # Versie bumpen, AMO signing, GitHub push
-└── .env             # AMO credentials (nooit committen!)
+│   ├── content.js
+│   └── storage-bridge-client.js
+├── scripts/                     # Alle userscripts (gedeeld voor alle browsers)
+│   └── *.js
+├── dist/                        # Gegenereerd door build.sh, niet committen
+├── build.sh                     # Bouwt Firefox en Chrome distributies
+├── release.sh                   # Versie bumpen, signen, stores uploaden, GitHub push
+└── .env                         # API credentials (nooit committen!)
 ```
 
 ---
