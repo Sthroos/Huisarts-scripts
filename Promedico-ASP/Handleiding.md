@@ -319,7 +319,7 @@ Vult het inschrijfformulier automatisch in op basis van geplakte tekst (bijv. ui
 3. Het script herkent velden als Achternaam, Voorletters, Voornamen, Tussenvoegsel, Meisjesnaam, Naam volgorde, Geboortedatum, Geboorteplaats, Geslacht, BSN, Telefoonnummer, E-mail, Beroep, Type ID bewijs, ID bewijs nummer
 4. Ingevulde velden: het script meldt hoeveel velden zijn gevuld
 
-> **Let op:** Het script is nu geconfigureerd om bij het veld *Huisarts* automatisch te zoeken naar ***"E.A. Westerbeek"*** — dit is de naam van de huisarts waarvoor dit script oorspronkelijk gebouwd is. Pas dit aan in de code als jouw naam anders is. ***
+> **Let op:** Het script is nu geconfigureerd om bij het veld *Huisarts* automatisch te zoeken naar de naam van de ingelogde gebruiker. Als dit niet correct werkt, kan de naam in de broncode worden aangepast. In een toekomstige versie wordt dit via de onboarding instelbaar.
 
 ---
 
@@ -443,15 +443,21 @@ Voegt een meetwaardenpaneel toe aan het SOEP-formulier waarmee je metingen kunt 
 | Pols | /min | 20 – 300 |
 | Saturatie | % | 50 – 100 |
 | Temperatuur | °C | 30 – 45 |
+| Glucose | mmol/L | 1 – 40 |
 
 **BMI** wordt automatisch berekend en weergegeven als gewicht én lengte zijn ingevuld. De kleur geeft de categorie aan: groen (normaal), oranje (overgewicht), rood (ondergewicht of obesitas).
+
+Bij **glucose** kun je via een checkbox aangeven of de meting nuchter of niet-nuchter is — dit bepaalt welk bepaling-ID naar Promedico wordt gestuurd.
 
 **Hoe het werkt:**
 1. Klik op het **📊 Metingen**-paneel om het open te klappen
 2. Vul de gewenste waarden in; elk veld toont ✓ of ✗ bij validatie
 3. Klik op **💾 Nu metingen opslaan** om direct op te slaan, *of*
-4. Klik gewoon op **Opslaan** of **Verder** in het SOEP-formulier — het script onderschept dit en sla eerst de metingen op voordat het formulier wordt ingediend
+4. Klik gewoon op **Opslaan** of **Verder** in het SOEP-formulier — het script onderschept dit en slaat eerst de metingen op voordat het formulier wordt ingediend
 5. Na opslaan wordt het O-veld automatisch aangevuld met een samenvattingsregel, bijv.: `75 kg, 178 cm, BMI 23,7, RR 125/80, pols 72, sat 98%`
+
+**Valideer IDs — 🔍 knop:**
+Promedico gebruikt interne bepaling-IDs om metingen op te slaan. Deze IDs kunnen na een Promedico-update wijzigen. Met de knop **🔍 Valideer IDs** in het meetpaneel wordt automatisch gecontroleerd of alle IDs nog correct zijn. Als een ID niet meer klopt, wordt het bijbehorende veld grijs en uitgeschakeld totdat het probleem is opgelost. De validatie loopt ook dagelijks automatisch op de achtergrond.
 
 ---
 
@@ -523,7 +529,10 @@ Voegt een rij snelknoppen toe waarmee je veelgebruikte verrichtingen met één k
 | ECG | ECG-diagnostiek |
 
 > **Let op:** Contacttype-knoppen verwijderen eerst het bestaande niet-handeling contacttype voordat het nieuwe type wordt toegevoegd. Handeling-knoppen worden altijd opgestapeld.
-> **Let op:** Het vervangen van het contacttype door een volgende is vooralsnog niet 100% betrouwbaar, let dus altijd op wat je doet. 
+> **Let op:** Het vervangen van het contacttype door een volgende is vooralsnog niet 100% betrouwbaar, let dus altijd op wat je doet.
+
+**Eigen declaratiecodes — ⚙ knop:**
+Naast de vaste knoppen is er een derde rij voor **eigen codes** (cyaan/blauw). Via de **⚙**-knop rechts in de knoppenbalk open je een instellingenvenster waar je uit alle beschikbare declaratiecodes in jouw Promedico-installatie kunt kiezen. Aangevinkte codes verschijnen als snelknop in de eigen rij. Codes die later uit Promedico worden verwijderd worden automatisch grijs weergegeven. Eigen codes worden altijd opgestapeld (net als handeling-knoppen).
 
 ---
 
@@ -582,17 +591,23 @@ Voegt een uitgebreid menu toe waarmee je direct vanuit Promedico naar een specif
 - **⚕ SCEN arts aanvragen** — directe link naar het SCEN-formulier op ZorgDomein
 - **Hulpmiddelen:** Diabetesmaterialen, Compressiematerialen, Mobiliteit, Orthesen, Respiratoire hulpmiddelen, en meer
 
-> **Let op:** De ZorgDomein-links in dit menu zijn momenteel specifiek geconfigureerd voor Saltro en Meander ziekenhuis. Als bepaalde links niet werken of naar de verkeerde aanbieder gaan, moeten de URL's in de broncode worden aangepast voor jouw eigen ZorgDomein-contracten.
-> > **Let op:** Technische tips over hoe om te gaan met meerdere regio's welkom.
+> **Instelling:** Welke zorginstellingen in het menu verschijnen stel je in via de **onboarding** (zie hieronder). Het menu werkt voor alle regio's in Nederland — je kiest zelf met welke ziekenhuizen en laboratoria jouw praktijk samenwerkt.
 
 ---
 
 ## Technische informatie
 
-### Configuratie-aandachtspunten (***aan te passen per praktijk***)
+### Onboarding
 
-- **Script 9e (Patiëntformulier invullen):** De naam *"E.A. Westerbeek"* hardcoded als huisarts-selectie — aanpassen naar jouw naam
-- **Script 19 (Zorgdomein):** De ZorgDomein-URL's zijn nu nog gekoppeld aan specifieke aanbieders — controleer of de URL's overeenkomen met jouw regio
+Bij de eerste installatie (of via de extensie-popup → *Instellingen opnieuw doorlopen*) verschijnt een onboarding-wizard met 3 stappen:
+
+**Stap 1 — Zorginstellingen:** Vink de ziekenhuizen, laboratoria en andere zorginstellingen aan waarmee jouw praktijk samenwerkt. Deze verschijnen vervolgens in het Zorgdomein snelmenu onder de juiste categorie (Diagnostiek, Meedenkadvies, etc.). Je kunt filteren op type instelling en zoeken op naam. Instellingen van een andere pc importeren kan via de importknop.
+
+**Stap 2 — BVO uitstrijkje:** Kies hoe het uitstrijkje bij jullie wordt verwerkt: via een koerier die ophaalt, of een andere werkwijze. Dit bepaalt de tekst die het BVO-sjabloon in het P-veld plaatst.
+
+**Stap 3 — CRP sneltest:** Kies hoe een CRP wordt aangevraagd: via POCTConnect (digitale aanvraag, opent poctconnect.nl met automatisch gekopieerd BSN) of handmatige invoer (plaatst een invulregel in het O-veld).
+
+Na de onboarding zijn alle relevante scripts direct correct geconfigureerd voor jouw praktijk.
 
 ### Aan/uitzetten van scripts
 
