@@ -32,17 +32,20 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 | Agenda Menu Items | Snelkoppelingen in het agendamenu (Berichten, E-consult, Recept) |
 | Auto-delete Berichten | Automatisch verwijderen van verwerkte spamberichten |
 | Auto-check MEDOVD & Auto-download | Automatisch controleren en downloaden van MEDOVD dossiers |
+| Brieven Verwerken | Extraheert SOEP-velden automatisch uit binnenkomende brieven (HAP, specialisten, paramedici) |
+| Consult Kopiëren | Kopieer één of meerdere consulten uit het journaal als opgemaakte tekst |
 | Contactsoort Quick Buttons | Snelknoppen voor contactsoort bij consulten |
 | Correspondentie Upload | Drag & drop bestanden uploaden naar correspondentie |
 | Verplaats en Verberg Delen | UI-aanpassingen voor de delenweergave |
 | E-consult Template Responses | Vaste antwoordteksten voor e-consulten |
-| Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow |
+| Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow (vult ook *Genoeg voor* in met 30 dagen als leeg) |
+| Initialen in S-veld | Plaatst automatisch je initialen in het S-veld bij het openen van een consult |
 | Inschrijven en MEDOVD Import | Favorieten menu + inschrijven/MEDOVD automatisering |
 | Meetwaarden Highlights (2 regels) | Twee-regelweergave bij meetwaarden in ketenzorg |
 | Copy Phone, Email, BSN, Address | Kopieerknopjes voor patiëntgegevens |
 | LSP-instellingen | Snelle toegang tot LSP-instellingen |
 | P veld herinneringen | Automatische herinnering popup bij teksten in het P-veld |
-| Promedico Crash Recovery | Snel consultteksten terugplaatsen en invoeren na een crash |
+| Snel Consulten Invoeren | Snel consultteksten terugplaatsen en invoeren na een crash of na offline werken |
 | SOEP Measurements | Meetwaarden (gewicht, RR, pols, temp, etc.) invoeren vanuit SOEP |
 | SOEP Sjablonen | Sjablonen voor SOEP-notities |
 | Verrichting Quick Buttons | Snel verrichtingen toevoegen via knoppen op het declaratiescherm |
