@@ -102,6 +102,14 @@ const SCRIPT_CONFIG = [
     injectMode: 'main_world'
   },
   {
+    id: 'medicatieGenoegVoor',
+    name: 'Medicatie — Genoeg voor (standaard 30 dagen)',
+    description: 'Vult automatisch 30 dagen in het "Genoeg voor"-veld als Promedico dat leeg laat',
+    enabled: true,
+    scriptFile: 'scripts/medicatie-genoeg-voor.js',
+    urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+  },
+  {
     id: 'meetwaardenHighlights',
     name: 'Meetwaarden Highlights (2 regels)',
     description: 'Highlight measurement values',

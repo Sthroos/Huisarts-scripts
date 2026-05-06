@@ -1,21 +1,16 @@
 (function() {
     'use strict';
 
-    console.log('[MEDOVD Auto] Script loaded');
-
     // ========== CHECKBOX FUNCTIONALITY ==========
     function checkVerhuisberichtCheckbox() {
         const checkbox = document.querySelector('input[type="checkbox"][id^="verhuisBerichtPatientIds"]');
 
         if (checkbox && !checkbox.checked) {
             checkbox.checked = true;
-            console.log('[MEDOVD Auto] Checkbox automatically checked');
 
-            // Trigger change event
             const changeEvent = new Event('change', { bubbles: true });
             checkbox.dispatchEvent(changeEvent);
 
-            // Call setChanged if it exists
             if (typeof setChanged === 'function') {
                 setChanged(true);
             }
@@ -24,8 +19,6 @@
 
     // ========== DOWNLOAD FUNCTIONALITY ==========
     function downloadFile(url, filename) {
-        console.log(`[MEDOVD Auto] Downloading: ${filename}`);
-
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
@@ -38,48 +31,38 @@
     let downloadsProcessed = false;
 
     function autoDownloadFiles() {
-        if (downloadsProcessed) {
-            return;
-        }
+        if (downloadsProcessed) return;
 
-        // Get patient number for filename
+        // Patiëntnummer voor bestandsnaam
         let patientNum = 'patient';
         const patientNumInput = document.querySelector('input.inputReadonly[readonly]');
-
         if (patientNumInput && patientNumInput.value) {
             patientNum = patientNumInput.value.trim();
         }
 
-        // Get current date for filename
+        // Lokale datum (niet UTC) — toISOString() geeft UTC waardoor bij avondgebruik
+        // de verkeerde datum op het bestand staat
         const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10);
+        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        // Find all download links
         const downloadLinks = document.querySelectorAll('a[href*="download?id="]');
 
         if (downloadLinks.length > 0) {
-            console.log(`[MEDOVD Auto] Found ${downloadLinks.length} download link(s)`);
             downloadsProcessed = true;
 
             downloadLinks.forEach((link, index) => {
                 let href = link.getAttribute('href');
-
-                // Make sure href is absolute
                 if (href.startsWith('/')) {
                     href = window.location.origin + href;
                 }
 
                 const row = link.closest('tr');
                 let label = 'download';
-
                 if (row) {
                     const labelCell = row.querySelector('td.label');
-                    if (labelCell) {
-                        label = labelCell.textContent.trim();
-                    }
+                    if (labelCell) label = labelCell.textContent.trim();
                 }
 
-                // Determine filename based on label
                 let filename;
                 if (label.includes('MEDOVD')) {
                     filename = `${patientNum}_${dateStr}_MEDOVD.xml`;
@@ -91,44 +74,26 @@
                     filename = `${patientNum}_${dateStr}_download_${index + 1}`;
                 }
 
-                // Stagger downloads by 1 second each
-                setTimeout(() => {
-                    downloadFile(href, filename);
-                }, index * 1000);
+                setTimeout(() => downloadFile(href, filename), index * 1000);
             });
         }
     }
 
     // ========== INITIALIZATION ==========
-    // Check for checkbox immediately
     checkVerhuisberichtCheckbox();
-
-    // Check for downloads immediately
     autoDownloadFiles();
 
-    // Retry after delays
     setTimeout(checkVerhuisberichtCheckbox, 500);
     setTimeout(checkVerhuisberichtCheckbox, 1000);
     setTimeout(autoDownloadFiles, 1000);
     setTimeout(autoDownloadFiles, 2000);
 
-    // Observe DOM changes
     const observer = new MutationObserver(() => {
         checkVerhuisberichtCheckbox();
-        if (!downloadsProcessed) {
-            autoDownloadFiles();
-        }
+        if (!downloadsProcessed) autoDownloadFiles();
     });
 
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-
-    // Stop observing after 10 seconds
-    setTimeout(() => {
-        observer.disconnect();
-        console.log('[MEDOVD Auto] Observer stopped');
-    }, 10000);
+    observer.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 10000);
 
 })();

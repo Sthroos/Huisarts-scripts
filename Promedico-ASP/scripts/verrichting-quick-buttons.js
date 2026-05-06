@@ -3,7 +3,7 @@
 
     // ─── DEBUG ────────────────────────────────────────────────────────────────
     // Zet op false om alle logging uit te schakelen (later)
-    const DEBUG = true;
+    const DEBUG = false;
     function dbg(...args) {
         if (DEBUG) console.log('[PMH-VQB]', ...args);
     }
@@ -20,6 +20,9 @@
     const PENDING_CLEANUP_KEY       = 'pmh_pending_cleanup';
     const CACHE_KEY                 = 'pmh_verrichting_cache';       // alle beschikbare codes (van server)
     const CUSTOM_VERRICHTINGEN_KEY  = 'pmh_custom_verrichtingen';   // gepinde eigen codes [{id,code,label}]
+    const VALIDATIE_TS_KEY          = 'pmh_vqb_validatie_ts';       // timestamp laatste ID-validatie
+    const VALIDATIE_FOUTEN_KEY      = 'pmh_vqb_validatie_fouten';   // JSON array van IDs met probleem
+    const VALIDATIE_INTERVAL_MS     = 24 * 60 * 60 * 1000;          // 1x per 24 uur
 
     // ─── VASTE VERRICHTINGEN ──────────────────────────────────────────────────
     const VERRICHTINGEN = [
@@ -43,7 +46,7 @@
         { id: '266',               code: 'GLUC', pmCode: 'BSS',    label: 'Materiaalkosten teststrips bloedsuikerbepaling diabetespatiënten', color: '#f0ad4e', hover: '#ec971f', type: 'handeling' },
         { id: '315',               code: 'IUD',                    label: 'IUD/implantatiestaafje aanbrengen of verwijderen',                 color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
         { id: '297',               code: 'OOG',  pmCode: 'OOGB',   label: 'Oogboring',                                                        color: '#e67e22', hover: '#ca6f1e', type: 'handeling' },
-        { id: '653259001796612',   code: 'SPEC',                   label: 'Meedenkadvies medisch specialistische zorg',                       color: '#9b59b6', hover: '#7d3c98', type: 'handeling' },
+        { id: '653259001796612',   code: 'SPEC', cacheCode: '13051',  label: 'Meedenkadvies medisch specialistische zorg',                       color: '#9b59b6', hover: '#7d3c98', type: 'handeling' },
     ];
 
     const HANDELING_CODES = new Set([
@@ -88,114 +91,182 @@
         }
     }
 
-    // ─── ACHTERGROND CACHE REFRESH ────────────────────────────────────────────
-    // Wordt eenmalig per inject aangeroepen. Haalt de volledige verrichtingenlijst
-    // op via fetch en overschrijft de cache. Zo is de lijst altijd actueel.
+    // ─── ACHTERGROND CACHE REFRESH + DAGELIJKSE ID-VALIDATIE ─────────────────
+    // Bij de eerste inject van de dag: haal verrichtingenlijst op, valideer alle
+    // hardcoded IDs en toon voortgang. Daarna: herstel eerder gevonden fouten uit
+    // localStorage, zodat grijze knoppen meteen zichtbaar zijn zonder nieuwe fetch.
 
     let cacheRefreshGestart = false;
 
-    async function refreshVerrichtingCache(iframeDoc) {
-        if (cacheRefreshGestart) {
-            dbg('Cache refresh: al gestart in deze sessie, overgeslagen.');
+    // Herstel grijze knoppen direct bij laden (zonder nieuwe fetch) op basis van
+    // eerder opgeslagen fouten. Zodat de huisarts meteen ziet wat er mis is.
+    function herstelOpgeslagenFouten() {
+        let fouten = [];
+        try { fouten = JSON.parse(localStorage.getItem(VALIDATIE_FOUTEN_KEY) || '[]'); } catch(e) {}
+        if (fouten.length > 0) {
+            dbg('Herstel fouten bij laden:', fouten);
+            // herenderVasteRijen() gebruikt de cache — die kan bij eerste load leeg zijn.
+            // We passen de foute IDs direct toe zodra de container bestaat.
+            _uitgesteldeFoutenIds = fouten;
+        }
+    }
+    let _uitgesteldeFoutenIds = [];
+
+    async function maybValideerDagelijks(iframeDoc) {
+        const nu     = Date.now();
+        const laatst = parseInt(localStorage.getItem(VALIDATIE_TS_KEY) || '0', 10);
+
+        // Herstel fouten van vorige check direct, vóór eventuele nieuwe fetch
+        herstelOpgeslagenFouten();
+        // Wacht even tot inject klaar is, dan pas fouten toepassen
+        setTimeout(() => herenderVasteRijen(), 500);
+
+        if (nu - laatst < VALIDATIE_INTERVAL_MS) {
+            dbg('Verrichting ID-check: al gedaan vandaag, overgeslagen.');
             return;
         }
-        cacheRefreshGestart = true;
-        dbg('Cache refresh: gestart.');
 
+        if (cacheRefreshGestart) return;
+        cacheRefreshGestart = true;
+
+        await refreshVerrichtingCache(iframeDoc);
+    }
+
+    async function refreshVerrichtingCache(iframeDoc) {
         // Haal token en datum op uit de iframe
         const tokenEl = iframeDoc.querySelector('input[name="r_token"]');
         if (!tokenEl || !tokenEl.value) {
-            dbgWarn('Cache refresh: geen r_token gevonden in iframeDoc — afgebroken.');
-            cacheRefreshGestart = false; // retry toegestaan
+            dbgWarn('Cache refresh: geen r_token gevonden — afgebroken.');
+            cacheRefreshGestart = false;
             return;
         }
         const token = tokenEl.value;
-        dbg('Cache refresh: r_token gevonden:', token);
 
-        // Datum in dd-mm-yyyy formaat (zoals Promedico verwacht)
-        const nu = new Date();
+        const nu    = new Date();
         const datum = `${String(nu.getDate()).padStart(2,'0')}-${String(nu.getMonth()+1).padStart(2,'0')}-${nu.getFullYear()}`;
-        dbg('Cache refresh: datum:', datum);
-
-        // Bouw de URL op. We doen een GET met de bekende parameters.
-        // Promedico accepteert de verrichtingselectie normaal via POST vanuit het iframe,
-        // maar een GET zonder filters geeft de volledige lijst terug.
-        const url = `/promedico/medischdossier.journaal.verrichtingselectie.m?datum=${datum}&handmatig=false&inschrijfgeld=false&r_token=${encodeURIComponent(token)}`;
-        dbg('Cache refresh: fetch URL:', url);
+        const url   = `/promedico/medischdossier.journaal.verrichtingselectie.m?datum=${datum}&handmatig=false&inschrijfgeld=false&r_token=${encodeURIComponent(token)}`;
 
         let html;
         try {
+            showNotification('Verrichting-IDs ophalen...', 'info');
             const response = await fetch(url, {
                 method: 'GET',
-                credentials: 'same-origin', // stuur sessie-cookies mee
+                credentials: 'same-origin',
                 headers: { 'Accept': 'text/html' }
             });
-            dbg('Cache refresh: HTTP status:', response.status, response.statusText);
             if (!response.ok) {
-                dbgErr('Cache refresh: server gaf foutcode terug:', response.status);
+                showNotification(`⚠️ Verrichting-cache: serverfout ${response.status}`, 'warning');
                 cacheRefreshGestart = false;
                 return;
             }
             html = await response.text();
-            dbg('Cache refresh: HTML ontvangen, lengte:', html.length, 'tekens.');
         } catch (e) {
-            dbgErr('Cache refresh: fetch mislukt (netwerk/CORS?):', e);
+            showNotification('⚠️ Verrichting-cache: netwerkfout', 'warning');
             cacheRefreshGestart = false;
             return;
         }
 
-        // Parse de HTML
+        // Parse
         let doc;
         try {
             doc = new DOMParser().parseFromString(html, 'text/html');
         } catch (e) {
-            dbgErr('Cache refresh: DOMParser mislukt:', e);
             cacheRefreshGestart = false;
             return;
         }
 
-        // Extraheer alle rijen met klaar('id')
         const codes = [];
-        const rijen = doc.querySelectorAll('tr[onclick*="klaar"]');
-        dbg(`Cache refresh: ${rijen.length} rijen gevonden in response.`);
-
-        rijen.forEach((tr, i) => {
+        doc.querySelectorAll('tr[onclick*="klaar"]').forEach(tr => {
             const onclick = tr.getAttribute('onclick') || '';
-            const match = onclick.match(/klaar\('([^']+)'\)/);
-            const tds = tr.querySelectorAll('td');
-            if (!match) {
-                dbgWarn(`Cache refresh: rij ${i} heeft geen klaar()-match in onclick="${onclick}"`);
-                return;
-            }
-            if (tds.length < 2) {
-                dbgWarn(`Cache refresh: rij ${i} heeft minder dan 2 <td>'s`);
-                return;
-            }
-            const entry = {
+            const match   = onclick.match(/klaar\('([^']+)'\)/);
+            const tds     = tr.querySelectorAll('td');
+            if (!match || tds.length < 2) return;
+            codes.push({
                 id:    match[1],
                 code:  tds[0].textContent.trim(),
                 label: tds[1].textContent.trim(),
-            };
-            codes.push(entry);
-            dbg(`Cache refresh: gevonden → id=${entry.id} code=${entry.code} label="${entry.label}"`);
+            });
         });
 
         if (codes.length === 0) {
-            dbgWarn('Cache refresh: 0 codes geparsed — iets klopt niet. HTML snippet:', html.substring(0, 500));
+            showNotification('⚠️ Verrichting-cache: geen codes ontvangen', 'warning');
             cacheRefreshGestart = false;
             return;
         }
 
-        // Sla op
         try {
             localStorage.setItem(CACHE_KEY, JSON.stringify(codes));
-            dbg(`Cache refresh: ✓ ${codes.length} codes opgeslagen in localStorage.`);
         } catch (e) {
-            dbgErr('Cache refresh: localStorage schrijven mislukt:', e);
+            dbgErr('Cache opslaan mislukt:', e);
         }
 
-        // Herrender de eigen rij als die er al staat (codes kunnen gewijzigd zijn)
+        // ── Valideer alle hardcoded VERRICHTINGEN-IDs tegen de cache ─────────────
+        // Twee checks per verrichting:
+        //   1. ID-aanwezigheid: staat het ID überhaupt nog in de Promedico-lijst?
+        //   2. Code-kruischeck: wijst het ID naar de verwachte code?
+        //      (vangt het scenario: ID 1 was 'C', na update is ID 1 nu 'V')
+        const cacheMap = new Map(codes.map(v => [v.id, v])); // id → {id, code, label}
+        const teControleren = VERRICHTINGEN;
+        const totaal = teControleren.length;
+        const fouten = []; // IDs met probleem (niet gevonden of verkeerde code)
+
+        for (let i = 0; i < totaal; i++) {
+            const v = teControleren[i];
+            showNotification(
+                `Verrichting-IDs controleren... (${i + 1}/${totaal}) ${v.code}`,
+                'info'
+            );
+
+            const gevonden = cacheMap.get(v.id);
+            if (!gevonden) {
+                // ID bestaat niet meer in Promedico
+                fouten.push(v.id);
+                dbgWarn(`ID niet gevonden: code=${v.code} id=${v.id}`);
+            } else {
+                // ID gevonden — check of de code nog overeenkomt.
+                // Volgorde: cacheCode (expliciete override) → pmCode → code
+                const verwachteCode = (v.cacheCode || v.pmCode || v.code).toUpperCase();
+                const gevondenCode  = gevonden.code.toUpperCase();
+                if (gevondenCode !== verwachteCode) {
+                    fouten.push(v.id);
+                    dbgWarn(`ID wijst naar verkeerde code: verwacht=${verwachteCode} gevonden=${gevondenCode} id=${v.id}`);
+                }
+            }
+
+            // Korte pauze zodat de voortgangsmelding zichtbaar is
+            await new Promise(r => setTimeout(r, 80));
+        }
+
+        // Sla resultaat op
+        localStorage.setItem(VALIDATIE_TS_KEY, String(Date.now()));
+        try {
+            localStorage.setItem(VALIDATIE_FOUTEN_KEY, JSON.stringify(fouten));
+        } catch(e) {}
+        _uitgesteldeFoutenIds = fouten;
+
+        if (fouten.length === 0) {
+            showNotification(`✅ Alle ${totaal} verrichting-IDs correct`, 'success');
+        } else {
+            const foutCodes = fouten
+                .map(id => {
+                    const vr = VERRICHTINGEN.find(v => v.id === id);
+                    if (!vr) return id;
+                    const gevonden = cacheMap.get(id);
+                    // Beschrijf het probleem: niet gevonden, of verkeerde code
+                    return gevonden
+                        ? `${vr.code} (ID wijst naar "${gevonden.code}")`
+                        : `${vr.code} (niet gevonden)`;
+                })
+                .join(', ');
+            showNotification(
+                `⚠️ ${fouten.length} verrichting-ID(s) onjuist: ${foutCodes}`,
+                'warning'
+            );
+        }
+
+        // Herrender alle rijen met de nieuwe cachedata
         herenderEigenRij();
+        herenderVasteRijen();
     }
 
     // ─── EIGEN RIJ HERRENDEREN ─────────────────────────────────────────────────
@@ -215,6 +286,62 @@
         if (knoppen) knoppen.innerHTML = '';
 
         vulEigenKnoppen(knoppen, eigenRijEl._iframeDoc, eigenRijEl._iframeWin);
+    }
+
+    // ─── VASTE RIJEN HERRENDEREN ──────────────────────────────────────────────
+    // Na cache-refresh: controleer alle vaste knoppen (consult + verrichting rij)
+    // op aanwezigheid in de cache. IDs die niet in Promedico bestaan worden grijs.
+
+    function herenderVasteRijen() {
+        // De container zit in het iframe, niet in het parent document.
+        // We zoeken hem op via de opgeslagen referentie op de container zelf,
+        // of via de iframeDoc die bewaard is op de container._iframeDoc.
+        const parentContainer = document.querySelector('.verrichting-quick-buttons');
+        // Fallback: zoek ook in iframes
+        let container = parentContainer;
+        if (!container) {
+            const frames = document.querySelectorAll('iframe');
+            for (const fr of frames) {
+                try {
+                    const c = fr.contentDocument && fr.contentDocument.querySelector('.verrichting-quick-buttons');
+                    if (c) { container = c; break; }
+                } catch(e) {}
+            }
+        }
+        if (!container) { dbg('HerenderVast: geen container, overgeslagen.'); return; }
+
+        // Fouten zijn de IDs die de validatieloop als fout heeft gemarkeerd
+        const foutIds = new Set(_uitgesteldeFoutenIds);
+
+        if (foutIds.size === 0) {
+            dbg('HerenderVast: geen fouten, niets te grijs maken.');
+            return;
+        }
+
+        container.querySelectorAll('button[data-verrichting-id]').forEach(btn => {
+            if (btn.classList.contains('pmh-eigen-btn')) return;
+
+            const vid = btn.dataset.verrichtingId;
+            const verrichting = VERRICHTINGEN.find(v => v.id === vid);
+            if (!verrichting) return;
+
+            if (foutIds.has(vid)) {
+                btn.title = `${verrichting.label}\n⚠ ID onjuist voor deze Promedico-installatie.\nNeem contact op met de beheerder.`;
+                btn.style.cssText = `
+                    height: 20px; padding: 0 5px; margin: 0 2px;
+                    background-color: #aaa; color: #fff;
+                    border: 1px solid #999; border-radius: 3px;
+                    cursor: not-allowed; font-family: Arial, sans-serif;
+                    font-size: 11px; font-weight: bold;
+                    line-height: 20px; vertical-align: middle; white-space: nowrap;
+                    text-decoration: line-through; opacity: 0.7;
+                `;
+                // Clone om event listeners te verwijderen (klik = geen actie meer)
+                const clone = btn.cloneNode(true);
+                btn.parentNode.replaceChild(clone, btn);
+                dbgWarn(`HerenderVast: grijs → code=${verrichting.code} id=${vid}`);
+            }
+        });
     }
 
     // ─── EIGEN VERRICHTING KNOPPEN VULLEN ─────────────────────────────────────
@@ -542,28 +669,46 @@
         addVerrichtingFn(verrichting.id);
     }
 
-    function createVerrichtingButton(verrichting, iframeDoc, iframeWin) {
+    function createVerrichtingButton(verrichting, iframeDoc, iframeWin, beschikbaar) {
+        if (beschikbaar === undefined) beschikbaar = true; // default: beschikbaar (vóór cache-check)
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'verrichting-quick-btn';
+        btn.dataset.verrichtingId = verrichting.id; // nodig voor re-render na cache-refresh
         btn.textContent = verrichting.code;
-        btn.title = verrichting.label + (verrichting.type === 'contact'
-            ? '\n(vervangt bestaand contacttype)'
-            : '\n(wordt opgestapeld)');
-        btn.style.cssText = `
-            height: 20px; padding: 0 5px; margin: 0 2px;
-            background-color: ${verrichting.color}; color: white;
-            border: 1px solid ${verrichting.color}; border-radius: 3px;
-            cursor: pointer; font-family: Arial, sans-serif;
-            font-size: 11px; font-weight: bold;
-            line-height: 20px; vertical-align: middle; white-space: nowrap;
-        `;
-        btn.addEventListener('mouseenter', () => { btn.style.backgroundColor = verrichting.hover; btn.style.borderColor = verrichting.hover; });
-        btn.addEventListener('mouseleave', () => { btn.style.backgroundColor = verrichting.color; btn.style.borderColor = verrichting.color; });
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleVerrichtingClick(verrichting, iframeDoc, iframeWin);
-        });
+
+        if (beschikbaar) {
+            btn.title = verrichting.label + (verrichting.type === 'contact'
+                ? '\n(vervangt bestaand contacttype)'
+                : '\n(wordt opgestapeld)');
+            btn.style.cssText = `
+                height: 20px; padding: 0 5px; margin: 0 2px;
+                background-color: ${verrichting.color}; color: white;
+                border: 1px solid ${verrichting.color}; border-radius: 3px;
+                cursor: pointer; font-family: Arial, sans-serif;
+                font-size: 11px; font-weight: bold;
+                line-height: 20px; vertical-align: middle; white-space: nowrap;
+            `;
+            btn.addEventListener('mouseenter', () => { btn.style.backgroundColor = verrichting.hover; btn.style.borderColor = verrichting.hover; });
+            btn.addEventListener('mouseleave', () => { btn.style.backgroundColor = verrichting.color; btn.style.borderColor = verrichting.color; });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleVerrichtingClick(verrichting, iframeDoc, iframeWin);
+            });
+        } else {
+            // ID niet gevonden in Promedico-cache: knop grijs en uitgeschakeld
+            btn.title = `${verrichting.label}\n⚠ ID niet gevonden in Promedico — mogelijk onjuist voor deze installatie.\nNeem contact op met de beheerder.`;
+            btn.style.cssText = `
+                height: 20px; padding: 0 5px; margin: 0 2px;
+                background-color: #aaa; color: #fff;
+                border: 1px solid #999; border-radius: 3px;
+                cursor: not-allowed; font-family: Arial, sans-serif;
+                font-size: 11px; font-weight: bold;
+                line-height: 20px; vertical-align: middle; white-space: nowrap;
+                text-decoration: line-through; opacity: 0.7;
+            `;
+            dbgWarn(`Vaste knop grijs: code=${verrichting.code} id=${verrichting.id} niet in cache`);
+        }
         return btn;
     }
 
@@ -591,6 +736,9 @@
         const container = document.createElement('div');
         container.className = 'verrichting-quick-buttons';
         container.style.cssText = 'margin-bottom: 6px;';
+        // Bewaar iframe-referentie voor de valideer-knop
+        container._iframeDoc = iframeDoc;
+        container._iframeWin = iframeWin;
 
         // ── Rij builder voor vaste rijen ──
         const maakRij = (type, labelTekst) => {
@@ -650,16 +798,73 @@
         eigenRij.appendChild(instellingenBtn);
 
         container.appendChild(eigenRij);
+
+        // ── Rij 4: Valideer IDs knop ──
+        const valideerRij = document.createElement('div');
+        valideerRij.style.cssText = 'white-space: nowrap; margin-top: 2px; display: flex; align-items: center;';
+
+        const valideerLbl = document.createElement('span');
+        valideerLbl.style.cssText = 'font-size: 11px; color: #555; margin-right: 4px; font-family: Arial, sans-serif; min-width: 68px; flex-shrink: 0;';
+        valideerRij.appendChild(valideerLbl);
+
+        const valideerBtn = document.createElement('button');
+        valideerBtn.type = 'button';
+        valideerBtn.textContent = '🔍 Valideer IDs';
+        valideerBtn.title = 'Controleer of alle verrichting-IDs nog correct zijn in Promedico (1x per dag automatisch, of handmatig hier)';
+        valideerBtn.style.cssText = `
+            height: 20px; padding: 0 8px; margin: 0;
+            background-color: #6c757d; color: white;
+            border: 1px solid #6c757d; border-radius: 3px;
+            cursor: pointer; font-family: Arial, sans-serif;
+            font-size: 11px;
+            line-height: 20px; vertical-align: middle;
+        `;
+        valideerBtn.addEventListener('mouseenter', () => { valideerBtn.style.backgroundColor = '#545b62'; });
+        valideerBtn.addEventListener('mouseleave', () => { valideerBtn.style.backgroundColor = '#6c757d'; });
+        valideerBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Wis timestamp zodat de check altijd opnieuw draait, ook als hij vandaag al gedaan is
+            localStorage.removeItem(VALIDATIE_TS_KEY);
+            cacheRefreshGestart = false;
+            const cont = document.querySelector('.verrichting-quick-buttons');
+            const doc  = cont ? cont._iframeDoc : iframeDoc;
+            maybValideerDagelijks(doc).catch(() => {});
+        });
+        valideerRij.appendChild(valideerBtn);
+        container.appendChild(valideerRij);
+
         headerTd.insertBefore(container, verrichtingHeader);
 
         // Vul eigen knoppen
         vulEigenKnoppen(eigenKnoppen, iframeDoc, iframeWin);
 
-        dbg('inject: ✓ volledig geïnjecteerd (3 rijen).');
+        dbg('inject: ✓ volledig geïnjecteerd (4 rijen).');
         return true;
     }
 
     // ─── MAIN LOOP ────────────────────────────────────────────────────────────
+
+    // ─── NOTIFICATIE ──────────────────────────────────────────────────────────
+
+    function showNotification(message, type) {
+        type = type || 'info';
+        const colors = { info: '#2196F3', success: '#4CAF50', warning: '#FF9800', error: '#f44336' };
+        const old = document.getElementById('pmh-vqb-notification');
+        if (old) old.remove();
+        const el = document.createElement('div');
+        el.id = 'pmh-vqb-notification';
+        el.style.cssText = `
+            position: fixed; top: 20px; right: 20px; padding: 12px 18px;
+            background: ${colors[type] || colors.info}; color: white;
+            border-radius: 5px; box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            z-index: 99999; font-family: Arial; font-size: 13px;
+            max-width: 380px; line-height: 1.4; white-space: pre-line;
+        `;
+        el.textContent = message;
+        document.body.appendChild(el);
+        const duur = type === 'warning' ? 6000 : type === 'success' ? 4000 : 2000;
+        setTimeout(() => { if (el.parentNode) el.remove(); }, duur);
+    }
 
     let heeftGeinjected = false;
 
@@ -698,8 +903,8 @@
         if (injected && !heeftGeinjected) {
             heeftGeinjected = true;
             dbg('tryInject: inject geslaagd, start achtergrond cache refresh.');
-            // Start cache refresh op de achtergrond — blokkeer inject niet
-            refreshVerrichtingCache(mainDoc).catch(e => dbgErr('Cache refresh onverwachte fout:', e));
+            // Start dagelijkse ID-validatie op de achtergrond — blokkeer inject niet
+            maybValideerDagelijks(mainDoc).catch(e => dbgErr('Validatie onverwachte fout:', e));
         }
 
         checkPendingDeletes(mainDoc, mainWin);

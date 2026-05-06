@@ -1080,15 +1080,27 @@
 
         const huisartsField = targetDoc.getElementById('praktijkMedewerker');
         if (huisartsField) {
-            for (let option of huisartsField.options) {
-                if (option.text.includes('E.A.') && option.text.includes('Westerbeek')) {
-                    huisartsField.value = option.value;
-                    huisartsField.dispatchEvent(new Event('change', { bubbles: true }));
-                    if (huisartsField.onchange) huisartsField.onchange();
-                    filled++;
-                    break;
+            // Lees de ingestelde naam op uit de extensie-instellingen (via storage bridge).
+            // Valt terug op leeg als de gebruiker niets heeft ingevuld in de onboarding.
+            window.chrome.storage.local.get(
+                ['inschrijvenHuisartsVoorletters', 'inschrijvenHuisartsAchternaam'],
+                function(result) {
+                    const voorletters = (result.inschrijvenHuisartsVoorletters || '').trim();
+                    const achternaam  = (result.inschrijvenHuisartsAchternaam  || '').trim();
+                    if (!voorletters && !achternaam) return; // niet ingesteld — niets doen
+                    for (let option of huisartsField.options) {
+                        const tekst = option.text;
+                        const vMatch = !voorletters || tekst.includes(voorletters);
+                        const aMatch = !achternaam  || tekst.includes(achternaam);
+                        if (vMatch && aMatch) {
+                            huisartsField.value = option.value;
+                            huisartsField.dispatchEvent(new Event('change', { bubbles: true }));
+                            if (huisartsField.onchange) huisartsField.onchange();
+                            break;
+                        }
+                    }
                 }
-            }
+            );
         }
 
         if (data['BSN']) {

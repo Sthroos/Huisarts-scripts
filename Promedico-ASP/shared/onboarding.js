@@ -3,12 +3,14 @@
 (function () {
   var _api = typeof browser !== 'undefined' ? browser : chrome;
 
-  var TOTAL_STEPS = 3;
+  var TOTAL_STEPS = 4;
   var currentStep = 1;
 
   var selectedInstellingen = []; // array van instelling-IDs
   var selectedBvo = null;
   var selectedCrp = null;
+  var huisartsVoorletters = '';
+  var huisartsAchternaam  = '';
 
   // ── Toast ─────────────────────────────────────────────────────────────────
 
@@ -170,6 +172,24 @@
     }
   }
 
+  // ── Stap 3: huisarts preview ──────────────────────────────────────────────
+
+  function updateHuisartsPreview() {
+    var vl = document.getElementById('huisartsVoorletters').value.trim();
+    var an = document.getElementById('huisartsAchternaam').value.trim();
+    huisartsVoorletters = vl;
+    huisartsAchternaam  = an;
+    var preview = document.getElementById('huisartsPreview');
+    if (vl || an) {
+      var merged = [vl, an].filter(Boolean).join(' ');
+      preview.textContent = 'De extensie zoekt naar: "' + merged + '"';
+      preview.style.color = '#1565c0';
+    } else {
+      preview.textContent = 'Leeg — automatisch selecteren uitgeschakeld.';
+      preview.style.color = '#aaa';
+    }
+  }
+
   // ── Keuzekaarten (BVO / CRP) ──────────────────────────────────────────────
 
   function setupChoiceCards(group, onSelect) {
@@ -194,11 +214,11 @@
 
   function updateNextButton() {
     var btn = document.getElementById('btnNext');
-    // Stap 1 (instellingen) altijd door te gaan — niets selecteren is ook geldig
     var stepValid = {
       1: function () { return true; },
       2: function () { return selectedBvo !== null; },
-      3: function () { return selectedCrp !== null; },
+      3: function () { return true; }, // huisarts is optioneel
+      4: function () { return selectedCrp !== null; },
     };
     var check = stepValid[currentStep];
     btn.disabled = check ? !check() : false;
@@ -228,7 +248,13 @@
     document.getElementById('progressFill').style.width = pct + '%';
 
     if (n === 2 && selectedBvo) preselectCard('bvo', selectedBvo);
-    if (n === 3 && selectedCrp) preselectCard('crp', selectedCrp);
+    if (n === 3) {
+      // Herstel huisarts-velden als de gebruiker terugnavigeerd
+      document.getElementById('huisartsVoorletters').value = huisartsVoorletters;
+      document.getElementById('huisartsAchternaam').value  = huisartsAchternaam;
+      updateHuisartsPreview();
+    }
+    if (n === 4 && selectedCrp) preselectCard('crp', selectedCrp);
     if (isDone) buildDoneList();
 
     updateNextButton();
@@ -242,10 +268,14 @@
     var aantalLabel = selectedInstellingen.length === 0
       ? 'Geen (generiek Zorgdomein menu)'
       : selectedInstellingen.length + ' instelling' + (selectedInstellingen.length === 1 ? '' : 'en');
+    var huisartsLabel = (huisartsVoorletters || huisartsAchternaam)
+      ? [huisartsVoorletters, huisartsAchternaam].filter(Boolean).join(' ')
+      : 'Niet ingesteld';
 
     var items = [
       'Zorginstellingen: <strong>' + aantalLabel + '</strong>',
       'BVO: <strong>' + bvoLabel + '</strong>',
+      'Inschrijven arts: <strong>' + huisartsLabel + '</strong>',
       'CRP: <strong>' + crpLabel + '</strong>',
     ];
     document.getElementById('doneList').innerHTML =
@@ -255,9 +285,6 @@
   // ── Opslaan ───────────────────────────────────────────────────────────────
 
   async function save() {
-    // Sla naast de IDs ook de volledige product-data op per geselecteerde instelling.
-    // Dit is nodig omdat content scripts geen toegang hebben tot ZORGDOMEIN_INSTELLINGEN
-    // als globale variabele (isolated world probleem).
     var instellingenData = {};
     selectedInstellingen.forEach(function(id) {
       var inst = ZORGDOMEIN_INSTELLINGEN.find(function(i) { return i.id === id; });
@@ -265,14 +292,16 @@
     });
 
     await _api.storage.local.set({
-      onboardingDone:            true,
-      geselecteerdeInstellingen: selectedInstellingen,
+      onboardingDone:                true,
+      geselecteerdeInstellingen:     selectedInstellingen,
       geselecteerdeInstellingenData: instellingenData,
-      activeProfile:             'generiek',
-      activeMenuFile:            'zorgdomein-menus/menu-generiek.js',
-      bvoKoerier:                selectedBvo === 'koerier',
-      crpPoct:                   selectedCrp === 'poct',
-      zdMenuCacheVersion:        Date.now(),
+      activeProfile:                 'generiek',
+      activeMenuFile:                'zorgdomein-menus/menu-generiek.js',
+      bvoKoerier:                    selectedBvo === 'koerier',
+      crpPoct:                       selectedCrp === 'poct',
+      zdMenuCacheVersion:            Date.now(),
+      inschrijvenHuisartsVoorletters: huisartsVoorletters,
+      inschrijvenHuisartsAchternaam:  huisartsAchternaam,
     });
   }
 
@@ -307,6 +336,10 @@
   document.getElementById('instellingFilter').addEventListener('change', buildInstellingList);
   document.getElementById('provincieFilter').addEventListener('change', buildInstellingList);
 
+  // Huisarts preview live
+  document.getElementById('huisartsVoorletters').addEventListener('input', updateHuisartsPreview);
+  document.getElementById('huisartsAchternaam').addEventListener('input', updateHuisartsPreview);
+
   // ── Init ──────────────────────────────────────────────────────────────────
 
   setupChoiceCards('bvo', function (v) { selectedBvo = v; });
@@ -314,6 +347,21 @@
 
   buildProvincieFilter();
   buildInstellingList();
+
+  // Laad bestaande waarden als de onboarding opnieuw geopend wordt
+  _api.storage.local.get([
+    'geselecteerdeInstellingen', 'bvoKoerier', 'crpPoct',
+    'inschrijvenHuisartsVoorletters', 'inschrijvenHuisartsAchternaam'
+  ], function(result) {
+    if (result.geselecteerdeInstellingen) {
+      selectedInstellingen = result.geselecteerdeInstellingen;
+      buildInstellingList();
+    }
+    if (result.bvoKoerier !== undefined) selectedBvo = result.bvoKoerier ? 'koerier' : 'zelf';
+    if (result.crpPoct    !== undefined) selectedCrp = result.crpPoct    ? 'poct'    : 'handmatig';
+    huisartsVoorletters = result.inschrijvenHuisartsVoorletters || '';
+    huisartsAchternaam  = result.inschrijvenHuisartsAchternaam  || '';
+  });
 
   showStep(1);
   updateNextButton();

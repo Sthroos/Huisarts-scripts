@@ -144,6 +144,19 @@
         });
     }
 
+    // ── BSN elfproef (11-proef) ──────────────────────────────────────────────
+    // Een geldig BSN is 8 of 9 cijfers lang en voldoet aan de 11-proef:
+    // som van (cijfer × gewicht) is deelbaar door 11.
+    // Gewichten voor 9 cijfers: 9,8,7,6,5,4,3,2,-1
+    // Voor 8 cijfers: voorloopnul toevoegen, dan dezelfde gewichten toepassen.
+    function geldigBSN(bsn) {
+        if (!/^\d{8,9}$/.test(bsn)) return false;
+        const cijfers = bsn.length === 8 ? '0' + bsn : bsn;
+        const gewichten = [9, 8, 7, 6, 5, 4, 3, 2, -1];
+        const som = cijfers.split('').reduce((acc, c, i) => acc + parseInt(c, 10) * gewichten[i], 0);
+        return som !== 0 && som % 11 === 0;
+    }
+
     function addCopyBSNButton() {
         // Find all BSN spans with class GEM3CPJDOIC
         const bsnSpans = document.querySelectorAll('span.GEM3CPJDOIC');
@@ -157,8 +170,8 @@
             // Get the BSN number from the span text
             const bsn = span.textContent.trim();
 
-            // Basic validation: BSN should be numeric and typically 8-9 digits
-            if (bsn && /^\d{8,9}$/.test(bsn)) {
+            // Valideer BSN: 8-9 cijfers én elfproef (11-proef)
+            if (bsn && geldigBSN(bsn)) {
                 const copyBtn = createCopyButton(bsn, 'bsn');
                 span.after(copyBtn);
             }

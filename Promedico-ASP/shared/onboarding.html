@@ -309,9 +309,36 @@
       </div>
     </div>
 
-    <!-- Stap 3: CRP -->
+    <!-- Stap 3: Huisarts inschrijven -->
     <div class="step" id="step3">
-      <h2>Stap 3 — CRP sneltest</h2>
+      <h2>Stap 3 — Patiëntinschrijving</h2>
+      <p class="subtitle">
+        Bij het inschrijven van een nieuwe patiënt kan de extensie automatisch de behandelend arts selecteren.<br>
+        Vul hieronder je naam in zoals die in Promedico staat. De extensie zoekt op voorletters én achternaam <em>afzonderlijk</em> — beide moeten voorkomen in de naam zoals Promedico die toont.
+        Je kunt ook alleen de achternaam invullen als je de voorletternotatie niet zeker weet.
+        Laat beide leeg als je dit niet wilt gebruiken.
+      </p>
+      <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:8px;">
+        <div style="flex:0 0 140px;">
+          <label style="display:block; font-size:12px; color:#666; margin-bottom:4px;">Voorletters</label>
+          <input type="text" id="huisartsVoorletters" placeholder="bijv. E.A."
+            style="width:100%; padding:8px 12px; border:1px solid #d0d0d0; border-radius:6px; font-size:14px; outline:none;">
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; font-size:12px; color:#666; margin-bottom:4px;">Achternaam</label>
+          <input type="text" id="huisartsAchternaam" placeholder="bijv. Westerbeek of Van de Berg"
+            style="width:100%; padding:8px 12px; border:1px solid #d0d0d0; border-radius:6px; font-size:14px; outline:none;">
+        </div>
+      </div>
+      <p id="huisartsPreview" style="font-size:12px; color:#888; min-height:18px;"></p>
+      <p style="font-size:12px; color:#aaa; margin-top:10px;">
+        Promedico toont namen soms als <em>"E.A. Westerbeek"</em> en soms als <em>"Westerbeek, E.A."</em> — het formaat verschilt per installatie. Als je niet zeker bent van het format, vul dan alleen je achternaam in: die is uniek genoeg voor de meeste praktijken.
+      </p>
+    </div>
+
+    <!-- Stap 4: CRP -->
+    <div class="step" id="step4">
+      <h2>Stap 4 — CRP sneltest</h2>
       <p class="subtitle">Hoe wordt een CRP aangevraagd bij jullie?</p>
       <div class="choice-grid single-col">
         <div class="choice-card" data-group="crp" data-value="poct">
@@ -328,8 +355,8 @@
       </div>
     </div>
 
-    <!-- Stap 4: Klaar -->
-    <div class="step" id="step4">
+    <!-- Stap 5: Klaar -->
+    <div class="step" id="step5">
       <h2>Alles ingesteld!</h2>
       <p class="subtitle">Je kunt nu aan de slag. De instellingen zijn opgeslagen en gelden direct.</p>
       <div class="done-icon">&#9989;</div>
@@ -348,7 +375,7 @@
   </div>
 
   <div class="nav">
-    <span class="step-indicator" id="stepIndicator">Stap 1 van 3</span>
+    <span class="step-indicator" id="stepIndicator">Stap 1 van 4</span>
     <div class="nav-buttons">
       <button class="btn btn-secondary" id="btnBack" style="display:none">Vorige</button>
       <button class="btn btn-primary" id="btnNext">Volgende &#8594;</button>

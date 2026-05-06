@@ -140,10 +140,21 @@ function initializePopup() {
 // Vangnet: als tabs.create vanuit background niet werkte (bijv. Chrome service worker timeout),
 // opent de popup alsnog de onboarding bij eerste gebruik.
 async function checkMigratie() {
-  const result = await _api.storage.local.get(['onboardingDone', 'geselecteerdeInstellingenData']);
+  const result = await _api.storage.local.get([
+    'onboardingDone',
+    'geselecteerdeInstellingenData',
+    'inschrijvenHuisartsVoorletters',
+  ]);
   if (result.onboardingDone && !result.geselecteerdeInstellingenData) {
     _api.tabs.create({ url: _api.runtime.getURL('onboarding.html') });
     window.close();
+    return;
+  }
+  // Bestaande gebruikers die de nieuwe huisarts-instelling nog niet hebben gezien:
+  // toon een subtiele badge naast de Wijzig-knop.
+  if (result.onboardingDone && result.inschrijvenHuisartsVoorletters === undefined) {
+    const badge = document.getElementById('onboardingNieuwBadge');
+    if (badge) badge.style.display = 'inline';
   }
 }
 

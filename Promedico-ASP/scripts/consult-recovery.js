@@ -5,6 +5,17 @@
     // UTILITY FUNCTIONS
     // ============================================================================
 
+    // ── BSN elfproef (11-proef) ──────────────────────────────────────────────
+    // Voorkomt dat willekeurige 8-9-cijferige getallen (telefoonnummer, polisnummer)
+    // als BSN worden herkend. Zelfde logica als kopieer-buttons.js.
+    function geldigBSN(bsn) {
+        if (!/^\d{8,9}$/.test(bsn)) return false;
+        const cijfers = bsn.length === 8 ? '0' + bsn : bsn;
+        const gewichten = [9, 8, 7, 6, 5, 4, 3, 2, -1];
+        const som = cijfers.split('').reduce((acc, c, i) => acc + parseInt(c, 10) * gewichten[i], 0);
+        return som !== 0 && som % 11 === 0;
+    }
+
     // Extract patient information from the page
     function extractPatientInfo() {
         let patientInfo = {
@@ -41,7 +52,7 @@
 
             // Extract BSN
             const bsnMatch = innerText.match(/BSN:\s*(\d{8,9})/);
-            if (bsnMatch && bsnMatch[1]) {
+            if (bsnMatch && bsnMatch[1] && geldigBSN(bsnMatch[1])) {
                 patientInfo.bsn = bsnMatch[1];
             }
 
@@ -73,7 +84,7 @@
                     // Try to find BSN if not found yet
                     if (!patientInfo.bsn) {
                         const bsnMatch = pageText.match(/BSN:\s*(\d{8,9})/);
-                        if (bsnMatch && bsnMatch[1]) {
+                        if (bsnMatch && bsnMatch[1] && geldigBSN(bsnMatch[1])) {
                             patientInfo.bsn = bsnMatch[1];
                         }
                     }
@@ -158,7 +169,7 @@
 
         // First, extract BSN, geboortedatum, and naam from anywhere in text
         const bsnMatch = text.match(/BSN[:\s]*(\d{8,9})/i);
-        if (bsnMatch) {
+        if (bsnMatch && geldigBSN(bsnMatch[1])) {
             result.bsn = bsnMatch[1];
         }
 
