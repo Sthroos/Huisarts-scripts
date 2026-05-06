@@ -5,7 +5,6 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
 if (typeof importScripts !== 'undefined') {
   try {
     importScripts(_api.runtime.getURL('config.js'));
-    importScripts(_api.runtime.getURL('profiles.js'));
   } catch(e) {
     console.error('[Background] importScripts failed:', e);
   }
@@ -29,7 +28,6 @@ _api.runtime.onInstalled.addListener(() => {
     });
   }
   _api.storage.local.set(defaults);
-  console.log('[Promedico Helper] Installed - version', _api.runtime.getManifest().version);
   checkOnboarding();
 });
 
@@ -49,12 +47,11 @@ _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'getSettings') {
     _api.storage.local.get().then(settings => {
-      if (settings.activeProfile && typeof PROFILES !== 'undefined') {
-        const profiel = PROFILES[settings.activeProfile];
-        if (profiel && profiel.menuFile && settings.activeMenuFile !== profiel.menuFile) {
-          settings.activeMenuFile = profiel.menuFile;
-          _api.storage.local.set({ activeMenuFile: profiel.menuFile });
-        }
+      // Migratie: zet verouderd activeMenuFile pad bij naar het nieuwe bestand.
+      // Gebruikers van versies vóór 2.5 kunnen nog een oud pad in storage hebben.
+      if (settings.activeMenuFile && settings.activeMenuFile !== 'zorgdomein-menu-data.js') {
+        settings.activeMenuFile = 'zorgdomein-menu-data.js';
+        _api.storage.local.set({ activeMenuFile: 'zorgdomein-menu-data.js' });
       }
       sendResponse(settings);
     });

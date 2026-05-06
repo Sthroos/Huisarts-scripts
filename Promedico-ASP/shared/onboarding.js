@@ -296,7 +296,7 @@
       geselecteerdeInstellingen:     selectedInstellingen,
       geselecteerdeInstellingenData: instellingenData,
       activeProfile:                 'generiek',
-      activeMenuFile:                'zorgdomein-menus/menu-generiek.js',
+      activeMenuFile:                'zorgdomein-menu-data.js',
       bvoKoerier:                    selectedBvo === 'koerier',
       crpPoct:                       selectedCrp === 'poct',
       zdMenuCacheVersion:            Date.now(),
