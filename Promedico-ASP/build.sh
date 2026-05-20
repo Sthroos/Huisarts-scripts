@@ -69,6 +69,7 @@ copy_shared() {
     cp shared/onboarding.js    "$OUT/"
     cp shared/background.js    "$OUT/"
     cp shared/zorgdomein-menu-data.js "$OUT/"
+    cp shared/content.js       "$OUT/"
     cp shared/icons/*          "$OUT/icons/"
     cp scripts/*.js            "$OUT/scripts/"
 }
@@ -79,8 +80,6 @@ copy_browser_files() {
     local OUT=$2
 
     cp "$BROWSER_DIR/manifest.json"  "$OUT/"
-
-    cp "$BROWSER_DIR/content.js"     "$OUT/"
 
     [ -f "$BROWSER_DIR/storage-bridge-client.js" ] && cp "$BROWSER_DIR/storage-bridge-client.js" "$OUT/" || true
 }

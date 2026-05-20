@@ -1,7 +1,9 @@
 // Browser API shim
 const _api = typeof browser !== 'undefined' ? browser : chrome;
 
-// Content script - Firefox MV2 versie
+// Content script — browser-naïef (werkt in Firefox MV2 en Chrome/Edge MV3)
+// De _api shim zorgt voor compatibiliteit. Dit bestand zit in shared/ en wordt
+// door build.sh gekopieerd naar alle browser-builds.
 (function() {
   'use strict';
 
@@ -40,7 +42,9 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
     return new RegExp('^' + regexPattern + '$').test(window.location.href);
   }
 
-  // In Firefox MV2 is inline script.textContent toegestaan vanuit content script context
+  // In MV2 (Firefox) én MV3 (Chrome) werkt script-injectie via src-tag.
+  // De storage-bridge-client wordt als eerste geladen zodat hij beschikbaar is
+  // voor alle scripts die daarna geïnjecteerd worden.
   function injectPageContextShim(callback) {
     if (document.documentElement.hasAttribute('data-promedico-shim')) { callback(); return; }
     document.documentElement.setAttribute('data-promedico-shim', '1');

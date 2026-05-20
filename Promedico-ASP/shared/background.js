@@ -20,14 +20,28 @@ function checkOnboarding() {
 }
 
 // Initialiseer standaardinstellingen bij installatie
-_api.runtime.onInstalled.addListener(() => {
+_api.runtime.onInstalled.addListener((details) => {
   const defaults = { scriptsEnabled: true };
   if (typeof SCRIPT_CONFIG !== 'undefined') {
     SCRIPT_CONFIG.forEach(script => {
       defaults[script.id + 'Enabled'] = script.enabled;
     });
   }
-  _api.storage.local.set(defaults);
+
+  if (details.reason === 'install') {
+    // Eerste installatie: zet alle defaults
+    _api.storage.local.set(defaults);
+  } else {
+    // Update: voeg alleen keys toe die nog niet bestaan (bijv. nieuw script in config)
+    _api.storage.local.get(Object.keys(defaults)).then(existing => {
+      const toSet = {};
+      for (const [key, value] of Object.entries(defaults)) {
+        if (existing[key] === undefined) toSet[key] = value;
+      }
+      if (Object.keys(toSet).length > 0) _api.storage.local.set(toSet);
+    });
+  }
+
   checkOnboarding();
 });
 
