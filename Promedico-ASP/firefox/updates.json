@@ -3,9 +3,9 @@
     "promedico-helper-dev@degrotedokter": {
       "updates": [
         {
-          "version": "2.4.2",
+          "version": "2.4.4",
           "update_link": "https://github.com/Sthroos/Huisarts-scripts/raw/main/Promedico-ASP/Promedico-Helper-Dev.xpi",
-          "update_hash": "sha256:ae5f54b9a4885c4d6fcc3aab01a74fb3bd3047d1f8ea226da04cf5477b4df018"
+          "update_hash": "sha256:ad085dcff41ea695cc38d38b0f46d4df78672c1e006272f1ba2da0d24a144dd7"
         }
       ]
     }
