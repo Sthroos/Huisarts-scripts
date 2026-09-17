@@ -820,7 +820,7 @@
                         🔍 Valideer IDs
                     </button>
                     <span style="font-size:11px; color:#666;">
-                        💡 Automatisch opgeslagen bij Verder klikken
+                        💡 Automatisch opgeslagen bij Opslaan/Verder klikken
                     </span>
                 </div>
             </div>

@@ -362,7 +362,7 @@
     }
 
     // ============================================================================
-    // BUTTON INJECTION — e-consult pagina
+    // BUTTON INJECTION
     // ============================================================================
 
     function injectTemplateButton() {
@@ -405,51 +405,12 @@
     }
 
     // ============================================================================
-    // BUTTON INJECTION — Bericht naar patiënt modal (PatientNotificatie)
-    // ============================================================================
-
-    function injectNotificatieTemplateButton() {
-        const modal = document.getElementById('PatientNotificatie-patientNotificatieModal');
-        if (!modal || modal.style.display === 'none') return false;
-
-        if (modal.querySelector('#pn-sjablonen-btn')) return true;
-
-        const berichtVeld = document.getElementById('PatientNotificatie-bericht');
-        if (!berichtVeld) return false;
-
-        const btn = document.createElement('button');
-        btn.id   = 'pn-sjablonen-btn';
-        btn.type = 'button';
-        btn.textContent = 'Sjablonen';
-        btn.style.cssText = `
-            padding: 4px 10px;
-            margin-top: 4px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: Arial, sans-serif;
-            display: block;
-        `;
-        btn.addEventListener('mouseenter', () => { btn.style.backgroundColor = '#45a049'; });
-        btn.addEventListener('mouseleave', () => { btn.style.backgroundColor = '#4CAF50'; });
-        createEcMenu(document, btn, berichtVeld);
-
-        berichtVeld.parentNode.insertBefore(btn, berichtVeld.nextSibling);
-        return true;
-    }
-
-    // ============================================================================
     // INITIALIZATION
     // ============================================================================
 
     function initialize() {
-        setInterval(() => {
+        const injectionInterval = setInterval(() => {
             injectTemplateButton();
-            injectNotificatieTemplateButton();
         }, 1000);
     }
 

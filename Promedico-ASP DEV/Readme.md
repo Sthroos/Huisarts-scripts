@@ -7,19 +7,30 @@ Browserextensie die Promedico ASP uitbreidt met handige automatiseringen voor hu
 ## Installatie voor eindgebruikers
 
 ### Firefox
-1. Download `Promedico-Helper-Scripts.xpi` uit deze repository
-2. Open Firefox → `about:addons` → tandwiel-icoon → **Installeer add-on uit bestand**
-3. Selecteer het gedownloade `.xpi` bestand
+1. Ga naar [Firefox Browser Add-ons](https://addons.mozilla.org) en zoek op **Promedico ASP Helper**
+2. Klik op **Toevoegen aan Firefox**
 
 ### Chrome
 1. Ga naar de [Chrome Web Store](https://chromewebstore.google.com) en zoek op **Promedico ASP Helper**
 2. Klik op **Toevoegen aan Chrome**
 
 ### Edge
-1. Ga naar [Microsoft Edge Add-ons](https://microsoftedgeaddons.microsoft.com) en zoek op **Promedico ASP Helper**
+1. Ga naar [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com) en zoek op **Promedico ASP Helper**
 2. Klik op **Ophalen**
 
 > **Let op:** Na een update wordt de extensie automatisch bijgewerkt via de betreffende store.
+
+---
+
+## Ontwikkelaars / testversie (Firefox)
+
+Voor ontwikkelaars of vroege testers is er een aparte **unlisted dev-versie** voor Firefox met de nieuwste wijzigingen, die niet via de officiële store loopt maar automatisch bijgewerkt wordt via GitHub.
+
+1. Download `Promedico-Helper-Dev.xpi` uit deze repository
+2. Open Firefox → `about:addons` → tandwiel-icoon → **Installeer add-on uit bestand**
+3. Selecteer het gedownloade `.xpi` bestand
+
+> **Let op:** De dev-versie kan onstabiele of experimentele functies bevatten. Updates worden automatisch aangeboden zodra een nieuwe versie op GitHub staat.
 
 ---
 
@@ -32,17 +43,20 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 | Agenda Menu Items | Snelkoppelingen in het agendamenu (Berichten, E-consult, Recept) |
 | Auto-delete Berichten | Automatisch verwijderen van verwerkte spamberichten |
 | Auto-check MEDOVD & Auto-download | Automatisch controleren en downloaden van MEDOVD dossiers |
+| Brieven Verwerken | Extraheert SOEP-velden automatisch uit binnenkomende brieven (HAP, specialisten, paramedici) |
+| Consult Kopiëren | Kopieer één of meerdere consulten uit het journaal als opgemaakte tekst |
 | Contactsoort Quick Buttons | Snelknoppen voor contactsoort bij consulten |
 | Correspondentie Upload | Drag & drop bestanden uploaden naar correspondentie |
 | Verplaats en Verberg Delen | UI-aanpassingen voor de delenweergave |
 | E-consult Template Responses | Vaste antwoordteksten voor e-consulten |
-| Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow |
+| Herhaalrecepten Verwerken | Automatisering van herhaalrecepten workflow (vult ook *Genoeg voor* in met 30 dagen als leeg) |
+| Initialen in S-veld | Plaatst automatisch je initialen in het S-veld bij het openen van een consult |
 | Inschrijven en MEDOVD Import | Favorieten menu + inschrijven/MEDOVD automatisering |
 | Meetwaarden Highlights (2 regels) | Twee-regelweergave bij meetwaarden in ketenzorg |
 | Copy Phone, Email, BSN, Address | Kopieerknopjes voor patiëntgegevens |
 | LSP-instellingen | Snelle toegang tot LSP-instellingen |
 | P veld herinneringen | Automatische herinnering popup bij teksten in het P-veld |
-| Promedico Crash Recovery | Snel consultteksten terugplaatsen en invoeren na een crash |
+| Snel Consulten Invoeren | Snel consultteksten terugplaatsen en invoeren na een crash of na offline werken |
 | SOEP Measurements | Meetwaarden (gewicht, RR, pols, temp, etc.) invoeren vanuit SOEP |
 | SOEP Sjablonen | Sjablonen voor SOEP-notities |
 | Verrichting Quick Buttons | Snel verrichtingen toevoegen via knoppen op het declaratiescherm |
@@ -55,29 +69,32 @@ De extensie bevat de volgende scripts, elk afzonderlijk aan/uit te zetten via de
 
 ```
 Promedico-ASP/
-├── shared/          # Gedeelde bestanden (config, popup, loader, icons)
-│   ├── config.js    # Scriptconfiguratie en GitHub-updater instellingen
-│   ├── popup.html   # Popup UI
-│   ├── popup.js     # Popup logica
-│   ├── loader.js    # Gedeelde loader
+├── shared/                      # Gedeelde bestanden (voor alle browsers)
+│   ├── config.js                # Scriptconfiguratie (welke scripts, URL-patronen)
+│   ├── popup.html               # Popup UI
+│   ├── popup.js                 # Popup logica
+│   ├── background.js            # Service worker / achtergrondscript
+│   ├── storage-bridge-client.js # Cross-browser storage abstractie
+│   ├── onboarding.html          # Onboarding wizard UI
+│   ├── onboarding.js            # Onboarding logica
+│   ├── profiles.js              # Gebruikersprofielen
+│   ├── zorgdomein-instellingen.js # Zorginstellingen voor Zorgdomein menu
 │   └── icons/
-├── firefox/         # Firefox MV2 specifiek
+├── firefox/                     # Firefox MV2 specifiek
 │   ├── manifest.json
-│   ├── content.js   # Inline shim (toegestaan in MV2)
-│   ├── background.js
-│   └── updates.json
-├── chrome/          # Chrome/Edge MV3 specifiek
+│   ├── content.js
+│   ├── storage-bridge-client.js
+│   └── updates.json             # Auto-update manifest voor unlisted versie
+├── chrome/                      # Chrome/Edge MV3 specifiek
 │   ├── manifest.json
-│   ├── content.js   # Shim via apart bestand (CSP vereiste)
-│   ├── background.js
-│   └── shim.js      # Page-context shim voor cross-browser compatibiliteit
-├── scripts/         # Alle userscripts (gedeeld voor beide browsers)
-│   ├── *.js
-│   └── *.json       # Metadata per script (naam, ID, URL-patronen)
-├── dist/            # Gegenereerd door build.sh, niet committen
-├── build.sh         # Bouwt Firefox en Chrome distributies
-├── release.sh       # Versie bumpen, AMO signing, GitHub push
-└── .env             # AMO credentials (nooit committen!)
+│   ├── content.js
+│   └── storage-bridge-client.js
+├── scripts/                     # Alle userscripts (gedeeld voor alle browsers)
+│   └── *.js
+├── dist/                        # Gegenereerd door build.sh, niet committen
+├── build.sh                     # Bouwt Firefox en Chrome distributies
+├── release.sh                   # Versie bumpen, signen, stores uploaden, GitHub push
+└── .env                         # API credentials (nooit committen!)
 ```
 
 ---
