@@ -326,12 +326,17 @@ echo -e "  ${BLUE}Firefox listed${NC}    → handmatig uploaden op addons.mozill
 echo -e "                    Upload: ${BLUE}dist/firefox.zip${NC}"
 echo ""
 
-read -p "Doorgaan met release? (y/n) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Release geannuleerd"
-    rm -f "$WARNINGS_FILE"
-    exit 1
+# wordt:
+if [ -z "$CI" ]; then
+    read -p "Doorgaan met release? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Release geannuleerd"
+        rm -f "$WARNINGS_FILE"
+        exit 1
+    fi
+else
+    echo "CI-omgeving gedetecteerd — bevestiging overgeslagen (handmatige workflow-trigger is de bevestiging)."
 fi
 
 cd "$SCRIPT_DIR"
@@ -523,11 +528,37 @@ if git ls-files --error-unmatch "$REL_DIR/dist/" &>/dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} dist/ uit git index verwijderd"
 fi
 
+# wordt:
 git add "$REL_DIR/"
-git commit -m "Release v$NEW_VERSION - $RELEASE_NOTES" || true
-git push origin main && echo -e "${GREEN}✓${NC} Gepusht naar GitHub" || {
-    echo "Push mislukt — controleer je GitHub rechten" >> "$WARNINGS_FILE"
-}
+
+if [ -z "$CI" ]; then
+    # Lokaal: ongewijzigd. Werkt alleen nog als jij zelf van branch protection
+    # bent uitgezonderd — anders faalt dit net als in CI en maak je de PR
+    # handmatig aan.
+    git commit -m "Release v$NEW_VERSION - $RELEASE_NOTES" || true
+    git push origin main && echo -e "${GREEN}✓${NC} Gepusht naar GitHub" || {
+        echo "Push mislukt — controleer je GitHub rechten" >> "$WARNINGS_FILE"
+    }
+else
+    # CI: branch protection verbiedt direct pushen naar main (met opzet, B8/R3).
+    # Zet de release-commit op een eigen branch en open een PR — de vereiste
+    # review blijft zo intact.
+    RELEASE_BRANCH="release/v$NEW_VERSION"
+    git checkout -b "$RELEASE_BRANCH"
+    git commit -m "Release v$NEW_VERSION - $RELEASE_NOTES" || true
+    git push origin "$RELEASE_BRANCH" && echo -e "${GREEN}✓${NC} Branch gepusht: $RELEASE_BRANCH" || {
+        echo "Push van release-branch mislukt" >> "$WARNINGS_FILE"
+    }
+    gh pr create \
+        --base main \
+        --head "$RELEASE_BRANCH" \
+        --title "Release v$NEW_VERSION" \
+        --body "$RELEASE_NOTES
+
+Automatisch aangemaakt door de release-workflow. Stores zijn al gepubliceerd; deze PR zet alleen de build-artefacten (updates.json, XPI, ZIP) en versienummers in main." \
+        && echo -e "${GREEN}✓${NC} Pull request geopend: $RELEASE_BRANCH → main" \
+        || echo "PR aanmaken mislukt — maak 'm handmatig aan voor $RELEASE_BRANCH" >> "$WARNINGS_FILE"
+fi
 
 cd "$SCRIPT_DIR"
 
