@@ -2,7 +2,7 @@
 const _api = typeof browser !== 'undefined' ? browser : chrome;
 
 // E-mailadres voor de "Mis je iets?" knop
-const TIP_EMAIL = 'tips@uwpraktijk.nl'; // ← vervang door jouw adres
+const TIP_EMAIL = 'info@huisartseneemland.nl'; // ← vervang door jouw adres
 
 // ── Export ────────────────────────────────────────────────────────────────
 
