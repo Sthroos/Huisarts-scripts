@@ -255,7 +255,7 @@
       updateHuisartsPreview();
     }
     if (n === 4 && selectedCrp) preselectCard('crp', selectedCrp);
-    if (isDone) buildDoneList();
+    if (isDone) { buildDoneList(); updateEnableWriteButtonState(); }
 
     updateNextButton();
   }
@@ -280,6 +280,31 @@
     ];
     document.getElementById('doneList').innerHTML =
       items.map(function (i) { return '<li>' + i + '</li>'; }).join('');
+  }
+
+  // ── Uitgebreide functionaliteit (write-scripts) ────────────────────────────
+
+  async function enableWriteScripts() {
+    var updates = {};
+    SCRIPT_CONFIG.filter(function (s) { return s.riskLevel === 'write'; })
+    .forEach(function (s) { updates[s.id + 'Enabled'] = true; });
+    await _api.storage.local.set(updates);
+    showToast('Uitgebreide functionaliteit ingeschakeld', 'success');
+    updateEnableWriteButtonState();
+  }
+
+  async function updateEnableWriteButtonState() {
+    var writeScripts = SCRIPT_CONFIG.filter(function (s) { return s.riskLevel === 'write'; });
+    var keys = writeScripts.map(function (s) { return s.id + 'Enabled'; });
+    var settings = await _api.storage.local.get(keys);
+    var alleAan = writeScripts.every(function (s) {
+      var v = settings[s.id + 'Enabled'];
+      return v !== undefined ? v : s.enabled;
+    });
+    var btn = document.getElementById('btnEnableWrite');
+    if (!btn) return;
+    btn.textContent = alleAan ? 'Ingeschakeld ✓' : 'Zet uitgebreide functionaliteit aan';
+    btn.disabled = alleAan;
   }
 
   // ── Opslaan ───────────────────────────────────────────────────────────────
@@ -318,6 +343,8 @@
     currentStep++;
     showStep(currentStep);
   });
+
+  document.getElementById('btnEnableWrite').addEventListener('click', enableWriteScripts);
 
   document.getElementById('btnBack').addEventListener('click', function () {
     if (currentStep > 1) { currentStep--; showStep(currentStep); }
