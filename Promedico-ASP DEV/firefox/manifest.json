@@ -5,7 +5,7 @@
   "description": "Automation scripts for Promedico ASP",
   "browser_specific_settings": {
     "gecko": {
-      "id": "promedico-helper-dev@degrotedokter",
+      "id": "promedico-helper@degrotedokter",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [
@@ -23,6 +23,7 @@
     "storage",
     "https://www.promedico-asp.nl/*",
     "https://www.zorgdomein.nl/*",
+    "https://www.zneller.nl/*",
     "clipboardWrite",
     "tabs"
   ],

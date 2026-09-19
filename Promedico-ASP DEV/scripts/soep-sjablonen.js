@@ -1,5 +1,7 @@
 (function() {
     'use strict';
+    const DEBUG = false;
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
 
     // Cross-browser compatibility
     const browserAPI = (typeof browser !== 'undefined') ? browser : (typeof chrome !== 'undefined' ? chrome : null);
@@ -237,7 +239,7 @@
         }).then(() => {
             window.open(url, '_blank');
         }).catch(error => {
-            console.error('[ZNeller] Error storing data:', error);
+            dbgErr('[soep-sjablonen] Error storing data:', error);
         });
     }
 
@@ -245,7 +247,7 @@
     function insertText(fieldId, text) {
         const field = document.getElementById(fieldId);
         if (!field) {
-            console.error('Field not found:', fieldId);
+            dbgErr('Field not found:', fieldId);
             return;
         }
 

@@ -7,10 +7,14 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
 (function() {
   'use strict';
 
+  const DEBUG = false;
+  function dbg(...args)    { if (DEBUG) console.log(...args); }
+  function dbgErr(...args) { if (DEBUG) console.error(...args); }
+
   if (document.documentElement.hasAttribute('data-promedico-loaded')) return;
   document.documentElement.setAttribute('data-promedico-loaded', '1');
 
-  console.log('[Promedico Helper] Content script loaded');
+  dbg('[Promedico Helper] Content script loaded');
 
   // ── Storage bridge: luistert naar postMessage van page context scripts ──────
   // Scripts draaien in page context en hebben geen directe toegang tot
@@ -18,6 +22,7 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
   // wij voeren de echte storage-aanroep uit en sturen het resultaat terug.
   window.addEventListener('message', function(event) {
     if (event.source !== window) return;
+    if (event.origin !== window.location.origin) return;
     if (!event.data || event.data.source !== 'promedico-page') return;
 
     const { requestId, method, args } = event.data;
@@ -37,8 +42,8 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
 
   function urlMatches(pattern) {
     const regexPattern = pattern
-      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-      .replace(/\*/g, '.*');
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*');
     return new RegExp('^' + regexPattern + '$').test(window.location.href);
   }
 
@@ -59,12 +64,12 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
 
   Promise.all([
     _api.runtime.sendMessage({type: 'getSettings'}),
-    _api.runtime.sendMessage({type: 'getScriptConfig'})
+              _api.runtime.sendMessage({type: 'getScriptConfig'})
   ]).then(([settings, config]) => {
-    console.log('[Promedico Helper] Current URL:', window.location.href);
+    dbg('[Promedico Helper] Current URL:', window.location.href);
 
     if (!settings.scriptsEnabled) {
-      console.log('[Promedico Helper] Scripts disabled by master toggle');
+      dbg('[Promedico Helper] Scripts disabled by master toggle');
       return;
     }
 
@@ -72,16 +77,16 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
       config.scripts.forEach(script => {
         const enabledKey = script.id + 'Enabled';
         const isEnabled = settings[enabledKey] !== undefined ? settings[enabledKey] : script.enabled;
-        if (!isEnabled) { console.log('[Promedico Helper] Script disabled:', script.name); return; }
+        if (!isEnabled) { dbg('[Promedico Helper] Script disabled:', script.name); return; }
 
         if (script.urlPatterns?.length > 0) {
           if (!script.urlPatterns.some(p => urlMatches(p))) {
-            console.log('[Promedico Helper] URL does not match for:', script.name);
+            dbg('[Promedico Helper] URL does not match for:', script.name);
             return;
           }
         }
 
-        console.log('[Promedico Helper] Loading script:', script.name);
+        dbg('[Promedico Helper] Loading script:', script.name);
 
         // Zorgdomein quick menu heeft een regio-specifiek menu-bestand nodig dat
         // vóór het hoofdscript geladen moet worden. Dit doen we hier in content context
@@ -96,14 +101,14 @@ const _api = typeof browser !== 'undefined' ? browser : chrome;
         }
       });
     });
-  }).catch(err => console.error('[Promedico Helper] Failed:', err));
+  }).catch(err => dbgErr('[Promedico Helper] Failed:', err));
 
   function injectAsScriptTag(url, name, callback) {
     const s = document.createElement('script');
     s.src = url;
     s.charset = 'utf-8';
-    s.onload = function() { console.log('[Promedico Helper] Loaded:', name); this.remove(); if (callback) callback(); };
-    s.onerror = function() { console.error('[Promedico Helper] Failed:', name); this.remove(); if (callback) callback(); };
+    s.onload = function() { dbg('[Promedico Helper] Loaded:', name); this.remove(); if (callback) callback(); };
+    s.onerror = function() { dbgErr('[Promedico Helper] Failed:', name); this.remove(); if (callback) callback(); };
     (document.head || document.documentElement).appendChild(s);
   }
 

@@ -15,7 +15,8 @@
   ],
   "host_permissions": [
     "https://www.promedico-asp.nl/*",
-    "https://www.zorgdomein.nl/*"
+    "https://www.zorgdomein.nl/*",
+    "https://www.zneller.nl/*"
   ],
   "background": {
     "service_worker": "background.js"

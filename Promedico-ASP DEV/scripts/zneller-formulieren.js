@@ -2,6 +2,8 @@
 
 (function() {
     'use strict';
+    const DEBUG = false;
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
 
     // Cross-browser compatibility - CRITICAL for Firefox!
     const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
@@ -127,7 +129,7 @@
             }).then(() => {
                 window.open(url, '_blank');
             }).catch(error => {
-                console.error('[ZNeller] Error storing data:', error);
+                dbgErr('[ZNeller] Error storing data:', error);
             });
         }
 
@@ -390,10 +392,10 @@
                     }, 10000);
                     
                 } catch (error) {
-                    console.error('[ZNeller] Error parsing patient data:', error);
+                    dbgErr('[ZNeller] Error parsing patient data:', error);
                 }
             }).catch(error => {
-                console.error('[ZNeller] Error retrieving data:', error);
+                dbgErr('[ZNeller] Error retrieving data:', error);
             });
         }
 

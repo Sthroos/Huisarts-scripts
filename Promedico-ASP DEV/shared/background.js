@@ -1,12 +1,16 @@
 // Browser API shim (werkt in Firefox en Chrome)
 const _api = typeof browser !== 'undefined' ? browser : chrome;
 
+const DEBUG = false;
+function dbg(...args)    { if (DEBUG) console.log(...args); }
+function dbgErr(...args) { if (DEBUG) console.error(...args); }
+
 // In Chrome MV3 (service worker) moet config.js handmatig geladen worden
 if (typeof importScripts !== 'undefined') {
   try {
     importScripts(_api.runtime.getURL('config.js'));
   } catch(e) {
-    console.error('[Background] importScripts failed:', e);
+    dbgErr('[Background] importScripts failed:', e);
   }
 }
 

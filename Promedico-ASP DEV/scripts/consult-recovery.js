@@ -1,5 +1,7 @@
 (function() {
     'use strict';
+    const DEBUG = false;
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
 
     // ============================================================================
     // UTILITY FUNCTIONS
@@ -316,7 +318,7 @@
 
         const field = document.getElementById(fieldId);
         if (!field) {
-            console.error('Field not found:', fieldId);
+            dbgErr('Field not found:', fieldId);
             return false;
         }
 

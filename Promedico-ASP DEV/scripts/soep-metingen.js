@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Promedico SOEP Measurements
 // @namespace    promedico-soep
-// @version      5.0.0
+// @version      5.1.0
 // @description  Metingen panel in SOEP journaal met automatisch opslaan via fetch
 // @match        https://www.promedico-asp.nl/promedico/*
 // @grant        none
@@ -10,13 +10,18 @@
 (function() {
     'use strict';
 
+    const DEBUG = false;
+    function dbg(...args)     { if (DEBUG) console.log(...args); }
+    function dbgWarn(...args) { if (DEBUG) console.warn(...args); }
+    function dbgErr(...args)  { if (DEBUG) console.error(...args); }
+
     // =============================================================================
     // CONFIGURATION
     // =============================================================================
     const CONFIG = {
         PANEL_INSERT_POLL_MS:  100,
-        PANEL_INSERT_MAX_MS:   10000,
-        FETCH_TIMEOUT_MS:      15000,
+ PANEL_INSERT_MAX_MS:   10000,
+ FETCH_TIMEOUT_MS:      15000,
     };
 
     const BASE_URL = 'https://www.promedico-asp.nl/promedico/medischdossier.meetwaarden.losseuitslag.m';
@@ -24,16 +29,16 @@
     // Promedico bepaling IDs - aanpassen als nodig voor jouw installatie
     const BEPALING_IDS = {
         'gewicht':          '10356',
-        'lengte':           '10559',
-        'bmi':              '11271',
-        'bovendruk':        '11740',
-        'onderdruk':        '11736',
-        'pols':             '11864',
-        'temperatuur':      '11356',
-        'saturatie':        '12649',
-        'crp':            '653256968453140',
-        'glucose_nn':     '653256968453091',
-        'glucose_nuchter':'653256968453090'
+ 'lengte':           '10559',
+ 'bmi':              '11271',
+ 'bovendruk':        '11740',
+ 'onderdruk':        '11736',
+ 'pols':             '11864',
+ 'temperatuur':      '11356',
+ 'saturatie':        '12649',
+ 'crp':            '653256968453140',
+ 'glucose_nn':     '653256968453091',
+ 'glucose_nuchter':'653256968453090'
     };
 
     // Alleen invoervelden (BMI is berekend, geen eigen invoer)
@@ -139,32 +144,32 @@
 
     const BEPALING_ZOEKTERMEN = {
         'gewicht':          'gewicht',
-        'lengte':           'lengte',
-        'bmi':              'body mass',
-        'bovendruk':        'systolische bloeddruk',
-        'onderdruk':        'diastolische bloeddruk',
-        'pols':             'pols',
-        'temperatuur':      'temperatuur',
-        'saturatie':        'saturatie',
-        'crp':              'CRP',
-        'glucose_nuchter':  'glucose nuchter',
-        'glucose_nn':       'glucose',
+ 'lengte':           'lengte',
+ 'bmi':              'body mass',
+ 'bovendruk':        'systolische bloeddruk',
+ 'onderdruk':        'diastolische bloeddruk',
+ 'pols':             'pols',
+ 'temperatuur':      'temperatuur',
+ 'saturatie':        'saturatie',
+ 'crp':              'CRP',
+ 'glucose_nuchter':  'glucose nuchter',
+ 'glucose_nn':       'glucose',
     };
 
     // Verwachte omschrijving — als fragment, hoofdletterongevoelig
     // Bewust breed gehouden zodat kleine variaties in Promedico-tekst geen valse alarm geven
     const BEPALING_VERWACHTE_OMSCHRIJVING = {
         'gewicht':          'gewicht',
-        'lengte':           'lengte',
-        'bmi':              'body mass',
-        'bovendruk':        'systolische bloeddruk',
-        'onderdruk':        'diastolische bloeddruk',
-        'pols':             'pols',
-        'temperatuur':      'temperatuur',
-        'saturatie':        'saturatie',
-        'crp':              'crp',
-        'glucose_nuchter':  'glucose nuchter',
-        'glucose_nn':       'glucose niet nuchter',  // zonder koppelteken, zoals Promedico het schrijft
+ 'lengte':           'lengte',
+ 'bmi':              'body mass',
+ 'bovendruk':        'systolische bloeddruk',
+ 'onderdruk':        'diastolische bloeddruk',
+ 'pols':             'pols',
+ 'temperatuur':      'temperatuur',
+ 'saturatie':        'saturatie',
+ 'crp':              'crp',
+ 'glucose_nuchter':  'glucose nuchter',
+ 'glucose_nn':       'glucose niet nuchter',  // zonder koppelteken, zoals Promedico het schrijft
     };
 
     const VALIDATIE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 uur
@@ -206,13 +211,13 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: body.toString(),
             }, CONFIG.FETCH_TIMEOUT_MS);
-            console.log('[SOEP Validatie] POST', zoekterm, '→ HTTP', resp.status, resp.type);
+            dbg('[SOEP Validatie] POST', zoekterm, '→ HTTP', resp.status, resp.type);
             if (!resp.ok) {
-                console.warn('[SOEP Validatie] resp niet ok:', resp.status);
+                dbgWarn('[SOEP Validatie] resp niet ok:', resp.status);
                 return [];
             }
             const html = await resp.text();
-            console.log('[SOEP Validatie] HTML lengte:', html.length, '| snippet:', html.substring(0, 200));
+            dbg('[SOEP Validatie] HTML lengte:', html.length, '| snippet:', html.substring(0, 200));
 
             // Parse elke <tr onclick="clickBepaling('ID')"> inclusief de omschrijving
             // De omschrijving staat in de laatste <td> van elke rij
@@ -225,14 +230,14 @@
                 const tds = tr.querySelectorAll('td');
                 // Structuur: lege td | memo | materiaal | bijzonderheid | omschrijving
                 const omschrijving = tds.length >= 5
-                    ? tds[tds.length - 1].textContent.trim()
-                    : '';
+                ? tds[tds.length - 1].textContent.trim()
+                : '';
                 resultaten.push({ id: idMatch[1], omschrijving });
             });
-            console.log('[SOEP Validatie] gevonden resultaten voor "' + zoekterm + '":', resultaten.length, resultaten.slice(0, 3));
+            dbg('[SOEP Validatie] gevonden resultaten voor "' + zoekterm + '":', resultaten.length, resultaten.slice(0, 3));
             return resultaten;
         } catch (e) {
-            console.error('[SOEP Validatie] fetch fout voor "' + zoekterm + '":', e);
+            dbgErr('[SOEP Validatie] fetch fout voor "' + zoekterm + '":', e);
             return [];
         }
     }
@@ -253,7 +258,7 @@
             // Progress melding
             showNotification(
                 'Bepaling-IDs controleren... (' + teller + '/' + totaal + ') ' + naam,
-                'info'
+                             'info'
             );
 
             const resultaten = await zoekBepalingIds(zoekterm);
@@ -271,19 +276,19 @@
                     return '"' + r.omschrijving + '" (ID ' + r.id + ')';
                 }).join(', ');
                 problemen.push(naam + ': ID ' + id + ' niet gevonden bij "' + zoekterm + '"'
-                    + (alternatieven ? ' — wel gevonden: ' + alternatieven : ''));
-                console.warn('[SOEP Metingen] ID niet gevonden:', naam, id,
-                    '| resultaten:', resultaten.slice(0, 3));
+                + (alternatieven ? ' — wel gevonden: ' + alternatieven : ''));
+                dbgWarn('[SOEP Metingen] ID niet gevonden:', naam, id,
+                        '| resultaten:', resultaten.slice(0, 3));
             } else if (verwachteOmschrijving) {
                 // ID gevonden — check of omschrijving nog klopt
                 const omschrijvingKlopt = gevondenRij.omschrijving
-                    .toLowerCase()
-                    .includes(verwachteOmschrijving.toLowerCase());
+                .toLowerCase()
+                .includes(verwachteOmschrijving.toLowerCase());
                 if (!omschrijvingKlopt) {
                     problemen.push(naam + ': ID ' + id + ' wijst nu naar "'
-                        + gevondenRij.omschrijving + '" (verwacht: "' + verwachteOmschrijving + '")');
-                    console.warn('[SOEP Metingen] ID wijst naar verkeerde omschrijving:',
-                        naam, id, '→', gevondenRij.omschrijving);
+                    + gevondenRij.omschrijving + '" (verwacht: "' + verwachteOmschrijving + '")');
+                    dbgWarn('[SOEP Metingen] ID wijst naar verkeerde omschrijving:',
+                            naam, id, '→', gevondenRij.omschrijving);
                 }
             }
 
@@ -304,9 +309,9 @@
             showNotification(
                 '⚠️ ' + problemen.length + ' probleem' + (enkelvoud ? '' : 'en')
                 + ' gevonden:\n' + problemen.join('\n'),
-                'warning'
+                             'warning'
             );
-            console.warn('[SOEP Metingen] Validatie problemen:', problemen);
+            dbgWarn('[SOEP Metingen] Validatie problemen:', problemen);
         }
     }
 
@@ -317,13 +322,13 @@
         // ── Eenvoudige velden ──────────────────────────────────────────────────
         const enkelvoudigeVelden = {
             'gewicht':     'measurement-gewicht',
-            'lengte':      'measurement-lengte',
-            'bovendruk':   'measurement-bovendruk',
-            'onderdruk':   'measurement-onderdruk',
-            'pols':        'measurement-pols',
-            'temperatuur': 'measurement-temperatuur',
-            'saturatie':   'measurement-saturatie',
-            'crp':         'measurement-crp',
+ 'lengte':      'measurement-lengte',
+ 'bovendruk':   'measurement-bovendruk',
+ 'onderdruk':   'measurement-onderdruk',
+ 'pols':        'measurement-pols',
+ 'temperatuur': 'measurement-temperatuur',
+ 'saturatie':   'measurement-saturatie',
+ 'crp':         'measurement-crp',
         };
 
         // Reset enkelvoudige velden
@@ -337,33 +342,33 @@
             if (warn) warn.remove();
         });
 
-        // Grijst foute enkelvoudige velden
-        Object.entries(enkelvoudigeVelden).forEach(function(entry) {
-            var naam = entry[0], id = entry[1];
-            if (!fout.has(naam)) return;
-            var el = document.getElementById(id);
-            if (!el) return;
-            el.disabled = true;
-            el.style.opacity = '0.4';
-            el.title = '⚠️ Bepaling-ID mogelijk gewijzigd — opslaan uitgeschakeld';
-            if (!document.getElementById('pmh-warn-' + id)) {
-                var warn = document.createElement('span');
-                warn.id = 'pmh-warn-' + id;
-                warn.textContent = '⚠️';
-                warn.title = 'Bepaling-ID gewijzigd';
-                warn.style.marginLeft = '4px';
-                el.parentNode.insertBefore(warn, el.nextSibling);
-            }
-        });
+            // Grijst foute enkelvoudige velden
+            Object.entries(enkelvoudigeVelden).forEach(function(entry) {
+                var naam = entry[0], id = entry[1];
+                if (!fout.has(naam)) return;
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = true;
+                el.style.opacity = '0.4';
+                el.title = '⚠️ Bepaling-ID mogelijk gewijzigd — opslaan uitgeschakeld';
+                if (!document.getElementById('pmh-warn-' + id)) {
+                    var warn = document.createElement('span');
+                    warn.id = 'pmh-warn-' + id;
+                    warn.textContent = '⚠️';
+                    warn.title = 'Bepaling-ID gewijzigd';
+                    warn.style.marginLeft = '4px';
+                    el.parentNode.insertBefore(warn, el.nextSibling);
+                }
+            });
 
-        // ── Glucose: speciale logica ───────────────────────────────────────────
-        var glucoseInput = document.getElementById('measurement-glucose');
-        var glucoseCb    = document.getElementById('glucose-nuchter-cb');
-        var warnId       = 'pmh-warn-glucose';
-        var bestaandWarn = document.getElementById(warnId);
-        if (bestaandWarn) bestaandWarn.remove();
+            // ── Glucose: speciale logica ───────────────────────────────────────────
+            var glucoseInput = document.getElementById('measurement-glucose');
+            var glucoseCb    = document.getElementById('glucose-nuchter-cb');
+            var warnId       = 'pmh-warn-glucose';
+            var bestaandWarn = document.getElementById(warnId);
+            if (bestaandWarn) bestaandWarn.remove();
 
-        var nuchterKapot = fout.has('glucose_nuchter');
+            var nuchterKapot = fout.has('glucose_nuchter');
         var nnKapot      = fout.has('glucose_nn');
 
         if (nuchterKapot && nnKapot) {
@@ -463,11 +468,21 @@
         if (!bepalingId) return { ok: false, error: `Geen bepaling ID voor ${measurementId}` };
         if (!patientId)  return { ok: false, error: 'Geen patient ID' };
 
+        // BUGFIX: Promedico verwacht lengte in meters (bijv. 1.96), maar de UI toont
+        // en registreert cm (bijv. 196) omdat dat is wat de gebruiker intypt.
+        // Promedico valideert dit zelf niet — een waarde als "196" wordt zonder
+        // foutmelding geaccepteerd als 196 meter. Reken hier expliciet om, alleen
+        // voor de waarde die naar Promedico gaat; UI, BMI-berekening en de
+        // O-veld-samenvatting blijven ongewijzigd in cm.
+        const waarde = measurementId === 'lengte'
+        ? (parseFloat(value) / 100).toFixed(2)
+        : value;
+
         const body = new URLSearchParams({
             'controllerAction':          'save',
             'bepaling.id':               bepalingId,
             'uitslag.datum':             dateStr,
-            'uitslag.waarde':            value,
+            'uitslag.waarde':            waarde,
             'uitslag.opmerking':         '',
             'uitslag.referentieMinimum': '',
             'uitslag.referentieMaximum': ''
@@ -643,9 +658,9 @@
     function interceptSaveButtons() {
         const selectors = [
             'input[value="Opslaan"]',
-            'input[value="Opslaan en factureren"]',
-            'input[value="Verder"]',
-            'input[id="Script_Verder"]',
+ 'input[value="Opslaan en factureren"]',
+ 'input[value="Verder"]',
+ 'input[id="Script_Verder"]',
         ];
         selectors.forEach(sel => {
             document.querySelectorAll(sel).forEach(btn => {
@@ -696,16 +711,16 @@
         // Helper: maak een standaard invoercel
         function makeField(m) {
             return `
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <label for="measurement-${m.id}"
-                           style="font-size:12px; white-space:nowrap; color:#333;">${m.label}:</label>
-                    <input type="text" id="measurement-${m.id}"
-                           data-measurement-id="${m.id}"
-                           placeholder="${m.placeholder}"
-                           style="width:60px; padding:4px 5px; border:1px solid #ccc;
-                                  border-radius:3px; font-size:13px; box-sizing:border-box;" />
-                    <span id="validation-${m.id}" style="font-size:12px; min-width:14px; color:#666;"></span>
-                </div>`;
+            <div style="display:flex; align-items:center; gap:4px;">
+            <label for="measurement-${m.id}"
+            style="font-size:12px; white-space:nowrap; color:#333;">${m.label}:</label>
+            <input type="text" id="measurement-${m.id}"
+            data-measurement-id="${m.id}"
+            placeholder="${m.placeholder}"
+            style="width:60px; padding:4px 5px; border:1px solid #ccc;
+            border-radius:3px; font-size:13px; box-sizing:border-box;" />
+            <span id="validation-${m.id}" style="font-size:12px; min-width:14px; color:#666;"></span>
+            </div>`;
         }
 
         // Drie losse flex-rijen. Elk veld heeft een vaste totaalbreedte (W).
@@ -720,113 +735,113 @@
         // LW = labelbreedte (vast, rechts uitgelijnd)
         // IW = inputbreedte
         const W  = 130;   // px totaal per cel (was 155)
-        const LW = 58;    // px label (was 68)
-        const IW = 56;    // px input
+const LW = 58;    // px label (was 68)
+const IW = 56;    // px input
 
-        const rowStyle  = 'display:flex; align-items:center; gap:0; margin-bottom:5px; padding-left:4px;';
-        const cellStyle = `display:inline-flex; align-items:center; gap:4px; width:${W}px; flex-shrink:0;`;
-        const lblStyle  = `font-size:12px; color:#333; width:${LW}px; text-align:right; flex-shrink:0; white-space:nowrap;`;
-        const inpStyle  = `width:${IW}px; padding:3px 4px; border:1px solid #ccc; border-radius:3px; font-size:13px; box-sizing:border-box; flex-shrink:0;`;
-        const valStyle  = 'font-size:12px; width:14px; flex-shrink:0; color:#666;';
+const rowStyle  = 'display:flex; align-items:center; gap:0; margin-bottom:5px; padding-left:4px;';
+const cellStyle = `display:inline-flex; align-items:center; gap:4px; width:${W}px; flex-shrink:0;`;
+const lblStyle  = `font-size:12px; color:#333; width:${LW}px; text-align:right; flex-shrink:0; white-space:nowrap;`;
+const inpStyle  = `width:${IW}px; padding:3px 4px; border:1px solid #ccc; border-radius:3px; font-size:13px; box-sizing:border-box; flex-shrink:0;`;
+const valStyle  = 'font-size:12px; width:14px; flex-shrink:0; color:#666;';
 
-        function mkField(m) {
-            return `<div style="${cellStyle}">
-                <label for="measurement-${m.id}" style="${lblStyle}">${m.label}:</label>
-                <input type="text" id="measurement-${m.id}" data-measurement-id="${m.id}"
-                       placeholder="${m.placeholder}" style="${inpStyle}" />
-                <span id="validation-${m.id}" style="${valStyle}"></span>
-            </div>`;
-        }
+function mkField(m) {
+    return `<div style="${cellStyle}">
+    <label for="measurement-${m.id}" style="${lblStyle}">${m.label}:</label>
+    <input type="text" id="measurement-${m.id}" data-measurement-id="${m.id}"
+    placeholder="${m.placeholder}" style="${inpStyle}" />
+    <span id="validation-${m.id}" style="${valStyle}"></span>
+    </div>`;
+}
 
-        // RR-blok: breedte = 2*W, label even breed als andere labels zodat kolom 1 uitlijnt
-        const rrBlok = `<div style="display:inline-flex; align-items:center; gap:4px; width:${W*2}px; flex-shrink:0;">
-                <label style="${lblStyle}">RR:</label>
-                <input type="text" id="measurement-bovendruk" data-measurement-id="bovendruk"
-                       placeholder="sys" style="${inpStyle}" />
-                <span style="font-size:13px; color:#888; flex-shrink:0;">/</span>
-                <input type="text" id="measurement-onderdruk" data-measurement-id="onderdruk"
-                       placeholder="dia" style="${inpStyle}" />
-                <span style="font-size:11px; color:#aaa; flex-shrink:0; margin-left:2px;">mmHg</span>
-                <span id="validation-rr" style="${valStyle}"></span>
-            </div>`;
+// RR-blok: breedte = 2*W, label even breed als andere labels zodat kolom 1 uitlijnt
+const rrBlok = `<div style="display:inline-flex; align-items:center; gap:4px; width:${W*2}px; flex-shrink:0;">
+<label style="${lblStyle}">RR:</label>
+<input type="text" id="measurement-bovendruk" data-measurement-id="bovendruk"
+placeholder="sys" style="${inpStyle}" />
+<span style="font-size:13px; color:#888; flex-shrink:0;">/</span>
+<input type="text" id="measurement-onderdruk" data-measurement-id="onderdruk"
+placeholder="dia" style="${inpStyle}" />
+<span style="font-size:11px; color:#aaa; flex-shrink:0; margin-left:2px;">mmHg</span>
+<span id="validation-rr" style="${valStyle}"></span>
+</div>`;
 
-        const rij1 = `<div style="${rowStyle}">
-            ${mkField({id:'saturatie',      label:'Sat.',  placeholder:'%'})}
-            ${rrBlok}
-            ${mkField({id:'pols',           label:'Pols',  placeholder:'/min'})}
-        </div>`;
+const rij1 = `<div style="${rowStyle}">
+${mkField({id:'saturatie',      label:'Sat.',  placeholder:'%'})}
+${rrBlok}
+${mkField({id:'pols',           label:'Pols',  placeholder:'/min'})}
+</div>`;
 
-        const rij2 = `<div style="${rowStyle}">
-            ${mkField({id:'temperatuur', label:'Temp.', placeholder:'°C'})}
-            ${mkField({id:'crp',        label:'CRP',   placeholder:'mg/L'})}
-            <div style="width:${W}px; flex-shrink:0;"></div>
-            <div style="display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
-                <label for="measurement-glucose" style="${lblStyle}">Glucose:</label>
-                <input type="text" id="measurement-glucose" data-measurement-id="glucose"
-                       placeholder="mmol/L"
-                       style="${inpStyle}" />
-                <span id="validation-glucose" style="${valStyle}"></span>
-                <label style="display:inline-flex; align-items:center; gap:2px; font-size:12px; color:#555; cursor:pointer; margin-left:1px; white-space:nowrap;">
-                    <input type="checkbox" id="glucose-nuchter-cb" style="margin:0; cursor:pointer;" />
-                    nuchter
-                </label>
-            </div>
-        </div>`;
+const rij2 = `<div style="${rowStyle}">
+${mkField({id:'temperatuur', label:'Temp.', placeholder:'°C'})}
+${mkField({id:'crp',        label:'CRP',   placeholder:'mg/L'})}
+<div style="width:${W}px; flex-shrink:0;"></div>
+<div style="display:inline-flex; align-items:center; gap:4px; flex-shrink:0;">
+<label for="measurement-glucose" style="${lblStyle}">Glucose:</label>
+<input type="text" id="measurement-glucose" data-measurement-id="glucose"
+placeholder="mmol/L"
+style="${inpStyle}" />
+<span id="validation-glucose" style="${valStyle}"></span>
+<label style="display:inline-flex; align-items:center; gap:2px; font-size:12px; color:#555; cursor:pointer; margin-left:1px; white-space:nowrap;">
+<input type="checkbox" id="glucose-nuchter-cb" style="margin:0; cursor:pointer;" />
+nuchter
+</label>
+</div>
+</div>`;
 
-        const rij3 = `<div style="${rowStyle}">
-            ${mkField({id:'gewicht', label:'Gewicht', placeholder:'kg'})}
-            ${mkField({id:'lengte',  label:'Lengte',  placeholder:'cm'})}
-            <span id="bmi-display" style="font-size:12px; font-weight:bold; margin-left:6px;"></span>
-        </div>`;
+const rij3 = `<div style="${rowStyle}">
+${mkField({id:'gewicht', label:'Gewicht', placeholder:'kg'})}
+${mkField({id:'lengte',  label:'Lengte',  placeholder:'cm'})}
+<span id="bmi-display" style="font-size:12px; font-weight:bold; margin-left:6px;"></span>
+</div>`;
 
-        const grid = rij1 + rij2 + rij3;
+const grid = rij1 + rij2 + rij3;
 
-        panel.innerHTML = `
-            <div id="measurements-header" style="
-                padding: 8px 12px;
-                background: linear-gradient(to right, #0275d8, #0056b3);
-                color: white; border-radius: 4px; cursor: pointer;
-                display: flex; align-items: center; justify-content: space-between;
-                user-select: none; font-family: Arial, sans-serif;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span>📊</span>
-                    <strong>Metingen</strong>
-                    <span id="measurements-count" style="font-size:11px; opacity:0.9;"></span>
-                </div>
-                <span id="measurements-toggle" style="font-size:18px; transition:transform 0.3s;">▼</span>
-            </div>
-            <div id="measurements-content" style="
-                display: none; padding: 12px;
-                background: #f0f8ff; border: 1px solid #0275d8;
-                border-top: none; border-radius: 0 0 4px 4px;
-                margin-top: -4px; font-family: Arial, sans-serif;">
-                ${grid}
-                <div style="display:flex; gap:8px; margin-top:8px; padding-top:8px;
-                            border-top:1px solid #d0e8f7; align-items:center;">
-                    <button id="measurements-save-now" type="button" style="
-                        padding:4px 12px; background:#28a745; color:white;
-                        border:none; border-radius:3px; cursor:pointer; font-size:12px;">
-                        💾 Nu metingen opslaan
-                    </button>
-                    <button id="measurements-clear" type="button" style="
-                        padding:4px 12px; background:#dc3545; color:white;
-                        border:none; border-radius:3px; cursor:pointer; font-size:12px;">
-                        🗑️ Wissen
-                    </button>
-                    <button id="measurements-validate" type="button" style="
-                        padding:4px 12px; background:#6c757d; color:white;
-                        border:none; border-radius:3px; cursor:pointer; font-size:12px;"
-                        title="Controleer of de bepaling-IDs nog correct zijn in Promedico">
-                        🔍 Valideer IDs
-                    </button>
-                    <span style="font-size:11px; color:#666;">
-                        💡 Automatisch opgeslagen bij Opslaan/Verder klikken
-                    </span>
-                </div>
-            </div>
-        `;
+panel.innerHTML = `
+<div id="measurements-header" style="
+padding: 8px 12px;
+background: linear-gradient(to right, #0275d8, #0056b3);
+color: white; border-radius: 4px; cursor: pointer;
+display: flex; align-items: center; justify-content: space-between;
+user-select: none; font-family: Arial, sans-serif;">
+<div style="display:flex; align-items:center; gap:8px;">
+<span>📊</span>
+<strong>Metingen</strong>
+<span id="measurements-count" style="font-size:11px; opacity:0.9;"></span>
+</div>
+<span id="measurements-toggle" style="font-size:18px; transition:transform 0.3s;">▼</span>
+</div>
+<div id="measurements-content" style="
+display: none; padding: 12px;
+background: #f0f8ff; border: 1px solid #0275d8;
+border-top: none; border-radius: 0 0 4px 4px;
+margin-top: -4px; font-family: Arial, sans-serif;">
+${grid}
+<div style="display:flex; gap:8px; margin-top:8px; padding-top:8px;
+border-top:1px solid #d0e8f7; align-items:center;">
+<button id="measurements-save-now" type="button" style="
+padding:4px 12px; background:#28a745; color:white;
+border:none; border-radius:3px; cursor:pointer; font-size:12px;">
+💾 Nu metingen opslaan
+</button>
+<button id="measurements-clear" type="button" style="
+padding:4px 12px; background:#dc3545; color:white;
+border:none; border-radius:3px; cursor:pointer; font-size:12px;">
+🗑️ Wissen
+</button>
+<button id="measurements-validate" type="button" style="
+padding:4px 12px; background:#6c757d; color:white;
+border:none; border-radius:3px; cursor:pointer; font-size:12px;"
+title="Controleer of de bepaling-IDs nog correct zijn in Promedico">
+🔍 Valideer IDs
+</button>
+<span style="font-size:11px; color:#666;">
+💡 Automatisch opgeslagen bij Opslaan/Verder klikken
+</span>
+</div>
+</div>
+`;
 
-        return panel;
+return panel;
     }
 
     function setupPanelListeners(panel) {
@@ -1141,7 +1156,7 @@
         }
         return false;
     }
-    
+
     // =============================================================================
     // NOTIFICATION
     // =============================================================================
@@ -1153,11 +1168,11 @@
         const el = document.createElement('div');
         el.id = 'pm-notification';
         el.style.cssText = `
-            position: fixed; top: 20px; right: 20px; padding: 12px 18px;
-            background: ${colors[type] || colors.info}; color: white;
-            border-radius: 5px; box-shadow: 0 3px 12px rgba(0,0,0,0.3);
-            z-index: 99999; font-family: Arial; font-size: 13px;
-            max-width: 350px; line-height: 1.4;
+        position: fixed; top: 20px; right: 20px; padding: 12px 18px;
+        background: ${colors[type] || colors.info}; color: white;
+        border-radius: 5px; box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+        z-index: 99999; font-family: Arial; font-size: 13px;
+        max-width: 350px; line-height: 1.4;
         `;
         el.textContent = message;
         document.body.appendChild(el);
@@ -1187,8 +1202,8 @@
 
         await pollUntil(
             () => insertPanel(),
-            CONFIG.PANEL_INSERT_POLL_MS,
-            CONFIG.PANEL_INSERT_MAX_MS
+                        CONFIG.PANEL_INSERT_POLL_MS,
+                        CONFIG.PANEL_INSERT_MAX_MS
         );
 
         startFormAndButtonWatcher();

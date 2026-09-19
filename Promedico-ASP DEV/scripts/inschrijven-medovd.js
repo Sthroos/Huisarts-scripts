@@ -1,5 +1,8 @@
 (function() {
     'use strict';
+    const DEBUG = false;
+    function dbgWarn(...args) { if (DEBUG) console.warn(...args); }
+    function dbgErr(...args)  { if (DEBUG) console.error(...args); }
 
     // ============================================================================
     // SHARED UTILITIES
@@ -15,7 +18,7 @@
             try {
                 return iframe.contentDocument || iframe.contentWindow.document;
             } catch (e) {
-                console.error('Cannot access iframe:', e);
+                dbgErr('Cannot access iframe:', e);
             }
         }
         return null;
@@ -27,7 +30,7 @@
         if (el) {
             el.click();
         } else {
-            console.warn('[Promedico Helper] Element niet gevonden:', elementId);
+            dbgWarn('[Promedico Helper] Element niet gevonden:', elementId);
         }
     }
 

@@ -5,10 +5,11 @@
     const WERKLIJST_URL = 'werklijst.receptaanvraag.patientportaal.m';
     const POLL_INTERVAL = 400;
     const MAX_WAIT      = 25000;
+    const DEBUG          = false;
 
     let autoActief = false;
 
-    function log(msg) { console.log(SCRIPT_NAME + ' ' + msg); }
+    function log(msg) { if (DEBUG) console.log(SCRIPT_NAME + ' ' + msg); }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     function getIframeDoc() {
