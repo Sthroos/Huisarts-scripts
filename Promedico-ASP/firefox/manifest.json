@@ -24,6 +24,7 @@
     "https://www.promedico-asp.nl/*",
     "https://www.zorgdomein.nl/*",
     "https://www.zneller.nl/*",
+    "https://www5.teleqone.com/*",
     "clipboardWrite",
     "tabs"
   ],
@@ -52,6 +53,11 @@
       ],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": ["https://www5.teleqone.com/*"],
+      "js": ["scripts/teleq-bel-ontvanger.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [

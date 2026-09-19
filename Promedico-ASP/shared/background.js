@@ -1,16 +1,12 @@
 // Browser API shim (werkt in Firefox en Chrome)
 const _api = typeof browser !== 'undefined' ? browser : chrome;
 
-const DEBUG = false;
-function dbg(...args)    { if (DEBUG) console.log(...args); }
-function dbgErr(...args) { if (DEBUG) console.error(...args); }
-
 // In Chrome MV3 (service worker) moet config.js handmatig geladen worden
 if (typeof importScripts !== 'undefined') {
   try {
     importScripts(_api.runtime.getURL('config.js'));
   } catch(e) {
-    dbgErr('[Background] importScripts failed:', e);
+    console.error('[Background] importScripts failed:', e);
   }
 }
 
@@ -33,10 +29,8 @@ _api.runtime.onInstalled.addListener((details) => {
   }
 
   if (details.reason === 'install') {
-    // Eerste installatie: zet alle defaults
     _api.storage.local.set(defaults);
   } else {
-    // Update: voeg alleen keys toe die nog niet bestaan (bijv. nieuw script in config)
     _api.storage.local.get(Object.keys(defaults)).then(existing => {
       const toSet = {};
       for (const [key, value] of Object.entries(defaults)) {
@@ -60,13 +54,59 @@ if (_isDev) {
   }
 }
 
+// ── Klik-om-te-bellen via TeleQ ──────────────────────────────────────────────
+const TELEQ_URL_PATTERN = 'https://www5.teleqone.com/*';
+const TELEQ_START_URL = 'https://www5.teleqone.com/teleq/start/index.zul';
+
+// Onthoudt het tabId van de TeleQ-tab i.p.v. steeds op URL te zoeken — die tab kan
+// tijdelijk op een ander domein staan (SSO-login via login-nl.aurorateleq.com),
+// en zou anders niet herkend worden, met een ongewenste tweede tab als gevolg
+// (TeleQ staat maar één verbonden tabblad tegelijk toe).
+async function vindOfOpenTeleqTab() {
+  const { teleqTabId } = await _api.storage.local.get('teleqTabId');
+  if (teleqTabId) {
+    try {
+      return await _api.tabs.get(teleqTabId); // bestaat nog, ongeacht huidige URL
+    } catch (e) {
+      // Tab bestaat niet meer — verder zoeken/aanmaken
+    }
+  }
+
+  const [gevondenTab] = await _api.tabs.query({ url: TELEQ_URL_PATTERN });
+  if (gevondenTab) {
+    await _api.storage.local.set({ teleqTabId: gevondenTab.id });
+    return gevondenTab;
+  }
+
+  const nieuweTab = await _api.tabs.create({ url: TELEQ_START_URL });
+  await _api.storage.local.set({ teleqTabId: nieuweTab.id });
+  return nieuweTab;
+}
+
+async function belNummer(nummer) {
+  if (!nummer || typeof nummer !== 'string') {
+    throw new Error('Geen geldig telefoonnummer meegegeven');
+  }
+
+  // In storage zetten vóórdat de tab wordt geopend/geactiveerd: zo pakt het
+  // content script het verzoek altijd op bij het laden — ook na een
+  // SSO-loginredirect die de pagina (en dus elke actieve scriptinstantie) ververst.
+  await _api.storage.local.set({ teleqPendingNummer: nummer, teleqPendingSinds: Date.now() });
+
+  const tab = await vindOfOpenTeleqTab();
+
+  await _api.tabs.update(tab.id, { active: true });
+  const win = await _api.windows.get(tab.windowId);
+  if (!win.focused) await _api.windows.update(tab.windowId, { focused: true });
+
+  return { ok: true };
+}
+
 // Berichtenhandler
 _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'getSettings') {
     _api.storage.local.get().then(settings => {
-      // Migratie: zet verouderd activeMenuFile pad bij naar het nieuwe bestand.
-      // Gebruikers van versies vóór 2.5 kunnen nog een oud pad in storage hebben.
       if (settings.activeMenuFile && settings.activeMenuFile !== 'zorgdomein-menu-data.js') {
         settings.activeMenuFile = 'zorgdomein-menu-data.js';
         _api.storage.local.set({ activeMenuFile: 'zorgdomein-menu-data.js' });
@@ -87,13 +127,16 @@ _api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Tab sluit: wis patiëntgerelateerde storage keys
+  if (message.type === 'belNummer') {
+    belNummer(message.nummer).then(sendResponse).catch(err => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
   if (message.type === 'promedico_tab_unloading') {
     _api.storage.local.remove([
       'zneller_patient_data',
       'zneller_expires_at',
     ]).catch(() => {});
-    // Correspondentie zit in sessionStorage van de tab zelf — die verdwijnt automatisch
     sendResponse({ ok: true });
     return true;
   }
