@@ -97,7 +97,7 @@ import json, sys
 path = sys.argv[1]
 listed_ver = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
 m = json.load(open(path))
-m['browser_specific_settings']['gecko']['id'] = 'promedico-helper-dev@degrotedokter'
+m['browser_specific_settings']['gecko']['id'] = 'promedico-helper@degrotedokter'
 m['browser_specific_settings']['gecko'].pop('update_url', None)
 if listed_ver:
     m['version'] = listed_ver
