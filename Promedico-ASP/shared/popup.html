@@ -38,6 +38,21 @@
       font-weight: 500;
       color: #333;
     }
+    .risk-icon {
+      display: inline-block;
+      font-size: 12px;
+      margin-right: 3px;
+      cursor: help;
+    }
+    .risk-legend {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 8px;
+      padding: 0 2px;
+    }
+    .risk-legend span { cursor: help; }
     .switch {
       position: relative;
       display: inline-block;
@@ -205,8 +220,12 @@
         <span class="slider"></span>
       </label>
     </div>
-    
-    <div id="scriptsContainer"></div>
+  <div class="risk-legend">
+      <span title="Alleen interface — leest of schrijft geen patiëntgegevens">⚙️</span>
+      <span title="Leest patiëntgegevens">👁️</span>
+      <span title="Schrijft automatisch naar het dossier">✏️</span>
+    </div>
+  <div id="scriptsContainer"></div>
   </div>
   
   <div id="regioBar">

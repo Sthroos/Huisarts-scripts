@@ -1,6 +1,8 @@
 (function() {
     'use strict';
-    
+    const DEBUG = false;
+    function dbg(...args) { if (DEBUG) console.log(...args); }
+
     // Cross-browser compatibility: gebruik browser API (met fallback naar chrome)
     const browserAPI = (typeof browser !== 'undefined') ? browser : chrome;
 
@@ -37,7 +39,7 @@
         const hcrCodeFromHash = hcrMatch ? decodeURIComponent(hcrMatch[1]) : null;
 
         if (hcrCodeFromHash) {
-            console.log('[ZD Menu] HCR-code uit URL-hash:', hcrCodeFromHash);
+            dbg('[ZD Menu] HCR-code uit URL-hash:', hcrCodeFromHash);
             // Verwijder het pmh-hcr fragment uit de URL (schoon houden)
             const cleanUrl = window.location.href.replace(/[#&]pmh-hcr=[^&]+/, '').replace(/#$/, '');
             history.replaceState(null, '', cleanUrl || window.location.pathname);
@@ -62,7 +64,7 @@
                         if (btn) {
                             clicked = true;
                             observer.disconnect();
-                            console.log('[ZD Menu] HCR knop gevonden, klikken:', hcrCode);
+                            dbg('[ZD Menu] HCR knop gevonden, klikken:', hcrCode);
                             btn.click();
                             return true;
                         }
@@ -86,7 +88,7 @@
                             clearInterval(poll);
                             observer.disconnect();
                             if (!clicked) {
-                                console.log('[ZD Menu] HCR knop niet gevonden na timeout:', hcrCode);
+                                dbg('[ZD Menu] HCR knop niet gevonden na timeout:', hcrCode);
                             }
                         }
                     }, 200);
@@ -215,7 +217,7 @@
         // We luisteren naar het iframe load-event zodat we zeker het nieuwe document observeren.
         const iframe = getContentIframe();
         if (!iframe) {
-            console.log('[ZD Menu] ERROR: iframe niet gevonden');
+            dbg('[ZD Menu] ERROR: iframe niet gevonden');
             return;
         }
 
@@ -233,7 +235,7 @@
 
             // Wacht op specMnem via MutationObserver
             waitForElementInDoc(doc, '#specMnem', (specMnemField) => {
-                console.log('[ZD Menu] specMnem gevonden, specialisme invullen:', specialisme);
+                dbg('[ZD Menu] specMnem gevonden, specialisme invullen:', specialisme);
 
                 // Alleen value + input event - geen change/blur (triggert brief-sjabloonkeuze)
                 specMnemField.value = specialisme;
@@ -241,7 +243,7 @@
 
                 // Wacht op "Via ZorgDomein" knop via MutationObserver
                 waitForElementInDoc(doc, '#action_via\ zorgDomein', (button) => {
-                    console.log('[ZD Menu] Via ZorgDomein knop gevonden, klikken');
+                    dbg('[ZD Menu] Via ZorgDomein knop gevonden, klikken');
 
                     const script2 = doc.createElement('script');
                     script2.textContent = `
@@ -251,7 +253,7 @@
                         window.enableScreen  = enableScreen;
                         (function() {
                             var button = document.getElementById('action_via zorgDomein');
-                            if (!button) { console.log('[ZD] Via ZorgDomein niet gevonden'); return; }
+                            if (!button) { dbg('[ZD] Via ZorgDomein niet gevonden'); return; }
                             if (typeof koppelNaarZorgDomeinNaValidatieSpecialisme === 'function') {
                                 koppelNaarZorgDomeinNaValidatieSpecialisme();
                             } else {
@@ -266,11 +268,11 @@
                     clickScriptZorgDomein(callback);
 
                 }, () => {
-                    console.log('[ZD Menu] ERROR: Via ZorgDomein knop niet gevonden binnen timeout');
+                    dbg('[ZD Menu] ERROR: Via ZorgDomein knop niet gevonden binnen timeout');
                 });
 
             }, () => {
-                console.log('[ZD Menu] ERROR: specMnem niet gevonden binnen timeout');
+                dbg('[ZD Menu] ERROR: specMnem niet gevonden binnen timeout');
             });
         }
 
@@ -300,21 +302,21 @@
     function clickScriptZorgDomein(callback) {
         const iframe = getContentIframe();
         if (!iframe) {
-            console.log('[ZD] ERROR: iframe niet gevonden voor Script_ZorgDomein stap');
+            dbg('[ZD] ERROR: iframe niet gevonden voor Script_ZorgDomein stap');
             return;
         }
 
         function waitForButton(doc) {
             const url = doc.location?.href || '';
-            console.log('[ZD] Wacht op Script_ZorgDomein in:', url);
+            dbg('[ZD] Wacht op Script_ZorgDomein in:', url);
 
             waitForElementInDoc(doc, '#Script_ZorgDomein', (btn) => {
-                console.log('[ZD] Script_ZorgDomein gevonden, klikken');
+                dbg('[ZD] Script_ZorgDomein gevonden, klikken');
                 btn.click();
                 if (callback) callback();
             }, () => {
-                console.log('[ZD] ERROR: Script_ZorgDomein niet gevonden binnen timeout. URL:', url);
-                console.log('[ZD] Beschikbare knoppen:',
+                dbg('[ZD] ERROR: Script_ZorgDomein niet gevonden binnen timeout. URL:', url);
+                dbg('[ZD] Beschikbare knoppen:',
                     [...doc.querySelectorAll('input[type=submit],button,td.actie')]
                     .map(e => `${e.tagName} id="${e.id}" text="${e.textContent.trim().slice(0,30)}"`));
             });
@@ -459,9 +461,9 @@
         browserAPI.storage.local.get(['geselecteerdeInstellingen', 'geselecteerdeInstellingenData'], function(result) {
             const ids = result.geselecteerdeInstellingen || [];
             const data = result.geselecteerdeInstellingenData || {};
-            console.log('[ZD Menu] geselecteerdeInstellingen:', ids, '| data keys:', Object.keys(data));
+            dbg('[ZD Menu] geselecteerdeInstellingen:', ids, '| data keys:', Object.keys(data));
             _cachedMenuItems = bouwMenuItems(ids, data);
-            console.log('[ZD Menu] diagnostiek submenu items:', _cachedMenuItems.find(i => i.text === 'Diagnostiek')?.submenu?.length);
+            dbg('[ZD Menu] diagnostiek submenu items:', _cachedMenuItems.find(i => i.text === 'Diagnostiek')?.submenu?.length);
             if (callback) callback(_cachedMenuItems);
         });
     }

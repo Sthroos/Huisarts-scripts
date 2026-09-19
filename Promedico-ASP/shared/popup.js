@@ -44,28 +44,6 @@ async function handleImportFile(file) {
   }
 }
 
-// ── Genereer script-toggles dynamisch vanuit config ───────────────────────
-
-function generateScriptToggles() {
-  const container = document.getElementById('scriptsContainer');
-
-  SCRIPT_CONFIG.forEach(script => {
-    const toggleRow = document.createElement('div');
-    toggleRow.className = 'toggle-row';
-    toggleRow.innerHTML = `
-      <div>
-        <div class="toggle-label">${script.name}</div>
-        <div class="script-description">${script.description}</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="${script.id}Toggle" class="script-toggle" data-script-id="${script.id}">
-        <span class="slider"></span>
-      </label>
-    `;
-    container.appendChild(toggleRow);
-  });
-}
-
 // ── Laad opgeslagen instellingen ──────────────────────────────────────────
 
 async function loadSettings() {
@@ -102,6 +80,39 @@ async function loadSettings() {
       regioLabel.textContent = ids.length + ' instellingen geselecteerd';
     }
   }
+}
+
+// ── Risicovariatie tonen ──────────────────────────────────
+
+function riskIcon(riskLevel) {
+  const map = {
+    ui:    { icon: '⚙️', title: 'Alleen interface — leest of schrijft geen patiëntgegevens' },
+    read:  { icon: '👁️', title: 'Leest patiëntgegevens' },
+    write: { icon: '✏️', title: 'Schrijft automatisch naar het dossier' },
+  };
+  return map[riskLevel] || null;
+}
+
+function generateScriptToggles() {
+  const container = document.getElementById('scriptsContainer');
+
+  SCRIPT_CONFIG.forEach(script => {
+    const risk = riskIcon(script.riskLevel);
+    const iconHtml = risk ? `<span class="risk-icon" title="${risk.title}">${risk.icon}</span>` : '';
+    const toggleRow = document.createElement('div');
+    toggleRow.className = 'toggle-row';
+    toggleRow.innerHTML = `
+    <div>
+    <div class="toggle-label">${iconHtml}${script.name}</div>
+    <div class="script-description">${script.description}</div>
+    </div>
+    <label class="switch">
+    <input type="checkbox" id="${script.id}Toggle" class="script-toggle" data-script-id="${script.id}">
+    <span class="slider"></span>
+    </label>
+    `;
+    container.appendChild(toggleRow);
+  });
 }
 
 // ── Toon versienummer en installatietype ──────────────────────────────────

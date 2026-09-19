@@ -1,6 +1,9 @@
 (function() {
     'use strict';
 
+    const DEBUG = false;
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
+
     function extractPhoneNumber(text) {
         if (!text) return null;
 
@@ -32,27 +35,27 @@
     }
 
     function addCopyBirthdateButton() {
-    const infoDiv = document.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
-    if (!infoDiv) return;
-    if (infoDiv.querySelector('.copy-birthdate-btn')) return;
+        const infoDiv = document.getElementById('PanelPatientDossierBarCore-lblPatientPersonalInfo');
+        if (!infoDiv) return;
+        if (infoDiv.querySelector('.copy-birthdate-btn')) return;
 
-    const text = infoDiv.textContent;
-    const match = text.match(/(\d{2}-\d{2}-\d{4})/);
-    if (!match) return;
+        const text = infoDiv.textContent;
+        const match = text.match(/(\d{2}-\d{2}-\d{4})/);
+        if (!match) return;
 
-    const birthdate = match[1];
+        const birthdate = match[1];
 
-    // Zoek de tekstnode die de datum bevat en splits die op
-    const textNodes = Array.from(infoDiv.childNodes).filter(n => n.nodeType === Node.TEXT_NODE);
-    const dateNode = textNodes.find(n => n.textContent.includes(birthdate));
-    if (!dateNode) return;
+        // Zoek de tekstnode die de datum bevat en splits die op
+        const textNodes = Array.from(infoDiv.childNodes).filter(n => n.nodeType === Node.TEXT_NODE);
+        const dateNode = textNodes.find(n => n.textContent.includes(birthdate));
+        if (!dateNode) return;
 
-    const pos = dateNode.textContent.indexOf(birthdate) + birthdate.length;
-    const after = dateNode.splitText(pos); // splitst in twee nodes, geeft het tweede deel terug
-    
-    const copyBtn = createCopyButton(birthdate, 'birthdate');
-    after.before(copyBtn); // plaatst knop precies na de datum, voor de rest van de tekst
-}
+        const pos = dateNode.textContent.indexOf(birthdate) + birthdate.length;
+        const after = dateNode.splitText(pos); // splitst in twee nodes, geeft het tweede deel terug
+
+        const copyBtn = createCopyButton(birthdate, 'birthdate');
+        after.before(copyBtn); // plaatst knop precies na de datum, voor de rest van de tekst
+    }
 
     function createCopyButton(value, type) {
         const copyBtn = document.createElement('button');
@@ -68,14 +71,14 @@
 
         copyBtn.title = `Kopieer ${label}: ${value}`;
         copyBtn.style.cssText = `
-            margin-left: 5px;
-            padding: 2px 6px;
-            border: 1px solid #ccc;
-            background: #f0f0f0;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            vertical-align: middle;
+        margin-left: 5px;
+        padding: 2px 6px;
+        border: 1px solid #ccc;
+        background: #f0f0f0;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+        vertical-align: middle;
         `;
 
         copyBtn.addEventListener('click', function(e) {
@@ -94,7 +97,7 @@
                     copyBtn.style.background = '#f0f0f0';
                 }, 1000);
             }).catch(err => {
-                console.error(`Failed to copy ${type}:`, err);
+                dbgErr(`Failed to copy ${type}:`, err);
                 alert(`Kon ${label} niet kopiëren`);
             });
         });

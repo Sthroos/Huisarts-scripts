@@ -1,6 +1,28 @@
 (function() {
     'use strict';
 
+    const DEBUG = false;
+    function dbg(...args)    { if (DEBUG) console.log(...args); }
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
+
+    // Toont een korte, niet-blokkerende melding — gebruikt bij de redirect naar
+    // patiëntgegevens zodat de gebruiker begrijpt waarom hij daar terechtkomt.
+    function showLspNotice(message) {
+        const old = document.getElementById('lsp-notice');
+        if (old) old.remove();
+        const el = document.createElement('div');
+        el.id = 'lsp-notice';
+        el.textContent = message;
+        el.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 2147483647;
+        background: #fff3cd; color: #664d03; border: 1px solid #ffe69c;
+        padding: 12px 18px; border-radius: 6px; font-size: 14px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.2); max-width: 360px; line-height: 1.4;
+        `;
+        document.body.appendChild(el);
+        setTimeout(() => { if (el.parentNode) el.remove(); }, 6000);
+    }
+
     // Create custom styled confirmation dialog
     function createConfirmationDialog() {
         return new Promise((resolve) => {
@@ -14,49 +36,49 @@
             const overlay = document.createElement('div');
             overlay.id = 'lsp-confirmation-overlay';
             overlay.style.cssText = `
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
-                background: rgba(0, 0, 0, 0.7) !important;
-                z-index: 2147483647 !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                pointer-events: auto !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.7) !important;
+            z-index: 2147483647 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            pointer-events: auto !important;
             `;
 
             // Create dialog box
             const dialog = document.createElement('div');
             dialog.style.cssText = `
-                background: white !important;
-                padding: 30px !important;
-                border-radius: 8px !important;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
-                min-width: 400px !important;
-                text-align: center !important;
-                position: relative !important;
-                z-index: 2147483647 !important;
-                pointer-events: auto !important;
+            background: white !important;
+            padding: 30px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+            min-width: 400px !important;
+            text-align: center !important;
+            position: relative !important;
+            z-index: 2147483647 !important;
+            pointer-events: auto !important;
             `;
 
             // Create message
             const message = document.createElement('p');
             message.textContent = 'Wilt u de patiënt registreren als Ja of Nee?';
             message.style.cssText = `
-                margin: 0 0 25px 0 !important;
-                font-size: 18px !important;
-                color: #333 !important;
-                font-weight: 500 !important;
+            margin: 0 0 25px 0 !important;
+            font-size: 18px !important;
+            color: #333 !important;
+            font-weight: 500 !important;
             `;
 
             // Create button container
             const buttonContainer = document.createElement('div');
             buttonContainer.style.cssText = `
-                display: flex !important;
-                gap: 15px !important;
-                justify-content: center !important;
+            display: flex !important;
+            gap: 15px !important;
+            justify-content: center !important;
             `;
 
             // Handler function for cleanup
@@ -77,16 +99,16 @@
                 btn.type = 'button';
                 btn.className = 'lsp-dialog-button';
                 btn.style.cssText = `
-                    padding: 12px 24px !important;
-                    font-size: 16px !important;
-                    border: none !important;
-                    border-radius: 4px !important;
-                    cursor: pointer !important;
-                    font-weight: 600 !important;
-                    background-color: ${color} !important;
-                    color: white !important;
-                    pointer-events: auto !important;
-                    user-select: none !important;
+                padding: 12px 24px !important;
+                font-size: 16px !important;
+                border: none !important;
+                border-radius: 4px !important;
+                cursor: pointer !important;
+                font-weight: 600 !important;
+                background-color: ${color} !important;
+                color: white !important;
+                pointer-events: auto !important;
+                user-select: none !important;
                 `;
 
                 // Mouse handlers for hover effect
@@ -171,7 +193,7 @@
         if (!element) return false;
         const style = window.getComputedStyle(element);
         return style.display !== 'none' &&
-               element.getAttribute('aria-hidden') !== 'true';
+        element.getAttribute('aria-hidden') !== 'true';
     }
 
     // Handle LSP button click
@@ -195,12 +217,12 @@
                     if ((pre && pre.style.display !== 'none') ||
                         (inp && inp.style.display !== 'none')) {
                         clearInterval(interval);
-                        resolve();
-                    }
-                    if (Date.now() - startTime > 10000) {
-                        clearInterval(interval);
-                        reject(new Error('Timeout: LSP panels niet verschenen'));
-                    }
+                    resolve();
+                        }
+                        if (Date.now() - startTime > 10000) {
+                            clearInterval(interval);
+                            reject(new Error('Timeout: LSP panels niet verschenen'));
+                        }
                 }, 100);
             });
 
@@ -221,6 +243,10 @@
                 }
 
                 if (hasMissingRequirements) {
+                    // BUGFIX: leg uit waarom de redirect zo meteen gebeurt, in plaats
+                    // van de gebruiker stilzwijgend naar patiëntgegevens te sturen.
+                    showLspNotice('Verifieer eerst de identiteit van de patiënt — daarna kun je LSP aan- of uitzetten.');
+
                     // Close the popup first
                     const closeButton = document.getElementById('OptInPrerequisiteCancel');
                     if (closeButton) {
@@ -265,8 +291,8 @@
 
                 // Select the appropriate radio button
                 const radioButtonId = choice === 'ja'
-                    ? 'PanelOptInInputLine3-rbAkkoordJa-input'
-                    : 'PanelOptInInputLine3-rbAkkoordNee-input';
+                ? 'PanelOptInInputLine3-rbAkkoordJa-input'
+                : 'PanelOptInInputLine3-rbAkkoordNee-input';
 
                 const radioButton = document.getElementById(radioButtonId);
 
@@ -294,7 +320,7 @@
                         try {
                             await waitForElement('#OptInViewLSPActionPanel');
                         } catch (error) {
-                            console.error('Timeout waiting for LSP action panel');
+                            dbgErr('Timeout waiting for LSP action panel');
                         }
 
                         // Wait for processing to complete
@@ -327,7 +353,7 @@
             }
 
         } catch (error) {
-            console.error('Error in LSP automation:', error);
+            dbgErr('Error in LSP automation:', error);
         }
     }
 
@@ -346,7 +372,7 @@
                     setTimeout(() => {
                         handleLSPButtonClick(target);
                     }, 100);
-                }
+                    }
             }, true);
         }
 

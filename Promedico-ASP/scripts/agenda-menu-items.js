@@ -1,33 +1,37 @@
 (function() {
     'use strict';
 
-    console.log('[Agenda Menu] Script initialized');
+    const DEBUG = false;
+    function dbg(...args)    { if (DEBUG) console.log(...args); }
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
+
+    dbg('[Agenda Menu] Script initialized');
 
     // Click a sidebar button in the MAIN document (not iframe)
     function clickSidebarButton(buttonId) {
         const script = document.createElement('script');
         script.textContent = `
-            (function() {
-                try {
-                    // First click Werklijst to open the Agenda section
-                    const agendaWerklijst = document.getElementById('MainMenu-Agenda-Werklijst');
-                    if (agendaWerklijst) {
-                        agendaWerklijst.click();
-                        
-                        // Wait for sidebar buttons to appear in MAIN document
-                        setTimeout(() => {
-                            const button = document.getElementById('${buttonId}');
-                            if (button) {
-                                button.click();
-                            } else {
-                            }
-                        }, 1000);
-                    } else {
-                    }
-                } catch (e) {
-                    console.error('[Agenda Menu] Navigation error:', e);
+        (function() {
+            try {
+                // First click Werklijst to open the Agenda section
+                const agendaWerklijst = document.getElementById('MainMenu-Agenda-Werklijst');
+                if (agendaWerklijst) {
+                    agendaWerklijst.click();
+
+                    // Wait for sidebar buttons to appear in MAIN document
+                    setTimeout(() => {
+                        const button = document.getElementById('${buttonId}');
+                        if (button) {
+                            button.click();
+                        } else {
+                        }
+                    }, 1000);
+                } else {
                 }
-            })();
+            } catch (e) {
+                console.error('[Agenda Menu] Navigation error:', e);
+            }
+        })();
         `;
         document.head.appendChild(script);
         script.remove();
@@ -37,7 +41,7 @@
     function addCustomMenuItem(afterElementId, newItemId, newItemText, sidebarButtonId) {
         const afterElement = document.getElementById(afterElementId);
         if (!afterElement) {
-            console.log('[Agenda Menu] After element not found:', afterElementId);
+            dbg('[Agenda Menu] After element not found:', afterElementId);
             return false;
         }
 
@@ -112,7 +116,7 @@
     function init() {
         // Only run on main index.html page
         if (!window.location.href.includes('index.html')) {
-            console.log('[Agenda Menu] Not on index.html, skipping');
+            dbg('[Agenda Menu] Not on index.html, skipping');
             return;
         }
 

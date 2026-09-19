@@ -1,5 +1,7 @@
 (function() {
     'use strict';
+    const DEBUG = false;
+    function dbg(...args) { if (DEBUG) console.log(...args); }
 
     // =========================================================================
     // SESSION STORAGE HELPERS (per-tab, verdwijnt bij sluiten, nooit op disk)
@@ -326,7 +328,7 @@
     // INIT
     // =========================================================================
     function init() {
-        console.log('[Correspondence] Script initialized');
+        dbg('[Correspondence] Script initialized');
         // Herstel tellers vanuit sessionStorage (na page-navigatie)
         _verderClickCount  = parseInt(ssGet(SS_CLICKS)  || '0', 10);
         _lastVerderClickTime = parseInt(ssGet(SS_LASTCLK) || '0', 10);

@@ -1,5 +1,7 @@
 (function () {
     'use strict';
+    const DEBUG = false;
+    function dbgWarn(...args) { if (DEBUG) console.warn(...args); }
 
     // ─────────────────────────────────────────────────────────────────────────
     // CONFIGURATIE
@@ -526,7 +528,7 @@
                 win.setChanged(true);
             }
         } catch (e) {
-            console.warn('pmh brief-verwerker: setChanged niet beschikbaar', e);
+            dbgWarn('pmh brief-verwerker: setChanged niet beschikbaar', e);
         }
     }
 
