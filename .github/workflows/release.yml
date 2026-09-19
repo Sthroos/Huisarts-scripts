@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Unlisted versienummer (bijv. 2.5.0) — listed wordt automatisch +1 patch door build.sh"
+        required: true
+        type: string
+      release_notes:
+        description: "Release notes"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git identity instellen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Node.js instellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: web-ext installeren (vaste versie)
+        run: npm install -g web-ext@10.4.0
+
+      - name: Release draaien
+        working-directory: Promedico-ASP
+        env:
+          CI: "true"
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./release.sh "${{ inputs.version }}" "${{ inputs.release_notes }}"
+
+      - name: Firefox listed ZIP als artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-listed-v${{ inputs.version }}
+          path: Promedico-ASP/dist/firefox.zip
+          retention-days: 90
