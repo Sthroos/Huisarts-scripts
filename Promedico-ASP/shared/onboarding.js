@@ -3,12 +3,13 @@
 (function () {
   var _api = typeof browser !== 'undefined' ? browser : chrome;
 
-  var TOTAL_STEPS = 4;
+  var TOTAL_STEPS = 5;
   var currentStep = 1;
 
   var selectedInstellingen = []; // array van instelling-IDs
   var selectedBvo = null;
   var selectedCrp = null;
+  var selectedBelsysteem = 'teleq'; // default: TeleQ
   var huisartsVoorletters = '';
   var huisartsAchternaam  = '';
 
@@ -219,6 +220,7 @@
       2: function () { return selectedBvo !== null; },
       3: function () { return true; }, // huisarts is optioneel
       4: function () { return selectedCrp !== null; },
+      5: function () { return selectedBelsysteem !== null; },
     };
     var check = stepValid[currentStep];
     btn.disabled = check ? !check() : false;
@@ -255,6 +257,7 @@
       updateHuisartsPreview();
     }
     if (n === 4 && selectedCrp) preselectCard('crp', selectedCrp);
+    if (n === 5) preselectCard('belsysteem', selectedBelsysteem);
     if (isDone) { buildDoneList(); updateEnableWriteButtonState(); }
 
     updateNextButton();
@@ -271,12 +274,14 @@
     var huisartsLabel = (huisartsVoorletters || huisartsAchternaam)
       ? [huisartsVoorletters, huisartsAchternaam].filter(Boolean).join(' ')
       : 'Niet ingesteld';
+    var belsysteemLabel = selectedBelsysteem === 'teleq' ? 'TeleQ' : 'Ander systeem / geen';
 
     var items = [
       'Zorginstellingen: <strong>' + aantalLabel + '</strong>',
       'BVO: <strong>' + bvoLabel + '</strong>',
       'Inschrijven arts: <strong>' + huisartsLabel + '</strong>',
       'CRP: <strong>' + crpLabel + '</strong>',
+      'Belsysteem: <strong>' + belsysteemLabel + '</strong>',
     ];
     document.getElementById('doneList').innerHTML =
       items.map(function (i) { return '<li>' + i + '</li>'; }).join('');
@@ -327,6 +332,7 @@
       zdMenuCacheVersion:            Date.now(),
       inschrijvenHuisartsVoorletters: huisartsVoorletters,
       inschrijvenHuisartsAchternaam:  huisartsAchternaam,
+      teleqBellenEnabled:            selectedBelsysteem === 'teleq',
     });
   }
 
@@ -371,6 +377,7 @@
 
   setupChoiceCards('bvo', function (v) { selectedBvo = v; });
   setupChoiceCards('crp', function (v) { selectedCrp = v; });
+  setupChoiceCards('belsysteem', function (v) { selectedBelsysteem = v; });
 
   buildProvincieFilter();
   buildInstellingList();
@@ -378,7 +385,7 @@
   // Laad bestaande waarden als de onboarding opnieuw geopend wordt
   _api.storage.local.get([
     'geselecteerdeInstellingen', 'bvoKoerier', 'crpPoct',
-    'inschrijvenHuisartsVoorletters', 'inschrijvenHuisartsAchternaam'
+    'inschrijvenHuisartsVoorletters', 'inschrijvenHuisartsAchternaam', 'teleqBellenEnabled'
   ], function(result) {
     if (result.geselecteerdeInstellingen) {
       selectedInstellingen = result.geselecteerdeInstellingen;
@@ -388,6 +395,7 @@
     if (result.crpPoct    !== undefined) selectedCrp = result.crpPoct    ? 'poct'    : 'handmatig';
     huisartsVoorletters = result.inschrijvenHuisartsVoorletters || '';
     huisartsAchternaam  = result.inschrijvenHuisartsAchternaam  || '';
+    selectedBelsysteem = result.teleqBellenEnabled === false ? 'ander' : 'teleq';
   });
 
   showStep(1);

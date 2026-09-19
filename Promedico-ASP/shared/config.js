@@ -135,7 +135,7 @@ const SCRIPT_CONFIG = [
   id: 'copyButtons',
   name: 'Copy Phone, Email, BSN, Address',
   description: 'Quick copy buttons for patient info',
-  enabled: false,
+  enabled: true,
   riskLevel: 'read',
   scriptFile: 'scripts/kopieer-buttons.js',
   urlPatterns: ['https://www.promedico-asp.nl/*']
@@ -186,6 +186,14 @@ const SCRIPT_CONFIG = [
   scriptFile: 'scripts/soep-sjablonen.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*'],
   injectMode: 'main_world'
+},
+{
+  id: 'teleqBellen',
+  name: 'Bellen via TeleQ',
+  description: 'Vult het nummer in en belt automatisch als je op de 📞-knop bij een telefoonnummer klikt',
+  enabled: true,
+  scriptFile: 'scripts/teleq-bel-ontvanger.js', // let op: alléén voor documentatie — wordt NIET via deze SCRIPT_CONFIG-pipeline geïnjecteerd, maar via een eigen content_scripts-blok in het manifest (isolated world, i.v.m. runtime.onMessage)
+  urlPatterns: ['https://www5.teleqone.com/*']
 },
 {
   id: 'verrichtingQuickButtons',

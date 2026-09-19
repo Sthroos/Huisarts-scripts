@@ -1,36 +1,25 @@
 (function() {
     'use strict';
 
-    const DEBUG = false;
-    function dbgErr(...args) { if (DEBUG) console.error(...args); }
+    // Eenmalig geladen bij script-start; bepaalt of de belknop getoond wordt
+    // én of Promedico's eigen belicoontje verborgen moet worden.
+    let teleqBellenEnabled = true;
+    window.chrome.storage.local.get('teleqBellenEnabled', function(result) {
+        teleqBellenEnabled = result.teleqBellenEnabled !== false;
+    });
 
     function extractPhoneNumber(text) {
         if (!text) return null;
-
-        // Remove any text in parentheses like (zoon), (moeder), etc.
         text = text.replace(/\([^)]*\)/g, '').trim();
-
-        // Extract phone number pattern: optional +, followed by digits, spaces, or hyphens
         const phoneMatch = text.match(/(\+?\d[\d\s-]+)/);
-
-        if (phoneMatch) {
-            // Return the matched number, keeping the + if it exists
-            return phoneMatch[1].trim();
-        }
-
+        if (phoneMatch) return phoneMatch[1].trim();
         return null;
     }
 
     function extractEmail(text) {
         if (!text) return null;
-
-        // Extract email pattern
         const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
-
-        if (emailMatch) {
-            return emailMatch[1].trim();
-        }
-
+        if (emailMatch) return emailMatch[1].trim();
         return null;
     }
 
@@ -44,17 +33,15 @@
         if (!match) return;
 
         const birthdate = match[1];
-
-        // Zoek de tekstnode die de datum bevat en splits die op
         const textNodes = Array.from(infoDiv.childNodes).filter(n => n.nodeType === Node.TEXT_NODE);
         const dateNode = textNodes.find(n => n.textContent.includes(birthdate));
         if (!dateNode) return;
 
         const pos = dateNode.textContent.indexOf(birthdate) + birthdate.length;
-        const after = dateNode.splitText(pos); // splitst in twee nodes, geeft het tweede deel terug
+        const after = dateNode.splitText(pos);
 
         const copyBtn = createCopyButton(birthdate, 'birthdate');
-        after.before(copyBtn); // plaatst knop precies na de datum, voor de rest van de tekst
+        after.before(copyBtn);
     }
 
     function createCopyButton(value, type) {
@@ -71,23 +58,21 @@
 
         copyBtn.title = `Kopieer ${label}: ${value}`;
         copyBtn.style.cssText = `
-        margin-left: 5px;
-        padding: 2px 6px;
-        border: 1px solid #ccc;
-        background: #f0f0f0;
-        border-radius: 3px;
-        cursor: pointer;
-        font-size: 12px;
-        vertical-align: middle;
+            margin-left: 5px;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            background: #f0f0f0;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            vertical-align: middle;
         `;
 
         copyBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
 
-            // Copy to clipboard
             navigator.clipboard.writeText(value).then(() => {
-                // Visual feedback
                 const originalContent = copyBtn.innerHTML;
                 copyBtn.innerHTML = '✓';
                 copyBtn.style.background = '#90EE90';
@@ -97,7 +82,7 @@
                     copyBtn.style.background = '#f0f0f0';
                 }, 1000);
             }).catch(err => {
-                dbgErr(`Failed to copy ${type}:`, err);
+                console.error(`Failed to copy ${type}:`, err);
                 alert(`Kon ${label} niet kopiëren`);
             });
         });
@@ -105,38 +90,79 @@
         return copyBtn;
     }
 
+    function createBelButton(nummer) {
+        const belBtn = document.createElement('button');
+        belBtn.className = 'bel-teleq-btn';
+        belBtn.innerHTML = '📞';
+        belBtn.title = `Bel ${nummer} via TeleQ`;
+        belBtn.style.cssText = `
+            margin-left: 3px;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            background: #f0f0f0;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            vertical-align: middle;
+        `;
+
+        belBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            belBtn.disabled = true;
+            belBtn.innerHTML = '…';
+
+            window.promedicoHelper.bellen(nummer).then(() => {
+                belBtn.innerHTML = '📨'; // verstuurd — het daadwerkelijke bellen gebeurt in TeleQ zelf
+                belBtn.style.background = '#cfe8ff';
+            }).catch(err => {
+                console.error('Bellen via TeleQ mislukt:', err);
+                belBtn.innerHTML = '✕';
+                belBtn.style.background = '#f8a0a0';
+                alert(`Bellen mislukt: ${err.message}`);
+            }).finally(() => {
+                setTimeout(() => {
+                    belBtn.innerHTML = '📞';
+                    belBtn.style.background = '#f0f0f0';
+                    belBtn.disabled = false;
+                }, 2000);
+            });
+        });
+
+        return belBtn;
+    }
+
     function addCopyPhoneButton() {
-        // Find all phone links (they have id starting with "callTelefoonnummer")
         const phoneLinks = document.querySelectorAll('a[id^="callTelefoonnummer"]');
 
         phoneLinks.forEach(link => {
-            // Check if button already exists
-            if (link.parentElement.querySelector('.copy-phone-btn')) {
-                return;
+            if (teleqBellenEnabled) {
+                const nativeIcon = link.querySelector('i.fa-phone');
+                if (nativeIcon) nativeIcon.style.display = 'none';
             }
 
-            // Get the phone number from the link text
+            if (link.parentElement.querySelector('.copy-phone-btn')) return;
+
             const phoneText = link.textContent.trim();
             const phoneNumber = extractPhoneNumber(phoneText);
 
             if (phoneNumber) {
                 const copyBtn = createCopyButton(phoneNumber, 'phone');
                 link.after(copyBtn);
+                if (teleqBellenEnabled) {
+                    const belBtn = createBelButton(phoneNumber);
+                    copyBtn.after(belBtn);
+                }
             }
         });
     }
 
     function addCopyEmailButton() {
-        // Find all email spans with envelope icon
         const emailSpans = document.querySelectorAll('span[title="Mailen"]');
 
         emailSpans.forEach(span => {
-            // Check if button already exists
-            if (span.parentElement.querySelector('.copy-email-btn')) {
-                return;
-            }
+            if (span.parentElement.querySelector('.copy-email-btn')) return;
 
-            // Get the email from the span text
             const emailText = span.textContent.trim();
             const email = extractEmail(emailText);
 
@@ -148,10 +174,6 @@
     }
 
     // ── BSN elfproef (11-proef) ──────────────────────────────────────────────
-    // Een geldig BSN is 8 of 9 cijfers lang en voldoet aan de 11-proef:
-    // som van (cijfer × gewicht) is deelbaar door 11.
-    // Gewichten voor 9 cijfers: 9,8,7,6,5,4,3,2,-1
-    // Voor 8 cijfers: voorloopnul toevoegen, dan dezelfde gewichten toepassen.
     function geldigBSN(bsn) {
         if (!/^\d{8,9}$/.test(bsn)) return false;
         const cijfers = bsn.length === 8 ? '0' + bsn : bsn;
@@ -161,19 +183,13 @@
     }
 
     function addCopyBSNButton() {
-        // Find all BSN spans with class GEM3CPJDOIC
         const bsnSpans = document.querySelectorAll('span.GEM3CPJDOIC');
 
         bsnSpans.forEach(span => {
-            // Check if button already exists
-            if (span.parentElement.querySelector('.copy-bsn-btn')) {
-                return;
-            }
+            if (span.parentElement.querySelector('.copy-bsn-btn')) return;
 
-            // Get the BSN number from the span text
             const bsn = span.textContent.trim();
 
-            // Valideer BSN: 8-9 cijfers én elfproef (11-proef)
             if (bsn && geldigBSN(bsn)) {
                 const copyBtn = createCopyButton(bsn, 'bsn');
                 span.after(copyBtn);
@@ -182,16 +198,11 @@
     }
 
     function addCopyAddressButton() {
-        // Find the address div by ID
         const addressDiv = document.getElementById('PanelPatientDossierBarCore-lblPersoonAddressInfo');
 
         if (addressDiv) {
-            // Check if button already exists
-            if (addressDiv.querySelector('.copy-address-btn')) {
-                return;
-            }
+            if (addressDiv.querySelector('.copy-address-btn')) return;
 
-            // Get the address from the div text
             const address = addressDiv.textContent.trim();
 
             if (address) {
@@ -209,24 +220,20 @@
         addCopyAddressButton();
     }
 
-    // Run on page load
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', addAllCopyButtons);
     } else {
         addAllCopyButtons();
     }
 
-    // Also run after delays in case content loads dynamically
     setTimeout(addAllCopyButtons, 1000);
     setTimeout(addAllCopyButtons, 2000);
     setTimeout(addAllCopyButtons, 3000);
 
-    // Watch for dynamic changes
     const observer = new MutationObserver(() => {
         addAllCopyButtons();
     });
 
-    // Start observing after a short delay
     setTimeout(() => {
         observer.observe(document.body, {
             childList: true,

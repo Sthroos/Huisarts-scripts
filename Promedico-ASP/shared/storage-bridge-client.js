@@ -1,12 +1,9 @@
 // storage-bridge-client.js
 // Wordt als eerste script geladen in de page context.
-// Emuleert chrome.storage.local via postMessage naar de content script.
+// Emuleert chrome.storage.local en extensie-acties via postMessage naar het content script.
 
 (function() {
   'use strict';
-
-  const DEBUG = false;
-  function dbg(...args) { if (DEBUG) console.log(...args); }
 
   let _requestId = 0;
   const _pending = {};
@@ -25,23 +22,22 @@
     }
   });
 
-  function storageCall(method, ...args) {
+  function _bridgeCall(method, args, timeoutMs = 5000) {
     return new Promise((resolve, reject) => {
       const requestId = ++_requestId;
       _pending[requestId] = { resolve, reject };
-      window.postMessage({
-        source: 'promedico-page',
-        requestId,
-        method,
-        args
-      }, '*');
+      window.postMessage({ source: 'promedico-page', requestId, method, args }, '*');
       setTimeout(() => {
         if (_pending[requestId]) {
           delete _pending[requestId];
-          reject(new Error('Storage bridge timeout'));
+          reject(new Error('Bridge timeout'));
         }
-      }, 5000);
+      }, timeoutMs);
     });
+  }
+
+  function storageCall(method, ...args) {
+    return _bridgeCall(method, args, 5000);
   }
 
   if (typeof window.chrome === 'undefined') window.chrome = {};
@@ -70,5 +66,11 @@
     window.browser.storage = window.chrome.storage;
   }
 
-  dbg('[Promedico Helper] Storage bridge client geïnstalleerd');
+  // Klik-om-te-bellen: aparte, langere timeout — kan een nieuwe tab + laadtijd vergen.
+  window.promedicoHelper = window.promedicoHelper || {};
+  window.promedicoHelper.bellen = function(nummer) {
+    return _bridgeCall('actie.bellen', [nummer], 20000);
+  };
+
+  console.log('[Promedico Helper] Storage bridge client geïnstalleerd');
 })();

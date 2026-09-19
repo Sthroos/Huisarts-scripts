@@ -362,6 +362,17 @@ Voegt kleine **📋-kopieerknopjes** toe naast telefoonnummer, e-mailadres, BSN,
 
 ---
 
+## 14a. Bellen via TeleQ
+
+**Waar te vinden:** Naast elk telefoonnummer in de patiëntbalk, naast het 📋-kopieerknopje.
+
+**Wat het doet:**
+Voegt een **📞-belknop** toe. Klik erop om automatisch te bellen via TeleQ: de extensie opent of activeert het TeleQ-tabblad, vult het nummer in en klikt op Bel — zonder handmatig kopiëren en overschakelen.
+
+**Vereist:** TeleQ als belsysteem geselecteerd in de onboarding (stap 5). Gebruik je een ander systeem, dan is deze knop uitgeschakeld — kopiëren blijft altijd werken.
+
+---
+
 ## 15. LSP-instellingen
 
 **Waar te vinden:** Werkt op de **patiëntbalk** bovenaan het scherm, via de **Opt-in**-knop (de knop die LSP-toestemming regelt).
@@ -605,7 +616,11 @@ Bij de eerste installatie (of via de extensie-popup → *Instellingen opnieuw do
 
 **Stap 2 — BVO uitstrijkje:** Kies hoe het uitstrijkje bij jullie wordt verwerkt: via een koerier die ophaalt, of een andere werkwijze. Dit bepaalt de tekst die het BVO-sjabloon in het P-veld plaatst.
 
-**Stap 3 — CRP sneltest:** Kies hoe een CRP wordt aangevraagd: via POCTConnect (digitale aanvraag, opent poctconnect.nl met automatisch gekopieerd BSN) of handmatige invoer (plaatst een invulregel in het O-veld).
+**Stap 3 — Patiëntinschrijving:** Vul je naam in zoals die in Promedico staat, voor automatische selectie van de behandelend arts bij nieuwe inschrijvingen.
+
+**Stap 4 — CRP sneltest:** Kies hoe een CRP wordt aangevraagd: via POCTConnect (digitale aanvraag, opent poctconnect.nl met automatisch gekopieerd BSN) of handmatige invoer (plaatst een invulregel in het O-veld).
+
+**Stap 5 — Bellen:** Kies TeleQ (standaard) of een ander systeem. Bepaalt of de 📞-belknop naast telefoonnummers actief is.
 
 Na de onboarding zijn alle relevante scripts direct correct geconfigureerd voor jouw praktijk.
 
