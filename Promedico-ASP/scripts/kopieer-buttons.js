@@ -1,6 +1,9 @@
 (function() {
     'use strict';
 
+    const DEBUG = false;
+    function dbgErr(...args) { if (DEBUG) console.error(...args); }
+
     // Eenmalig geladen bij script-start; bepaalt of de belknop getoond wordt
     // én of Promedico's eigen belicoontje verborgen moet worden.
     let teleqBellenEnabled = true;
@@ -82,7 +85,7 @@
                     copyBtn.style.background = '#f0f0f0';
                 }, 1000);
             }).catch(err => {
-                console.error(`Failed to copy ${type}:`, err);
+                dbgErr(`Failed to copy ${type}:`, err);
                 alert(`Kon ${label} niet kopiëren`);
             });
         });
@@ -116,7 +119,7 @@
                 belBtn.innerHTML = '📨'; // verstuurd — het daadwerkelijke bellen gebeurt in TeleQ zelf
                 belBtn.style.background = '#cfe8ff';
             }).catch(err => {
-                console.error('Bellen via TeleQ mislukt:', err);
+                dbgErr('Bellen via TeleQ mislukt:', err);
                 belBtn.innerHTML = '✕';
                 belBtn.style.background = '#f8a0a0';
                 alert(`Bellen mislukt: ${err.message}`);

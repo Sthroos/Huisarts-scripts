@@ -1,6 +1,9 @@
 (function () {
     'use strict';
 
+    const DEBUG = false;
+    function dbg(...args) { if (DEBUG) console.log(...args); }
+
     const VELD_ID      = 'MedicatieDoseren-Gebruik-txtGenoegVoor';
     const STANDAARD    = '30';
     const WACHT_MS     = 400;   // wacht tot Promedico het veld eventueel zelf vult
@@ -40,7 +43,7 @@
     function probeerVullen(veld) {
         if (veld.value.trim() !== '') return; // al ingevuld door Promedico
         simuleerTypen(veld, STANDAARD);
-        console.log('[GenoegVoor] Leeg veld gevonden — standaard ' + STANDAARD + ' dagen ingevuld');
+        dbg('[GenoegVoor] Leeg veld gevonden — standaard ' + STANDAARD + ' dagen ingevuld');
     }
 
     function wachtOpVeldEnVul() {
