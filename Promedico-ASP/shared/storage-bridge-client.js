@@ -5,6 +5,9 @@
 (function() {
   'use strict';
 
+  const DEBUG = false;
+  function dbg(...args) { if (DEBUG) console.log(...args); }
+
   let _requestId = 0;
   const _pending = {};
 
@@ -72,5 +75,5 @@
     return _bridgeCall('actie.bellen', [nummer], 20000);
   };
 
-  console.log('[Promedico Helper] Storage bridge client geïnstalleerd');
+  dbg('[Promedico Helper] Storage bridge client geïnstalleerd');
 })();

@@ -14,7 +14,7 @@ const SCRIPT_CONFIG = [
   id: 'autoDelete',
   name: 'Auto-delete Berichten',
   description: 'Auto-delete spam messages',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/auto-delete-berichten.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
@@ -44,7 +44,7 @@ const SCRIPT_CONFIG = [
   id: 'consultCopy',
   name: 'Consult kopieren',
   description: 'Kopieer snel consult(en)',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/consult-copy.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
@@ -80,7 +80,7 @@ const SCRIPT_CONFIG = [
   id: 'econsultTemplates',
   name: 'E-consult Template Responses',
   description: 'Quick template responses for e-consults',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/econsult-templates.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
@@ -107,7 +107,7 @@ const SCRIPT_CONFIG = [
   id: 'inschrijvenMedovd',
   name: 'Inschrijven en MEDOVD Import',
   description: 'Patient registration and MEDOVD import',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/inschrijven-medovd.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*'],
@@ -117,7 +117,7 @@ const SCRIPT_CONFIG = [
   id: 'medicatieGenoegVoor',
   name: 'Medicatie — Genoeg voor (standaard 30 dagen)',
   description: 'Vult automatisch 30 dagen in het "Genoeg voor"-veld als Promedico dat leeg laat',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/medicatie-genoeg-voor.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
@@ -181,7 +181,7 @@ const SCRIPT_CONFIG = [
   id: 'soepSjablonen',
   name: 'SOEP Sjablonen',
   description: 'SOEP templates',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/soep-sjablonen.js',
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*'],
@@ -191,7 +191,8 @@ const SCRIPT_CONFIG = [
   id: 'teleqBellen',
   name: 'Bellen via TeleQ',
   description: 'Vult het nummer in en belt automatisch als je op de 📞-knop bij een telefoonnummer klikt',
-  enabled: true,
+  enabled: false,
+  riskLevel: 'write',
   scriptFile: 'scripts/teleq-bel-ontvanger.js', // let op: alléén voor documentatie — wordt NIET via deze SCRIPT_CONFIG-pipeline geïnjecteerd, maar via een eigen content_scripts-blok in het manifest (isolated world, i.v.m. runtime.onMessage)
   urlPatterns: ['https://www5.teleqone.com/*']
 },
@@ -208,7 +209,7 @@ const SCRIPT_CONFIG = [
   id: 'znellerFormulieren',
   name: 'ZN formulieren via Zneller.nl',
   description: 'Zneller formulieren invullen uit P',
-  enabled: true,
+  enabled: false,
   riskLevel: 'write',
   scriptFile: 'scripts/zneller-formulieren.js',
   urlPatterns: [
