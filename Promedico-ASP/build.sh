@@ -22,6 +22,11 @@
 #   listed    → promedico-helper-dev@degrotedokter       — officiële store versie
 #   unlisted  → promedico-helper-dev@degrotedokter   — testpc, auto-updates via updates.json
 #   dev       → promedico-helper-dev@degrotedokter   — lokaal, ongezind
+#
+#   Alle drie delen bewust hetzelfde ID: de listed AMO-versie is ooit onder
+#   promedico-helper-dev@degrotedokter gepubliceerd. Dat ID wijzigen betekent
+#   opnieuw publiceren, waarna bestaande gebruikers de extensie kwijtraken.
+#   Test daarom in een apart Firefox-profiel (bijv. Developer Edition).
 
 set -e
 
@@ -85,7 +90,7 @@ copy_browser_files() {
 
 # ─── TARGET: firefox (listed — handmatig uploaden op AMO) ─────────────────────
 # Geen update_url — AMO regelt updates zelf voor listed extensies
-# Extension ID: promedico-helper@degrotedokter
+# Extension ID: promedico-helper-dev@degrotedokter (historisch, zie kop)
 build_firefox() {
     echo -e "${GREEN}► firefox${NC}  (listed — handmatig uploaden op AMO)"
     local OUT="$BUILD_DIR/firefox"
@@ -110,7 +115,7 @@ PYEOF
 }
 
 # ─── TARGET: firefox-unlisted (voor testpc, AMO signing, auto-updates) ────────
-# - Andere extension ID zodat hij naast de listed versie draait
+# - Zelfde extension ID als listed (zie kop); draait dus niet naast de listed versie
 # - update_url → updates.json op GitHub zodat testpc automatisch update
 # - Naam krijgt [DEV] zodat je hem herkent
 # Extension ID: promedico-helper-dev@degrotedokter
