@@ -52,6 +52,7 @@
     {
       "resources": [
         "scripts/*.js",
+        "tarieven/*.json",
         "config.js",
         "profiles.js",
         "storage-bridge-client.js",

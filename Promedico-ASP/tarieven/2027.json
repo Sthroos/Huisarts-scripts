@@ -1,0 +1,671 @@
+{
+  "jaar": 2027,
+  "geldigVan": "01-01-2027",
+  "geldigTot": "01-01-2028",
+  "bronnen": [
+    "NZa TB/REG-27616-01 Prestatie- en tariefbeschikking huisartsenzorg en multidisciplinaire zorg (vastgesteld 30-06-2026)",
+    "NZa WB/REG-2027-04 wijziging TB/REG-27616-01 (28-10-2026): Cyriax € 42,26",
+    "Zilveren Kruis Tarievenlijst 2027 v1.0 (augustus 2026), gecontracteerde tarieven"
+  ],
+  "opmerkingen": [
+    "12850 Stoppen met roken ontbreekt: ZK publiceert dit tarief later.",
+    "Segment 2 (vrije tarieven via zorggroep) en S3 regio-organisatie (31070, 31175, 31452) zijn niet opgenomen: die declareert de praktijk niet zelf."
+  ],
+  "verzekeraars": {
+    "zk": "Zilveren Kruis"
+  },
+  "prestaties": [
+    {
+      "vektis": "11115",
+      "omschrijving": "Inschrijving verzekerden tot 65 jaar",
+      "tarieven": {
+        "zk": 22.67
+      }
+    },
+    {
+      "vektis": "11116",
+      "omschrijving": "Inschrijving verzekerden vanaf 65 jaar tot 75 jaar",
+      "tarieven": {
+        "zk": 26.68
+      }
+    },
+    {
+      "vektis": "11117",
+      "omschrijving": "Inschrijving verzekerden vanaf 75 jaar tot 85 jaar",
+      "tarieven": {
+        "zk": 40.17
+      }
+    },
+    {
+      "vektis": "11118",
+      "omschrijving": "Inschrijving verzekerden vanaf 85 jaar",
+      "tarieven": {
+        "zk": 63.16
+      }
+    },
+    {
+      "vektis": "11119",
+      "omschrijving": "Opslag inschrijving verzekerden woonachtig in een opslagwijk",
+      "tarieven": {
+        "zk": 7.17
+      }
+    },
+    {
+      "vektis": "12010",
+      "omschrijving": "Consult regulier korter dan 5 minuten",
+      "tarieven": {
+        "zk": 6.92
+      }
+    },
+    {
+      "vektis": "12011",
+      "omschrijving": "Consult regulier vanaf 5 minuten tot 20 minuten",
+      "tarieven": {
+        "zk": 13.85
+      }
+    },
+    {
+      "vektis": "12001",
+      "omschrijving": "Consult regulier 20 minuten en langer",
+      "tarieven": {
+        "zk": 27.69
+      }
+    },
+    {
+      "vektis": "12002",
+      "omschrijving": "Visite regulier korter dan 20 minuten",
+      "tarieven": {
+        "zk": 20.77
+      }
+    },
+    {
+      "vektis": "12003",
+      "omschrijving": "Visite regulier 20 minuten en langer",
+      "tarieven": {
+        "zk": 34.62
+      }
+    },
+    {
+      "vektis": "12006",
+      "omschrijving": "Vaccinatie regulier",
+      "tarieven": {
+        "zk": 6.92
+      }
+    },
+    {
+      "vektis": "12410",
+      "omschrijving": "Consult passant korter dan 5 minuten",
+      "tarieven": {
+        "zk": 17.75
+      }
+    },
+    {
+      "vektis": "12411",
+      "omschrijving": "Consult passant vanaf 5 minuten tot 20 minuten",
+      "tarieven": {
+        "zk": 35.5
+      }
+    },
+    {
+      "vektis": "12401",
+      "omschrijving": "Consult passant 20 minuten en langer",
+      "tarieven": {
+        "zk": 71.01
+      }
+    },
+    {
+      "vektis": "12402",
+      "omschrijving": "Visite passant korter dan 20 minuten",
+      "tarieven": {
+        "zk": 53.25
+      }
+    },
+    {
+      "vektis": "12403",
+      "omschrijving": "Visite passant 20 minuten en langer",
+      "tarieven": {
+        "zk": 88.76
+      }
+    },
+    {
+      "vektis": "12406",
+      "omschrijving": "Vaccinatie passant",
+      "tarieven": {
+        "zk": 17.75
+      }
+    },
+    {
+      "vektis": "11201",
+      "omschrijving": "Module POH-GGZ per kwartaal per ingeschreven verzekerde",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Kostprijs, maximaal € 5,57",
+          "max": 5.57
+        }
+      }
+    },
+    {
+      "vektis": "12117",
+      "omschrijving": "Consult POH-GGZ korter dan 5 minuten",
+      "tarieven": {
+        "zk": 6.92
+      }
+    },
+    {
+      "vektis": "12118",
+      "omschrijving": "Consult POH-GGZ vanaf 5 minuten tot 20 minuten",
+      "tarieven": {
+        "zk": 13.85
+      }
+    },
+    {
+      "vektis": "12111",
+      "omschrijving": "Consult POH-GGZ 20 minuten en langer",
+      "tarieven": {
+        "zk": 27.69
+      }
+    },
+    {
+      "vektis": "12112",
+      "omschrijving": "Visite POH-GGZ korter dan 20 minuten",
+      "tarieven": {
+        "zk": 20.77
+      }
+    },
+    {
+      "vektis": "12113",
+      "omschrijving": "Visite POH-GGZ 20 minuten en langer",
+      "tarieven": {
+        "zk": 34.62
+      }
+    },
+    {
+      "vektis": "12116",
+      "omschrijving": "Groepsconsult POH-GGZ",
+      "tarieven": {
+        "zk": 13.85
+      }
+    },
+    {
+      "vektis": "12150",
+      "omschrijving": "Huisartsenzorg eerstelijns verblijf, dag korter dan 20 min",
+      "tarieven": {
+        "zk": 60.49
+      }
+    },
+    {
+      "vektis": "12151",
+      "omschrijving": "Huisartsenzorg eerstelijns verblijf, dag 20 min en langer",
+      "tarieven": {
+        "zk": 104.83
+      }
+    },
+    {
+      "vektis": "12152",
+      "omschrijving": "Huisartsenzorg eerstelijns verblijf, ANW korter dan 20 min",
+      "tarieven": {
+        "zk": 104.0
+      }
+    },
+    {
+      "vektis": "12153",
+      "omschrijving": "Huisartsenzorg eerstelijns verblijf, ANW 20 min en langer",
+      "tarieven": {
+        "zk": 161.18
+      }
+    },
+    {
+      "vektis": "13034",
+      "omschrijving": "Intensieve zorg, dag",
+      "tarieven": {
+        "zk": 106.9
+      }
+    },
+    {
+      "vektis": "13036",
+      "omschrijving": "Intensieve zorg, ANW",
+      "tarieven": {
+        "zk": 184.38
+      }
+    },
+    {
+      "vektis": "13015",
+      "omschrijving": "Ambulante compressietherapie bij ulcus cruris",
+      "tarieven": {
+        "zk": 84.11
+      }
+    },
+    {
+      "vektis": "13024",
+      "omschrijving": "Oogboring",
+      "tarieven": {
+        "zk": 79.97
+      }
+    },
+    {
+      "vektis": "13023",
+      "omschrijving": "Therapeutische injectie (Cyriax)",
+      "tarieven": {
+        "zk": 42.26
+      },
+      "opmerking": "NZa-correctie WB/REG-2027-04; ZK-lijst v1.0 noemt nog € 40,83"
+    },
+    {
+      "vektis": "13042",
+      "omschrijving": "IUD of etonogestrel implantatiestaafje aanbrengen en/of verwijderen",
+      "tarieven": {
+        "zk": 88.25
+      }
+    },
+    {
+      "vektis": "13012",
+      "omschrijving": "Chirurgie",
+      "tarieven": {
+        "zk": 125.13
+      }
+    },
+    {
+      "vektis": "13049",
+      "omschrijving": "Polyfarmacie",
+      "tarieven": {
+        "zk": 58.33
+      }
+    },
+    {
+      "vektis": "13050",
+      "omschrijving": "Meer tijd voor de patiënt",
+      "tarieven": {
+        "zk": 3.51
+      }
+    },
+    {
+      "vektis": "13051",
+      "omschrijving": "Meedenkadvies medisch specialistische zorg",
+      "tarieven": {
+        "zk": 22.16
+      }
+    },
+    {
+      "vektis": "13053",
+      "omschrijving": "Eerste behandelwensgesprek",
+      "tarieven": {
+        "zk": 74.77
+      },
+      "vervangt": [
+        "31244"
+      ]
+    },
+    {
+      "vektis": "13054",
+      "omschrijving": "Tweede behandelwensgesprek",
+      "tarieven": {
+        "zk": 54.0
+      },
+      "vervangt": [
+        "31242"
+      ]
+    },
+    {
+      "vektis": "13055",
+      "omschrijving": "Inbouwkosten voor nieuwe adequate huursituatie",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Op aanvraag, maximaal € 0,94",
+          "max": 0.94
+        }
+      }
+    },
+    {
+      "vektis": "31315",
+      "omschrijving": "Resultaatbeloning farmacotherapeutisch overleg",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Niveau 3: € 1,61 / niveau 4: € 2,14 (per jaar)"
+        }
+      }
+    },
+    {
+      "vektis": "30121",
+      "omschrijving": "Resultaatbeloning digitale triage",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Niveau 1: € 0,50 / niveau 2: € 1,12 (per kwartaal)"
+        }
+      }
+    },
+    {
+      "vektis": "31040",
+      "omschrijving": "Kwaliteit (praktijkaccreditatie)",
+      "tarieven": {
+        "zk": 0.22
+      }
+    },
+    {
+      "vektis": "31080",
+      "omschrijving": "Taakdelegatie",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Afhankelijk van inzet en aantal patiënten"
+        }
+      }
+    },
+    {
+      "vektis": "31279",
+      "omschrijving": "Prestatie spiegelinformatie",
+      "tarieven": {
+        "zk": 0.29
+      }
+    },
+    {
+      "vektis": "31174",
+      "omschrijving": "Praktijkmanagement huisartsenzorg",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Afhankelijk van inzet en aantal patiënten"
+        }
+      }
+    },
+    {
+      "vektis": "13043",
+      "omschrijving": "Gestructureerde huisartsenzorg in verzorgingshuis",
+      "tarieven": {
+        "zk": 75.39
+      }
+    },
+    {
+      "vektis": "13044",
+      "omschrijving": "Gestructureerde huisartsenzorg in de maatschappelijke opvang",
+      "tarieven": {
+        "zk": 75.39
+      }
+    },
+    {
+      "vektis": "31343",
+      "omschrijving": "Innovatie module POH-GGZ",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Op aanvraag"
+        }
+      }
+    },
+    {
+      "vektis": "12207",
+      "omschrijving": "Consult ANW korter dan 5 minuten",
+      "tarieven": {
+        "zk": 35.0
+      }
+    },
+    {
+      "vektis": "12208",
+      "omschrijving": "Consult ANW vanaf 5 minuten tot 20 minuten",
+      "tarieven": {
+        "zk": 70.0
+      }
+    },
+    {
+      "vektis": "12201",
+      "omschrijving": "Consult ANW 20 minuten en langer",
+      "tarieven": {
+        "zk": 139.99
+      }
+    },
+    {
+      "vektis": "12202",
+      "omschrijving": "Visite ANW korter dan 20 minuten",
+      "tarieven": {
+        "zk": 105.0
+      }
+    },
+    {
+      "vektis": "12203",
+      "omschrijving": "Visite ANW 20 minuten en langer",
+      "tarieven": {
+        "zk": 174.99
+      }
+    },
+    {
+      "vektis": "12206",
+      "omschrijving": "Vaccinatie ANW",
+      "tarieven": {
+        "zk": 35.0
+      }
+    },
+    {
+      "vektis": "12900",
+      "omschrijving": "Materiaalkosten atraumatisch hechtmateriaal, waaronder lijmen",
+      "tarieven": {
+        "zk": 21.0
+      }
+    },
+    {
+      "vektis": "12901",
+      "omschrijving": "Materiaalkosten tapemateriaal ten behoeve van enkeldistorties",
+      "tarieven": {
+        "zk": 16.41
+      }
+    },
+    {
+      "vektis": "12902",
+      "omschrijving": "Materiaalkosten zwangerschapsreactie",
+      "tarieven": {
+        "zk": 4.39
+      }
+    },
+    {
+      "vektis": "12903",
+      "omschrijving": "Materiaalkosten dipslides (urineweginfecties)",
+      "tarieven": {
+        "zk": 2.79
+      }
+    },
+    {
+      "vektis": "12904",
+      "omschrijving": "Materiaalkosten teststrips bloedsuikerbepaling diabetespatiënten",
+      "tarieven": {
+        "zk": 0.7
+      }
+    },
+    {
+      "vektis": "12905",
+      "omschrijving": "Materiaalkosten vloeibaar stikstof of histofreezer",
+      "tarieven": {
+        "zk": 5.43
+      }
+    },
+    {
+      "vektis": "12906",
+      "omschrijving": "Materiaalkosten blaaskatheter",
+      "tarieven": {
+        "zk": 51.08
+      }
+    },
+    {
+      "vektis": "12907",
+      "omschrijving": "Materiaalkosten CRP-sneltest cassette(s)",
+      "tarieven": {
+        "zk": 6.89
+      }
+    },
+    {
+      "vektis": "12700",
+      "omschrijving": "Kosten ECG maken",
+      "tarieven": {
+        "zk": 9.59
+      }
+    },
+    {
+      "vektis": "12009",
+      "omschrijving": "Kosten entstoffen",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Kostprijs"
+        }
+      }
+    },
+    {
+      "vektis": "12008",
+      "omschrijving": "Laboratoriumkosten",
+      "tarieven": {
+        "zk": {
+          "variabel": true,
+          "hint": "Kostprijs"
+        }
+      }
+    },
+    {
+      "vektis": "12822",
+      "omschrijving": "Zorginhoudelijk advies voorafgaand aan eventuele SCEN-procedure",
+      "tarieven": {
+        "zk": 53.25
+      }
+    },
+    {
+      "vektis": "12815",
+      "omschrijving": "SCEN",
+      "tarieven": {
+        "zk": 724.61
+      }
+    },
+    {
+      "vektis": "12821",
+      "omschrijving": "SCEN op de Waddeneilanden",
+      "tarieven": {
+        "zk": 1449.21
+      }
+    },
+    {
+      "vektis": "13000",
+      "omschrijving": "Audiometrie",
+      "tarieven": {
+        "zk": 41.69
+      }
+    },
+    {
+      "vektis": "13001",
+      "omschrijving": "Diagnostiek met behulp van Doppler",
+      "tarieven": {
+        "zk": 82.17
+      }
+    },
+    {
+      "vektis": "13003",
+      "omschrijving": "Tympanometrie",
+      "tarieven": {
+        "zk": 42.35
+      }
+    },
+    {
+      "vektis": "13004",
+      "omschrijving": "Longfunctiemeting (spirometrie)",
+      "tarieven": {
+        "zk": 65.99
+      }
+    },
+    {
+      "vektis": "13005",
+      "omschrijving": "ECG-diagnostiek",
+      "tarieven": {
+        "zk": 65.38
+      }
+    },
+    {
+      "vektis": "13006",
+      "omschrijving": "Spleetlamponderzoek",
+      "tarieven": {
+        "zk": 82.17
+      }
+    },
+    {
+      "vektis": "13007",
+      "omschrijving": "Tele-echo, tele-röntgen, tele-hartmonitoring op de Waddeneilanden",
+      "tarieven": {
+        "zk": 169.3
+      }
+    },
+    {
+      "vektis": "13008",
+      "omschrijving": "Bloeddrukmeting gedurende 24 uur, hypertensiemeting",
+      "tarieven": {
+        "zk": 43.57
+      }
+    },
+    {
+      "vektis": "13010",
+      "omschrijving": "Cognitieve functietest (MMSE)",
+      "tarieven": {
+        "zk": 82.17
+      }
+    },
+    {
+      "vektis": "13011",
+      "omschrijving": "Hartritmestoornissen",
+      "tarieven": {
+        "zk": 41.06
+      }
+    },
+    {
+      "vektis": "13027",
+      "omschrijving": "MRSA-screening",
+      "tarieven": {
+        "zk": 68.26
+      }
+    },
+    {
+      "vektis": "13032",
+      "omschrijving": "Palliatieve consultatie, visite",
+      "tarieven": {
+        "zk": 164.33
+      }
+    },
+    {
+      "vektis": "13033",
+      "omschrijving": "Palliatieve consultatie, telefonisch",
+      "tarieven": {
+        "zk": 40.68
+      }
+    },
+    {
+      "vektis": "13038",
+      "omschrijving": "Euthanasie",
+      "tarieven": {
+        "zk": 328.69
+      }
+    },
+    {
+      "vektis": "13045",
+      "omschrijving": "Module abdominale echografie",
+      "tarieven": {
+        "zk": 84.67
+      }
+    },
+    {
+      "vektis": "13039",
+      "omschrijving": "Reizigersadvisering",
+      "tarieven": {
+        "zk": 75.23
+      }
+    },
+    {
+      "vektis": "13040",
+      "omschrijving": "Sterilisatie man",
+      "tarieven": {
+        "zk": 505.46
+      }
+    },
+    {
+      "vektis": "31457",
+      "omschrijving": "Valrisicobeoordeling",
+      "tarieven": {
+        "zk": 23.23
+      }
+    }
+  ]
+}

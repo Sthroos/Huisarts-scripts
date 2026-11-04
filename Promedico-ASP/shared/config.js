@@ -188,6 +188,15 @@ const SCRIPT_CONFIG = [
   injectMode: 'main_world'
 },
 {
+  id: 'tarievenBijwerken',
+  name: 'Tarieven bijwerken (jaarlijks)',
+  description: 'Zet de Praktijk-tarieven in Onderhoud > Tarieven over naar het nieuwe jaar, met proefrun vooraf',
+  enabled: false,
+  riskLevel: 'write',
+  scriptFile: 'scripts/tarieven-bijwerken.js',
+  urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+},
+{
   id: 'teleqBellen',
   name: 'Bellen via TeleQ',
   description: 'Vult het nummer in en belt automatisch als je op de 📞-knop bij een telefoonnummer klikt',
