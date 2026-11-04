@@ -28,6 +28,7 @@ Deze handleiding beschrijft alle scripts van de Promedico ASP Helper extensie. E
 20. [Verrichting Quick Buttons](#20-verrichting-quick-buttons)
 21. [Zneller Formulieren](#21-zneller-formulieren)
 22. [Zorgdomein Quick Menu](#22-zorgdomein-quick-menu)
+25. [Episodes samenvoegen](#25-episodes-samenvoegen)
 
 ---
 
@@ -603,6 +604,20 @@ Voegt een uitgebreid menu toe waarmee je direct vanuit Promedico naar een specif
 - **Hulpmiddelen:** Diabetesmaterialen, Compressiematerialen, Mobiliteit, Orthesen, Respiratoire hulpmiddelen, en meer
 
 > **Instelling:** Welke zorginstellingen in het menu verschijnen stel je in via de **onboarding** (zie hieronder). Het menu werkt voor alle regio's in Nederland — je kiest zelf met welke ziekenhuizen en laboratoria jouw praktijk samenwerkt.
+
+---
+
+## 25. Episodes samenvoegen
+
+**Waar te vinden:** Medisch dossier > Episoden van een geopende patiënt. Rechtsonder verschijnt de knop **Episodes samenvoegen**. Standaard uit; zet het script aan in de popup.
+
+**Hoe het werkt:**
+1. Het script groepeert de episodes uit het overzicht op ICPC-code (2 of meer episodes met dezelfde code).
+2. Groepen met een episode *ALGEMEEN JOURNAAL* worden overgeslagen.
+3. Per groep blijft de episode met de meest recente datum over (vetgedrukt in het overzicht); de andere worden erin samengevoegd.
+4. Je bevestigt één keer met **Alles samenvoegen**. Is het overzicht intussen veranderd, dan wordt die groep overgeslagen.
+
+> **Let op:** de overblijvende episode behoudt haar eigen omschrijving en kenmerken. Controleer in het overzicht of dat de goede is. Samenvoegen is niet terug te draaien. Werkt alleen op de patiënt die open staat.
 
 ---
 
