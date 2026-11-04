@@ -59,7 +59,7 @@ echo ""
 copy_shared() {
     local OUT=$1
     rm -rf "$OUT"
-    mkdir -p "$OUT/scripts" "$OUT/icons"
+    mkdir -p "$OUT/scripts" "$OUT/icons" "$OUT/tarieven"
 
     cp shared/config.js        "$OUT/"
     cp shared/popup.html       "$OUT/"
@@ -73,6 +73,7 @@ copy_shared() {
     cp shared/storage-bridge-client.js "$OUT/"
     cp shared/icons/*          "$OUT/icons/"
     cp scripts/*.js            "$OUT/scripts/"
+    cp tarieven/*.json         "$OUT/tarieven/"
 }
 
 # ─── Hulpfunctie: kopieer browser-specifieke bestanden ────────────────────────

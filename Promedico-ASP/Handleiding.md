@@ -28,6 +28,7 @@ Deze handleiding beschrijft alle scripts van de Promedico ASP Helper extensie. E
 20. [Verrichting Quick Buttons](#20-verrichting-quick-buttons)
 21. [Zneller Formulieren](#21-zneller-formulieren)
 22. [Zorgdomein Quick Menu](#22-zorgdomein-quick-menu)
+23. [Tarieven bijwerken](#23-tarieven-bijwerken)
 
 ---
 
@@ -603,6 +604,36 @@ Voegt een uitgebreid menu toe waarmee je direct vanuit Promedico naar een specif
 - **Hulpmiddelen:** Diabetesmaterialen, Compressiematerialen, Mobiliteit, Orthesen, Respiratoire hulpmiddelen, en meer
 
 > **Instelling:** Welke zorginstellingen in het menu verschijnen stel je in via de **onboarding** (zie hieronder). Het menu werkt voor alle regio's in Nederland — je kiest zelf met welke ziekenhuizen en laboratoria jouw praktijk samenwerkt.
+
+---
+
+## 23. Tarieven bijwerken
+
+**Waar te vinden:** Onderhoud > Tarieven. Zodra dat scherm open is, verschijnt rechtsonder de knop **Tarieven bijwerken**. Standaard uit; zet het script aan in de popup.
+
+**Wat het doet:**
+Zet de Praktijk-tarieven over naar het nieuwe jaar, op basis van het meegeleverde tarievenbestand (`tarieven/<jaar>.json`). Vervangt de jaarlijkse handmatige "werk alles bij"-sessie.
+
+**Hoe het werkt:**
+1. Kies het jaar (huidig of komend, afhankelijk van welke bestanden er zijn) en de verzekeraar (standaard Zilveren Kruis).
+2. Vul de tarieven in die per praktijk verschillen (kostprijs, taakdelegatie, praktijkmanagement, resultaatbeloning). Leeg laten = niet bijwerken. Ingevulde waarden worden per jaar en verzekeraar onthouden.
+3. **Proefrun:** het script leest de lijsten en opent elke actieve code. Er wordt niets opgeslagen. Je krijgt per code het huidige en het nieuwe tarief te zien.
+4. Controleer het overzicht en klik op **Wijzigingen opslaan**.
+
+**Regels per code:**
+- **CTG-rijen** (landelijk, door Promedico beheerd) worden nooit gewijzigd.
+- Bestaat er al een Praktijk-rij vanaf de nieuwe ingangsdatum met hetzelfde bedrag: overslaan. Met een ander bedrag: *conflict*, handmatig controleren.
+- Klopt de CTG-rij voor het nieuwe jaar al: overslaan.
+- Anders: nieuwe Praktijk-rij, geldig van 01-01-jjjj tot 01-01-jjjj+1 (Promedico-conventie).
+- Een oude Praktijk-rij die na de nieuwe ingangsdatum doorloopt, krijgt als einddatum de nieuwe ingangsdatum.
+- Opnieuw draaien is veilig: wat al klopt, wordt overgeslagen.
+
+**Activeren/deactiveren:**
+- Codes uit het tarievenbestand die niet actief zijn, kun je laten activeren. Alleen vervangende codes (bijv. 13053/13054 voor het behandelwensgesprek) staan standaard aan.
+- Actieve codes die niet in het tarievenbestand staan, kun je laten deactiveren. Standaard staat niets aangevinkt.
+
+**Nieuw jaar toevoegen:**
+Voeg `tarieven/<jaar>.json` toe (zelfde structuur, met `bronnen`), verwijder het oudste bestand en maak een release. Het script vindt de jaren zelf.
 
 ---
 
