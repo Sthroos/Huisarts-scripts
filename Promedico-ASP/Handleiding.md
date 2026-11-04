@@ -28,6 +28,7 @@ Deze handleiding beschrijft alle scripts van de Promedico ASP Helper extensie. E
 20. [Verrichting Quick Buttons](#20-verrichting-quick-buttons)
 21. [Zneller Formulieren](#21-zneller-formulieren)
 22. [Zorgdomein Quick Menu](#22-zorgdomein-quick-menu)
+24. [Dubbele medicatie samenvoegen](#24-dubbele-medicatie-samenvoegen)
 
 ---
 
@@ -603,6 +604,20 @@ Voegt een uitgebreid menu toe waarmee je direct vanuit Promedico naar een specif
 - **Hulpmiddelen:** Diabetesmaterialen, Compressiematerialen, Mobiliteit, Orthesen, Respiratoire hulpmiddelen, en meer
 
 > **Instelling:** Welke zorginstellingen in het menu verschijnen stel je in via de **onboarding** (zie hieronder). Het menu werkt voor alle regio's in Nederland — je kiest zelf met welke ziekenhuizen en laboratoria jouw praktijk samenwerkt.
+
+---
+
+## 24. Dubbele medicatie samenvoegen
+
+**Waar te vinden:** Medisch dossier > Medicatie van een geopende patiënt. Rechtsonder verschijnt de knop **Dubbele medicatie samenvoegen**. Standaard uit; zet het script aan in de popup.
+
+**Hoe het werkt:**
+1. Het script zet het filter op *Alles* en leest alle pagina's van het medicatieoverzicht.
+2. Regels waarvan de productnaam met hetzelfde woord begint (bijv. *metformine 500* en *metformine 850*), vormen een groep met mogelijk dubbele medicatie.
+3. Je krijgt een overzicht van alle groepen en bevestigt één keer met **Alles samenvoegen**.
+4. Per groep opent het script een regel, klikt op *Samenvoegen* en voegt **alle kandidaten** samen die Promedico daar zelf toont. Toont Promedico geen kandidaten, dan probeert het script de volgende regel van de groep.
+
+> **Let op:** welke regels samengaan, bepaalt Promedico in het samenvoegscherm. Samenvoegen is niet terug te draaien. Werkt alleen op de patiënt die open staat. Er wordt niets opgeslagen buiten Promedico.
 
 ---
 

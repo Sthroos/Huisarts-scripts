@@ -123,6 +123,15 @@ const SCRIPT_CONFIG = [
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
 },
 {
+  id: 'medicatieSamenvoegen',
+  name: 'Dubbele medicatie samenvoegen',
+  description: 'Voegt dubbele medicatie van de geopende patiënt samen via Promedico\'s samenvoegscherm (één bevestiging vooraf)',
+  enabled: false,
+  riskLevel: 'write',
+  scriptFile: 'scripts/medicatie-samenvoegen.js',
+  urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+},
+{
   id: 'meetwaardenHighlights',
   name: 'Meetwaarden Highlights (2 regels)',
   description: 'Highlight measurement values',
