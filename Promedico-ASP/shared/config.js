@@ -77,6 +77,15 @@ const SCRIPT_CONFIG = [
   urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
 },
 {
+  id: 'episodesSamenvoegen',
+  name: 'Episodes samenvoegen (zelfde ICPC)',
+  description: 'Voegt episodes met dezelfde ICPC-code van de geopende patiënt samen; doel = meest recente (één bevestiging vooraf)',
+  enabled: false,
+  riskLevel: 'write',
+  scriptFile: 'scripts/episodes-samenvoegen.js',
+  urlPatterns: ['https://www.promedico-asp.nl/promedico/*']
+},
+{
   id: 'econsultTemplates',
   name: 'E-consult Template Responses',
   description: 'Quick template responses for e-consults',
